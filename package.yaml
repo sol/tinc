@@ -18,6 +18,7 @@ dependencies:
   - filepath
   - process
   - getopt-generics
+  - parsec
 
 library:
   source-dirs:

@@ -34,6 +34,7 @@ library
     , filepath
     , process
     , getopt-generics
+    , parsec
   ghc-options: -Wall -fno-warn-name-shadowing
   default-language: Haskell2010
 
@@ -53,6 +54,7 @@ executable stack-sandbox
     , filepath
     , process
     , getopt-generics
+    , parsec
   ghc-options: -Wall -fno-warn-name-shadowing
   default-language: Haskell2010
 
@@ -75,6 +77,7 @@ test-suite spec
     , filepath
     , process
     , getopt-generics
+    , parsec
 
     , hspec
     , mockery
