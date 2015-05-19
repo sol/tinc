@@ -6,6 +6,8 @@ import           Data.List
 import           System.Directory
 import           System.Environment
 import           System.FilePath
+import           System.IO
+import           System.IO.Silently
 import           System.Process
 import           Test.Hspec
 import           Test.Mockery.Directory
@@ -45,7 +47,7 @@ spec =
 
       it "yields a working sandbox" $ \ src -> do
         withDirectory (path src) $ do
-          callCommand "cabal exec ghc-pkg check"
+          hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
 
 unsetEnvVars :: IO ()
 unsetEnvVars = do
