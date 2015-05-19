@@ -8,6 +8,7 @@ import           Data.Traversable
 import           System.Directory
 import           System.Exit
 import           System.FilePath
+import           System.IO
 import           System.Process
 
 import           Graph
@@ -60,8 +61,19 @@ findGlobalPackageDB = do
   return $ Path $ takeWhile (/= ':') output
 
 registerPackage :: Path PackageDB -> Path Package -> IO ()
-registerPackage packageDB package =
-  callCommand ("ghc-pkg register --package-db=" ++ path packageDB ++ " " ++ path package)
+registerPackage packageDB package = do
+  hPutStrLn stderr ("registering " ++ takeFileName (path package))
+  (exitCode, out, err) <- readProcessWithExitCode "ghc-pkg"
+    ("register" :
+     "--package-db" : path packageDB :
+     path package :
+     []) ""
+  case exitCode of
+    ExitSuccess -> return ()
+    ExitFailure _ -> do
+      hPutStrLn stderr "ghc-pkg register failed:"
+      hPutStrLn stderr out
+      hPutStrLn stderr err
 
 -- * indexed paths
 
