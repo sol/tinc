@@ -1,0 +1,43 @@
+name: stack-sandbox
+version: "0.1"
+category: Development
+license: "BSD3"
+author: "Sönke Hahn"
+copyright: "Sönke Hahn"
+maintainer: "soenke.hahn@zalora.com"
+github: soenkehahn/link-sandbox
+
+ghc-options: -Wall -fno-warn-name-shadowing
+
+dependencies:
+  - base == 4.*
+  - graph-wrapper
+  - language-dot
+  - containers
+  - directory
+  - filepath
+  - process
+  - getopt-generics
+
+library:
+  source-dirs:
+    - src
+
+executables:
+  stack-sandbox:
+    main: stack-sandbox.hs
+    source-dirs:
+      - src
+      - driver
+
+tests:
+  spec:
+    main: "Spec.hs"
+    ghc-options: "-threaded -O0"
+    source-dirs:
+      - src
+      - test
+
+    dependencies:
+      - hspec
+      - mockery
