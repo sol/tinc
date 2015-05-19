@@ -1,12 +1,15 @@
 
 module Stack where
 
+import           Prelude ()
+import           Prelude.Compat
+
 import           Control.Exception
 import           Data.List
 import           Data.Maybe
 import           Data.Traversable
 import           System.Directory
-import           System.Exit
+import           System.Exit.Compat
 import           System.FilePath
 import           System.IO
 import           System.Process

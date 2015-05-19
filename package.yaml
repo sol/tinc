@@ -11,12 +11,13 @@ ghc-options: -Wall -fno-warn-name-shadowing
 
 dependencies:
   - base == 4.*
+  - base-compat
   - graph-wrapper
   - language-dot
   - containers
   - directory
   - filepath
-  - process
+  - process >= 1.2
   - getopt-generics
   - parsec
 

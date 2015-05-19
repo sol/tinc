@@ -1,8 +1,11 @@
 
 module StackSpec where
 
+import           Prelude ()
+import           Prelude.Compat
+
 import           Control.Monad
-import           Data.List
+import           Data.List.Compat
 import           System.Directory
 import           System.Environment
 import           System.FilePath

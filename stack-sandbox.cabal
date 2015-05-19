@@ -27,12 +27,13 @@ library
       Stack
   build-depends:
       base == 4.*
+    , base-compat
     , graph-wrapper
     , language-dot
     , containers
     , directory
     , filepath
-    , process
+    , process >= 1.2
     , getopt-generics
     , parsec
   ghc-options: -Wall -fno-warn-name-shadowing
@@ -47,12 +48,13 @@ executable stack-sandbox
       Stack
   build-depends:
       base == 4.*
+    , base-compat
     , graph-wrapper
     , language-dot
     , containers
     , directory
     , filepath
-    , process
+    , process >= 1.2
     , getopt-generics
     , parsec
   ghc-options: -Wall -fno-warn-name-shadowing
@@ -70,12 +72,13 @@ test-suite spec
       StackSpec
   build-depends:
       base == 4.*
+    , base-compat
     , graph-wrapper
     , language-dot
     , containers
     , directory
     , filepath
-    , process
+    , process >= 1.2
     , getopt-generics
     , parsec
 
