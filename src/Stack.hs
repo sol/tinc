@@ -4,7 +4,9 @@ module Stack where
 import           Control.Exception
 import           Data.List
 import           Data.Maybe
+import           Data.Traversable
 import           System.Directory
+import           System.Exit
 import           System.FilePath
 import           System.Process
 
@@ -25,7 +27,7 @@ findPackageDB dir = do
     filter ("-packages.conf.d" `isSuffixOf`) <$>
     getDirectoryContents (path dir </> ".cabal-sandbox")
   maybe
-    (throwIO (ErrorCall ("package db not found in " ++ path dir)))
+    (die ("package db not found in " ++ path dir))
     (\ p -> Path <$> canonicalizePath (path dir </> ".cabal-sandbox" </> p))
     mr
 
@@ -39,12 +41,18 @@ extractPackages packageDB = do
     ("--package-db" : path globalPackageDB :
      "--package-db" : path packageDB :
      "dot" : []) []
-  let packagesInTopologicalOrder = reverse $ topolocicalOrder $ fromDot dot
-  return $ catMaybes $ (flip map) packagesInTopologicalOrder $
-    \ packageFromGraph ->
+  packagesInTopologicalOrder <- do
+    case fromDot dot of
+      Right graph ->
+        return $ reverse $ topolocicalOrder graph
+      Left message -> die message
+  catMaybes <$> forM packagesInTopologicalOrder
+    (\ packageFromGraph ->
       case filter (packageFromGraph `isPrefixOf`) packageFiles of
-        [packageFile] -> Just $ Path (path packageDB </> packageFile)
-        [] -> Nothing
+        [packageFile] -> return $
+          Just $ Path (path packageDB </> packageFile)
+        [] -> return Nothing
+        multiple -> die ("package found multiple times: " ++ unwords multiple))
 
 findGlobalPackageDB :: IO (Path PackageDB)
 findGlobalPackageDB = do

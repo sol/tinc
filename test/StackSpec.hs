@@ -1,7 +1,6 @@
 
 module StackSpec where
 
-import           Control.Exception
 import           Control.Monad
 import           Data.List
 import           System.Directory
