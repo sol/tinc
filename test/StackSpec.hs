@@ -7,7 +7,7 @@ import           Prelude.Compat
 import           Control.Monad
 import           Data.List.Compat
 import           System.Directory
-import           System.Environment
+import           System.Environment.Compat
 import           System.FilePath
 import           System.IO
 import           System.IO.Silently
@@ -42,11 +42,10 @@ spec =
 
     describe "createStackedSandbox" $ do
       it "registers packages from one sandbox in another" $ \ src -> do
-        inTempDirectory $ do
-          withDirectory "b" $ do
-            createStackedSandbox src
-            output <- readProcess "cabal" (words "exec ghc-pkg list") ""
-            output `shouldContain` "safe"
+        inTempDirectoryNamed "b" $ do
+          createStackedSandbox src
+          output <- readProcess "cabal" (words "exec ghc-pkg list") ""
+          output `shouldContain` "getopt-generics"
 
       it "yields a working sandbox" $ \ src -> do
         withDirectory (path src) $ do
@@ -62,7 +61,7 @@ mkTestSandbox :: Path SandboxParent -> IO ()
 mkTestSandbox dir = do
   withDirectory (path dir) $ do
     callCommand "cabal sandbox init"
-    callCommand "cabal install getopt-generics safe"
+    callCommand "cabal install getopt-generics"
 
 mkCachedTestSandbox :: IO (Path SandboxParent)
 mkCachedTestSandbox = do

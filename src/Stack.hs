@@ -66,8 +66,11 @@ findGlobalPackageDB = do
 registerPackage :: Path PackageDB -> Path Package -> IO ()
 registerPackage packageDB package = do
   hPutStrLn stderr ("registering " ++ takeFileName (path package))
-  (exitCode, out, err) <- readProcessWithExitCode "ghc-pkg"
-    ("register" :
+  (exitCode, out, err) <- readProcessWithExitCode "cabal"
+    ("exec" :
+     "--" :
+     "ghc-pkg" :
+     "register" :
      "--package-db" : path packageDB :
      path package :
      []) ""
