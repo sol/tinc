@@ -111,14 +111,8 @@ data SandboxParent
 data PackageDB
 data Package
 
--- * utils
-
 withDirectory :: FilePath -> IO a -> IO a
-withDirectory dir action = bracket start stop (const action)
- where
-  start = do
-    outer <- getCurrentDirectory
-    createDirectoryIfMissing True dir
-    setCurrentDirectory dir
-    return outer
-  stop = setCurrentDirectory
+withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \_ -> do
+  createDirectoryIfMissing True dir
+  setCurrentDirectory dir
+  action
