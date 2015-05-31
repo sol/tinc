@@ -1,10 +1,19 @@
+module Stack (
+  Path (..)
+, SandboxParent
+, PackageDB
+, Package
+, installDependencies
+, createStackedSandbox
 
-module Stack where
+-- exported for testing
+, findPackageDB
+, extractPackages
+) where
 
 import           Prelude ()
 import           Prelude.Compat
 
-import           Control.Exception
 import           Data.List
 import           Data.Maybe
 import           Data.Traversable
@@ -17,6 +26,12 @@ import           System.Process
 import           Graph
 import           Util
 
+newtype Path a = Path {path :: FilePath}
+  deriving (Eq, Show)
+
+data SandboxParent
+data PackageDB
+data Package
 
 initSandbox :: IO (Path PackageDB)
 initSandbox = do
@@ -77,7 +92,6 @@ lookupPackages packageDB packages = do
       Right x -> return (Path . (path packageDB </>) <$> x)
       Left message -> die message
 
-
 findGlobalPackageDB :: IO (Path PackageDB)
 findGlobalPackageDB = do
   output <- readProcess "ghc-pkg" ["list"] []
@@ -100,19 +114,3 @@ registerPackage packageDB package = do
       hPutStrLn stderr "ghc-pkg register failed:"
       hPutStrLn stderr out
       hPutStrLn stderr err
-
--- * indexed paths
-
-newtype Path a
-  = Path {path :: FilePath}
-  deriving (Eq, Show)
-
-data SandboxParent
-data PackageDB
-data Package
-
-withDirectory :: FilePath -> IO a -> IO a
-withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \_ -> do
-  createDirectoryIfMissing True dir
-  setCurrentDirectory dir
-  action

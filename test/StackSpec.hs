@@ -1,10 +1,10 @@
-
-module StackSpec where
+module StackSpec (spec) where
 
 import           Prelude ()
 import           Prelude.Compat
 
 import           Control.Monad
+import           Control.Exception
 import           Data.List.Compat
 import           System.Directory
 import           System.Environment.Compat
@@ -87,6 +87,12 @@ unsetEnvVars = do
   unsetEnv "CABAL_SANDBOX_CONFIG"
   unsetEnv "CABAL_SANDBOX_PACKAGE_PATH"
   unsetEnv "GHC_PACKAGE_PATH"
+
+withDirectory :: FilePath -> IO a -> IO a
+withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \_ -> do
+  createDirectoryIfMissing True dir
+  setCurrentDirectory dir
+  action
 
 target :: String
 target = "getopt-generics-0.6.3"
