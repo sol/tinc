@@ -66,9 +66,9 @@ spec =
 
       it "installs dependencies" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
-          writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , safe"]
+          writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv"]
           installDependencies cache
-          listPackages >>= (`shouldContain` "safe")
+          listPackages >>= (`shouldContain` "setenv")
 
       it "reuses packages" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
