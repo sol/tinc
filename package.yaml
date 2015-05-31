@@ -42,5 +42,6 @@ tests:
 
     dependencies:
       - hspec
+      - hspec-expectations
       - mockery
       - silently

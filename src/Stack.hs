@@ -15,11 +15,27 @@ import           System.IO
 import           System.Process
 
 import           Graph
+import           Util
+
+
+initSandbox :: IO (Path PackageDB)
+initSandbox = do
+  callCommand "cabal sandbox init"
+  findPackageDB (Path "." :: Path SandboxParent)
+
+installDependencies :: Path SandboxParent -> IO ()
+installDependencies cache = do
+  destPackageDB <- initSandbox
+  packages <- parseInstallPlan <$> readProcess "cabal" (command ++ ["--dry-run"]) ""
+  packageDB <- findPackageDB cache
+  lookupPackages packageDB packages >>= mapM_ (registerPackage destPackageDB)
+  callProcess "cabal" command
+  where
+    command = words "install --only-dependencies"
 
 createStackedSandbox :: Path SandboxParent -> IO ()
 createStackedSandbox source = do
-  callCommand "cabal sandbox init"
-  destPackageDB <- findPackageDB (Path "." :: Path SandboxParent)
+  destPackageDB <- initSandbox
   sourcePackageDB <- findPackageDB source
   packages <- extractPackages sourcePackageDB
   mapM_ (registerPackage destPackageDB) packages
@@ -37,9 +53,6 @@ findPackageDB dir = do
 
 extractPackages :: Path PackageDB -> IO [Path Package]
 extractPackages packageDB = do
-  packageFiles <-
-    filter (".conf" `isSuffixOf`) <$>
-    getDirectoryContents (path packageDB)
   globalPackageDB <- findGlobalPackageDB
   dot <- readProcess "ghc-pkg"
     ("--package-db" : path globalPackageDB :
@@ -50,13 +63,20 @@ extractPackages packageDB = do
       Right graph ->
         return $ reverse $ topolocicalOrder graph
       Left message -> die message
-  catMaybes <$> forM packagesInTopologicalOrder
-    (\ packageFromGraph ->
-      case filter (packageFromGraph `isPrefixOf`) packageFiles of
-        [packageFile] -> return $
-          Just $ Path (path packageDB </> packageFile)
-        [] -> return Nothing
-        multiple -> die ("package found multiple times: " ++ unwords multiple))
+  lookupPackages packageDB packagesInTopologicalOrder
+
+findPackageConfigs :: Path PackageDB -> IO [FilePath]
+findPackageConfigs packageDB =
+  filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path packageDB)
+
+lookupPackages :: Path PackageDB -> [PackageName] -> IO [Path Package]
+lookupPackages packageDB packages = do
+  packageConfigs <- findPackageConfigs packageDB
+  fmap catMaybes . forM packages $ \ package ->
+    case lookupPackage package packageConfigs of
+      Right x -> return (Path . (path packageDB </>) <$> x)
+      Left message -> die message
+
 
 findGlobalPackageDB :: IO (Path PackageDB)
 findGlobalPackageDB = do
@@ -83,7 +103,7 @@ registerPackage packageDB package = do
 
 -- * indexed paths
 
-data Path a
+newtype Path a
   = Path {path :: FilePath}
   deriving (Eq, Show)
 
@@ -102,4 +122,3 @@ withDirectory dir action = bracket start stop (const action)
     setCurrentDirectory dir
     return outer
   stop = setCurrentDirectory
-

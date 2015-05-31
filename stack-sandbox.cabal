@@ -83,6 +83,7 @@ test-suite spec
     , parsec
 
     , hspec
+    , hspec-expectations
     , mockery
     , silently
   ghc-options: -Wall -fno-warn-name-shadowing -threaded -O0
