@@ -89,7 +89,7 @@ unsetEnvVars = do
   unsetEnv "GHC_PACKAGE_PATH"
 
 target :: String
-target = "getopt-generics-0.6"
+target = "getopt-generics-0.6.3"
 
 mkTestSandbox :: Path SandboxParent -> IO ()
 mkTestSandbox dir = do
