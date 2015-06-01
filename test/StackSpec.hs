@@ -24,32 +24,32 @@ spec =
   beforeAll mkCachedTestSandbox $ do
 
     describe "findPackageDB" $ do
-      it "finds the sandbox package db" $ \ src -> do
-        r <- findPackageDB src
-        path r `shouldSatisfy` (\ pdb ->
-          (path src </> ".cabal-sandbox") `isPrefixOf` pdb &&
+      it "finds the sandbox package db" $ \sandbox -> do
+        r <- findPackageDB sandbox
+        path r `shouldSatisfy` (\pdb ->
+          (path sandbox </> ".cabal-sandbox") `isPrefixOf` pdb &&
           "ghc" `isInfixOf` pdb)
 
-      it "returns an absolute path" $ \ src -> do
-        r <- findPackageDB src
+      it "returns an absolute path" $ \sandbox -> do
+        r <- findPackageDB sandbox
         path r `shouldSatisfy` ("/" `isPrefixOf`)
 
     describe "extractPackages" $ do
-      it "extracts the packages" $ \ src -> do
-        packageDB <- findPackageDB src
+      it "extracts the packages" $ \sandbox -> do
+        packageDB <- findPackageDB sandbox
         packages <- extractPackages packageDB
         packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 
     describe "createStackedSandbox" $ do
-      it "registers packages from one sandbox in another" $ \ src -> do
+      it "registers packages from one sandbox in another" $ \sandbox -> do
         inTempDirectoryNamed "b" $ do
-          createStackedSandbox src
+          createStackedSandbox sandbox
           output <- readProcess "cabal" (words "exec ghc-pkg list") ""
           output `shouldContain` getoptGenerics
 
-      it "yields a working sandbox" $ \ src -> do
-        withDirectory (path src) $ do
+      it "yields a working sandbox" $ \sandbox -> do
+        withDirectory (path sandbox) $ do
           hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
 
     describe "installDependencies" $ do
@@ -64,19 +64,19 @@ spec =
           listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""
           packageImportDirs package = readProcess "cabal" ["exec", "ghc-pkg", "field", package, "import-dirs"] ""
 
-      it "installs dependencies" $ \ cache -> do
+      it "installs dependencies" $ \cache -> do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv"]
           installDependencies cache
           listPackages >>= (`shouldContain` "setenv")
 
-      it "reuses packages" $ \ cache -> do
+      it "reuses packages" $ \cache -> do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
           installDependencies cache
           packageImportDirs "generics-sop" >>= (`shouldContain` path cache)
 
-      it "skips redundant packages" $ \ cache -> do
+      it "skips redundant packages" $ \cache -> do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
           installDependencies cache
