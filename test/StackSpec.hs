@@ -46,7 +46,7 @@ spec =
         inTempDirectoryNamed "b" $ do
           createStackedSandbox src
           output <- readProcess "cabal" (words "exec ghc-pkg list") ""
-          output `shouldContain` target
+          output `shouldContain` getoptGenerics
 
       it "yields a working sandbox" $ \ src -> do
         withDirectory (path src) $ do
@@ -80,7 +80,7 @@ spec =
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
           installDependencies cache
-          listPackages >>= (`shouldNotContain` target)
+          listPackages >>= (`shouldNotContain` getoptGenerics)
 
 unsetEnvVars :: IO ()
 unsetEnvVars = do
@@ -94,20 +94,30 @@ withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \_ 
   setCurrentDirectory dir
   action
 
-target :: String
-target = "getopt-generics-0.6.3"
+getoptGenerics :: String
+getoptGenerics = "getopt-generics-0.6.3"
 
 mkTestSandbox :: Path SandboxParent -> IO ()
 mkTestSandbox dir = do
   withDirectory (path dir) $ do
     callCommand "cabal sandbox init"
-    callCommand $ "cabal install " ++ target
+    callCommand ("cabal install --disable-library-profiling --disable-optimization --disable-documentation " ++ unwords packages)
+  where
+    packages = [
+        "base-compat-0.8.2"
+      , "base-orphans-0.3.2"
+      , "generics-sop-0.1.1.2"
+      , "tagged-0.8.0.1"
+      , getoptGenerics
+      ]
+
+cacheDir :: FilePath
+cacheDir = "cache/tinc-1209"
 
 mkCachedTestSandbox :: IO (Path SandboxParent)
 mkCachedTestSandbox = do
-  let relativeCache = "test-sandbox-cache"
-  exists <- doesDirectoryExist relativeCache
-  when (not exists) $ createDirectory relativeCache
-  testSandboxCache <- Path <$> canonicalizePath relativeCache
+  exists <- doesDirectoryExist cacheDir
+  when (not exists) $ createDirectoryIfMissing True cacheDir
+  testSandboxCache <- Path <$> canonicalizePath cacheDir
   when (not exists) $ mkTestSandbox testSandboxCache
   return testSandboxCache
