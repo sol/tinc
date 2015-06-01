@@ -2,7 +2,7 @@ module Stack (
   Path (..)
 , Sandbox
 , PackageDB
-, Package
+, PackageConfig
 , installDependencies
 , createStackedSandbox
 
@@ -31,7 +31,7 @@ newtype Path a = Path {path :: FilePath}
 
 data Sandbox
 data PackageDB
-data Package
+data PackageConfig
 
 initSandbox :: IO (Path PackageDB)
 initSandbox = do
@@ -66,7 +66,7 @@ findPackageDB dir = do
     (\ p -> Path <$> canonicalizePath (path dir </> ".cabal-sandbox" </> p))
     mr
 
-extractPackages :: Path PackageDB -> IO [Path Package]
+extractPackages :: Path PackageDB -> IO [Path PackageConfig]
 extractPackages packageDB = do
   globalPackageDB <- findGlobalPackageDB
   dot <- readProcess "ghc-pkg"
@@ -84,7 +84,7 @@ findPackageConfigs :: Path PackageDB -> IO [FilePath]
 findPackageConfigs packageDB =
   filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path packageDB)
 
-lookupPackages :: Path PackageDB -> [PackageName] -> IO [Path Package]
+lookupPackages :: Path PackageDB -> [PackageName] -> IO [Path PackageConfig]
 lookupPackages packageDB packages = do
   packageConfigs <- findPackageConfigs packageDB
   fmap catMaybes . forM packages $ \ package ->
@@ -97,7 +97,7 @@ findGlobalPackageDB = do
   output <- readProcess "ghc-pkg" ["list"] []
   return $ Path $ takeWhile (/= ':') output
 
-registerPackage :: Path PackageDB -> Path Package -> IO ()
+registerPackage :: Path PackageDB -> Path PackageConfig -> IO ()
 registerPackage packageDB package = do
   hPutStrLn stderr ("registering " ++ takeFileName (path package))
   (exitCode, out, err) <- readProcessWithExitCode "cabal"
