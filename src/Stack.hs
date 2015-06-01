@@ -1,6 +1,6 @@
 module Stack (
   Path (..)
-, SandboxParent
+, Sandbox
 , PackageDB
 , Package
 , installDependencies
@@ -29,16 +29,16 @@ import           Util
 newtype Path a = Path {path :: FilePath}
   deriving (Eq, Show)
 
-data SandboxParent
+data Sandbox
 data PackageDB
 data Package
 
 initSandbox :: IO (Path PackageDB)
 initSandbox = do
   callCommand "cabal sandbox init"
-  findPackageDB (Path "." :: Path SandboxParent)
+  findPackageDB (Path "." :: Path Sandbox)
 
-installDependencies :: Path SandboxParent -> IO ()
+installDependencies :: Path Sandbox -> IO ()
 installDependencies cache = do
   destPackageDB <- initSandbox
   packages <- parseInstallPlan <$> readProcess "cabal" (command ++ ["--dry-run"]) ""
@@ -48,14 +48,14 @@ installDependencies cache = do
   where
     command = words "install --only-dependencies"
 
-createStackedSandbox :: Path SandboxParent -> IO ()
+createStackedSandbox :: Path Sandbox -> IO ()
 createStackedSandbox source = do
   destPackageDB <- initSandbox
   sourcePackageDB <- findPackageDB source
   packages <- extractPackages sourcePackageDB
   mapM_ (registerPackage destPackageDB) packages
 
-findPackageDB :: Path SandboxParent -> IO (Path PackageDB)
+findPackageDB :: Path Sandbox -> IO (Path PackageDB)
 findPackageDB dir = do
   mr <-
     listToMaybe <$>

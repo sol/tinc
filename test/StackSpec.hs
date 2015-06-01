@@ -97,7 +97,7 @@ withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \_ 
 getoptGenerics :: String
 getoptGenerics = "getopt-generics-0.6.3"
 
-mkTestSandbox :: Path SandboxParent -> IO ()
+mkTestSandbox :: Path Sandbox -> IO ()
 mkTestSandbox dir = do
   withDirectory (path dir) $ do
     callCommand "cabal sandbox init"
@@ -114,7 +114,7 @@ mkTestSandbox dir = do
 cacheDir :: FilePath
 cacheDir = "cache/tinc-1209"
 
-mkCachedTestSandbox :: IO (Path SandboxParent)
+mkCachedTestSandbox :: IO (Path Sandbox)
 mkCachedTestSandbox = do
   exists <- doesDirectoryExist cacheDir
   when (not exists) $ createDirectoryIfMissing True cacheDir
