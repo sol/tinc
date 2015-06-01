@@ -19,10 +19,7 @@ import           Test.Mockery.Directory
 import           Stack
 
 spec :: Spec
-spec =
-  beforeAll_ unsetEnvVars $
-  beforeAll mkCachedTestSandbox $ do
-
+spec = beforeAll_ unsetEnvVars . beforeAll mkCachedTestSandbox $ do
     describe "findPackageDB" $ do
       it "finds the sandbox package db" $ \sandbox -> do
         r <- findPackageDB sandbox
