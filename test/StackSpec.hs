@@ -16,6 +16,7 @@ import           Test.Hspec
 import           Test.Hspec.Expectations.Contrib
 import           Test.Mockery.Directory
 
+import           Util
 import           Stack
 
 spec :: Spec
@@ -23,9 +24,7 @@ spec = beforeAll_ unsetEnvVars . beforeAll mkCachedTestSandbox $ do
     describe "findPackageDB" $ do
       it "finds the sandbox package db" $ \sandbox -> do
         r <- findPackageDB sandbox
-        path r `shouldSatisfy` (\pdb ->
-          (path sandbox </> ".cabal-sandbox") `isPrefixOf` pdb &&
-          "ghc" `isInfixOf` pdb)
+        path r `shouldSatisfy` (\p -> (path sandbox </> ".cabal-sandbox") `isPrefixOf` p && isPackageDB p)
 
       it "returns an absolute path" $ \sandbox -> do
         r <- findPackageDB sandbox
@@ -115,6 +114,6 @@ mkCachedTestSandbox :: IO (Path Sandbox)
 mkCachedTestSandbox = do
   exists <- doesDirectoryExist cacheDir
   when (not exists) $ createDirectoryIfMissing True cacheDir
-  testSandboxCache <- Path <$> canonicalizePath cacheDir
-  when (not exists) $ mkTestSandbox testSandboxCache
-  return testSandboxCache
+  sandbox <- Path <$> canonicalizePath cacheDir
+  when (not exists) $ mkTestSandbox sandbox
+  return sandbox

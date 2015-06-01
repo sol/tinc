@@ -56,15 +56,13 @@ createStackedSandbox source = do
   mapM_ (registerPackage destPackageDB) packages
 
 findPackageDB :: Path Sandbox -> IO (Path PackageDB)
-findPackageDB dir = do
-  mr <-
-    listToMaybe <$>
-    filter ("-packages.conf.d" `isSuffixOf`) <$>
-    getDirectoryContents (path dir </> ".cabal-sandbox")
-  maybe
-    (die ("package db not found in " ++ path dir))
-    (\ p -> Path <$> canonicalizePath (path dir </> ".cabal-sandbox" </> p))
-    mr
+findPackageDB sandbox = do
+  xs <- getDirectoryContents sandboxDir
+  case listToMaybe (filter isPackageDB xs) of
+    Just p -> Path <$> canonicalizePath (sandboxDir </> p)
+    Nothing -> die ("package db not found in " ++ sandboxDir)
+  where
+    sandboxDir = path sandbox </> ".cabal-sandbox"
 
 extractPackages :: Path PackageDB -> IO [Path PackageConfig]
 extractPackages packageDB = do
