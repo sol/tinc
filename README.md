@@ -2,6 +2,8 @@
 
 Very experimental!!!
 
+This implementation currently does *not* work reliably.
+
 `stack-sandbox` allows you to create a new cabal sandbox that contains all
 packages from another sandbox (by registering every package from the parent in
 the child). The two sandboxes are somewhat independent: Installing or
