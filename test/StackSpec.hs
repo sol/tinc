@@ -16,7 +16,7 @@ import           Test.Hspec
 import           Test.Hspec.Expectations.Contrib
 import           Test.Mockery.Directory
 
-import           Util
+import           Package
 import           Stack
 
 spec :: Spec

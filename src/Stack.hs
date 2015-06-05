@@ -9,6 +9,7 @@ module Stack (
 -- exported for testing
 , findPackageDB
 , extractPackages
+, isPackageDB
 ) where
 
 import           Prelude ()
@@ -24,7 +25,7 @@ import           System.FilePath
 import           System.Process
 
 import           PackageGraph
-import           Util
+import           Package
 
 newtype Path a = Path {path :: FilePath}
   deriving (Eq, Show)
@@ -63,6 +64,9 @@ findPackageDB sandbox = do
     Nothing -> die ("package db not found in " ++ sandboxDir)
   where
     sandboxDir = path sandbox </> ".cabal-sandbox"
+
+isPackageDB :: FilePath -> Bool
+isPackageDB = ("-packages.conf.d" `isSuffixOf`)
 
 extractPackages :: Path PackageDB -> IO [Path PackageConfig]
 extractPackages packageDB = do

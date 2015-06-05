@@ -10,7 +10,7 @@ import           Language.Dot.Parser as Dot
 import           Language.Dot.Syntax as Dot
 import           Text.Parsec.Error
 
-import           Util
+import           Package
 
 type PackageGraph = G.Graph Package ()
 

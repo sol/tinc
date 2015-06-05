@@ -6,7 +6,7 @@ import           Data.List
 import           Test.Hspec
 
 import           PackageGraph
-import           Util
+import           Package
 
 spec :: Spec
 spec = do

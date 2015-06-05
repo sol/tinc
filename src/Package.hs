@@ -1,4 +1,4 @@
-module Util where
+module Package where
 
 import           Data.List
 
@@ -26,6 +26,3 @@ lookupPackage targetPackage packageFiles =
     [packageFile] -> return $ Just packageFile
     [] -> return Nothing
     multiple -> Left ("Package found multiple times: " ++ intercalate ", " multiple)
-
-isPackageDB :: FilePath -> Bool
-isPackageDB = ("-packages.conf.d" `isSuffixOf`)
