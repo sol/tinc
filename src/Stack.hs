@@ -23,7 +23,7 @@ import           System.Exit.Compat
 import           System.FilePath
 import           System.Process
 
-import           Graph
+import           PackageGraph
 import           Util
 
 newtype Path a = Path {path :: FilePath}

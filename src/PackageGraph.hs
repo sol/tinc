@@ -1,5 +1,5 @@
 
-module Graph (fromDot) where
+module PackageGraph (fromDot) where
 
 import           Control.Monad
 import           Data.Functor
@@ -10,7 +10,11 @@ import           Language.Dot.Parser as Dot
 import           Language.Dot.Syntax as Dot
 import           Text.Parsec.Error
 
-fromDot :: String -> Either String (G.Graph String ())
+import           Util
+
+type PackageGraph = G.Graph Package ()
+
+fromDot :: String -> Either String PackageGraph
 fromDot dot = case parseDot "<input>" dot of
   Right (Dot.Graph _ _ _ statements) ->
     fmap fromMap $

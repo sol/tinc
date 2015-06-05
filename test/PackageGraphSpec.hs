@@ -1,11 +1,11 @@
 
-module GraphSpec where
+module PackageGraphSpec where
 
 import           Data.Graph.Wrapper
 import           Data.List
 import           Test.Hspec
 
-import           Graph
+import           PackageGraph
 
 spec :: Spec
 spec = do
