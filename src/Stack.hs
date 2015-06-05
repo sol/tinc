@@ -82,7 +82,7 @@ findPackageConfigs :: Path PackageDB -> IO [FilePath]
 findPackageConfigs packageDB =
   filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path packageDB)
 
-lookupPackages :: Path PackageDB -> [PackageName] -> IO [Path PackageConfig]
+lookupPackages :: Path PackageDB -> [Package] -> IO [Path PackageConfig]
 lookupPackages packageDB packages = do
   packageConfigs <- findPackageConfigs packageDB
   fmap catMaybes . forM packages $ \ package ->

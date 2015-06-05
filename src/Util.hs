@@ -2,9 +2,9 @@ module Util where
 
 import           Data.List
 
-type PackageName = String
+type Package = String
 
-parseInstallPlan :: String -> [PackageName]
+parseInstallPlan :: String -> [Package]
 parseInstallPlan = concatMap (take 1 . words) . drop 2 . lines
 
 lookupPackage :: String -> [FilePath] -> Either String (Maybe FilePath)

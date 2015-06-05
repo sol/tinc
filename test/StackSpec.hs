@@ -39,14 +39,15 @@ spec = beforeAll_ unsetEnvVars . beforeAll mkCachedTestSandbox $ do
 
     describe "createStackedSandbox" $ do
       it "registers packages from one sandbox in another" $ \ sandbox -> do
-        inTempDirectoryNamed "b" $ do
+        inTempDirectory $ do
           createStackedSandbox sandbox
           output <- readProcess "cabal" (words "exec ghc-pkg list") ""
           output `shouldContain` getoptGenerics
 
       it "yields a working sandbox" $ \ sandbox -> do
-        withDirectory (path sandbox) $ do
-          hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
+        inTempDirectory $ do
+          createStackedSandbox sandbox
+          ghcPkgCheck
 
     describe "installDependencies" $ do
       let cabalFile =
@@ -93,6 +94,9 @@ withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \ _
 getoptGenerics :: String
 getoptGenerics = "getopt-generics-0.6.3"
 
+ghcPkgCheck :: IO ()
+ghcPkgCheck = hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
+
 mkTestSandbox :: Path Sandbox -> IO ()
 mkTestSandbox dir = do
   withDirectory (path dir) $ do
@@ -108,7 +112,7 @@ mkTestSandbox dir = do
       ]
 
 cacheDir :: FilePath
-cacheDir = "cache/tinc-1209"
+cacheDir = "test-cache/tinc-1209"
 
 mkCachedTestSandbox :: IO (Path Sandbox)
 mkCachedTestSandbox = do

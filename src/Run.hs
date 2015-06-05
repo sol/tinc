@@ -19,4 +19,4 @@ instance HasDatatypeInfo Options
 run :: IO ()
 run = do
   options <- getArguments
-  createStackedSandbox (Path (parent options) :: Path SandboxParent)
+  createStackedSandbox (Path (parent options) :: Path Sandbox)
