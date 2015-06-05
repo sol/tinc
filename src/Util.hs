@@ -2,14 +2,27 @@ module Util where
 
 import           Data.List
 
-type Package = String
+data Package
+  = Package {
+    packageName :: String,
+    packageVersion :: String
+  }
+  deriving (Eq, Ord, Show)
+
+showPackage :: Package -> String
+showPackage (Package name version) = name ++ "-" ++ version
+
+parsePackage :: String -> Package
+parsePackage s = case break (== '-') (reverse s) of
+  (v, '-' : p) -> Package (reverse p) (reverse v)
+  _ -> Package s ""
 
 parseInstallPlan :: String -> [Package]
-parseInstallPlan = concatMap (take 1 . words) . drop 2 . lines
+parseInstallPlan = map parsePackage . concatMap (take 1 . words) . drop 2 . lines
 
-lookupPackage :: String -> [FilePath] -> Either String (Maybe FilePath)
+lookupPackage :: Package -> [FilePath] -> Either String (Maybe FilePath)
 lookupPackage targetPackage packageFiles =
-  case filter ((targetPackage ++ "-") `isPrefixOf`) packageFiles of
+  case filter ((showPackage targetPackage ++ "-") `isPrefixOf`) packageFiles of
     [packageFile] -> return $ Just packageFile
     [] -> return Nothing
     multiple -> Left ("Package found multiple times: " ++ intercalate ", " multiple)

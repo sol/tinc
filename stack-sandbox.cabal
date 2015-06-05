@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.1.2.
+-- This file has been generated from package.yml by hpack version 0.2.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -22,9 +22,10 @@ source-repository head
 library
   hs-source-dirs: src
   exposed-modules:
-      Graph
+      PackageGraph
       Run
       Stack
+      Util
   build-depends:
       base == 4.*
     , base-compat
@@ -43,9 +44,10 @@ executable stack-sandbox
   hs-source-dirs: src, driver
   main-is: stack-sandbox.hs
   other-modules:
-      Graph
+      PackageGraph
       Run
       Stack
+      Util
   build-depends:
       base == 4.*
     , base-compat
@@ -65,11 +67,13 @@ test-suite spec
   hs-source-dirs: src, test
   main-is: Spec.hs
   other-modules:
-      Graph
+      PackageGraph
       Run
       Stack
-      GraphSpec
+      Util
+      PackageGraphSpec
       StackSpec
+      UtilSpec
   build-depends:
       base == 4.*
     , base-compat

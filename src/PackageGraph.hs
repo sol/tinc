@@ -21,8 +21,7 @@ fromDot dot = case parseDot "<input>" dot of
     foldM collectStatements Map.empty statements
   Left parseError -> Left $ unlines $ map messageString $ errorMessages parseError
 
-collectStatements :: Map String [String] -> Statement
-  -> Either String (Map String [String])
+collectStatements :: Map Package [Package] -> Statement -> Either String (Map Package [Package])
 collectStatements acc s = case s of
   NodeStatement a _ ->
     return $ alter (Just . fromMaybe []) (toString a) acc
@@ -35,8 +34,8 @@ collectStatements acc s = case s of
 fromMap :: Ord a => Map a [a] -> G.Graph a ()
 fromMap m = () <$ (G.fromListSimple $ Map.toList m)
 
-toString :: NodeId -> String
-toString (NodeId i _) = case i of
+toString :: NodeId -> Package
+toString (NodeId i _) = parsePackage $ case i of
   NameId s -> s
   StringId s -> s
   IntegerId i -> show i

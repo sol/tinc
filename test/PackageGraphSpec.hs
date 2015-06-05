@@ -6,6 +6,7 @@ import           Data.List
 import           Test.Hspec
 
 import           PackageGraph
+import           Util
 
 spec :: Spec
 spec = do
@@ -19,8 +20,8 @@ spec = do
             "}" :
             []
       sort (toList graph) `shouldBe`
-        ("a", (), ["b"]) :
-        ("b", (), ["c"]) :
-        ("c", (), []) :
-        ("d", (), []) :
+        (Package "a" "", (), [Package "b" ""]) :
+        (Package "b" "", (), [Package "c" ""]) :
+        (Package "c" "", (), []) :
+        (Package "d" "", (), []) :
         []
