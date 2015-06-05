@@ -14,13 +14,13 @@ module Stack (
 import           Prelude ()
 import           Prelude.Compat
 
+import           Data.Graph.Wrapper
 import           Data.List
 import           Data.Maybe
 import           Data.Traversable
 import           System.Directory
 import           System.Exit.Compat
 import           System.FilePath
-import           System.IO
 import           System.Process
 
 import           Graph
@@ -73,8 +73,8 @@ extractPackages packageDB = do
      "dot" : []) []
   packagesInTopologicalOrder <- do
     case fromDot dot of
-      Right graph ->
-        return $ reverse $ topolocicalOrder graph
+      Right graph -> do
+        return $ reverse $ topologicalSort graph
       Left message -> die message
   lookupPackages packageDB packagesInTopologicalOrder
 
@@ -97,18 +97,11 @@ findGlobalPackageDB = do
 
 registerPackage :: Path PackageDB -> Path PackageConfig -> IO ()
 registerPackage packageDB package = do
-  hPutStrLn stderr ("registering " ++ takeFileName (path package))
-  (exitCode, out, err) <- readProcessWithExitCode "cabal"
-    ("exec" :
-     "--" :
-     "ghc-pkg" :
-     "register" :
-     "--package-db" : path packageDB :
-     path package :
-     []) ""
-  case exitCode of
-    ExitSuccess -> return ()
-    ExitFailure _ -> do
-      hPutStrLn stderr "ghc-pkg register failed:"
-      hPutStrLn stderr out
-      hPutStrLn stderr err
+  callProcess "cabal" $
+    "exec" :
+    "--" :
+    "ghc-pkg" :
+    "register" :
+    "--package-db" : path packageDB :
+    path package :
+    []

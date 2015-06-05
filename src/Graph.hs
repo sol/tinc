@@ -1,7 +1,8 @@
 
-module Graph (topolocicalOrder, fromDot) where
+module Graph (fromDot) where
 
 import           Control.Monad
+import           Data.Functor
 import           Data.Graph.Wrapper as G
 import           Data.Map as Map (empty, Map, toList, alter)
 import           Data.Maybe
@@ -9,10 +10,7 @@ import           Language.Dot.Parser as Dot
 import           Language.Dot.Syntax as Dot
 import           Text.Parsec.Error
 
-topolocicalOrder :: G.Graph String String -> [String]
-topolocicalOrder g = map (vertex g) (topologicalSort g)
-
-fromDot :: String -> Either String (G.Graph String String)
+fromDot :: String -> Either String (G.Graph String ())
 fromDot dot = case parseDot "<input>" dot of
   Right (Dot.Graph _ _ _ statements) ->
     fmap fromMap $
@@ -30,8 +28,8 @@ collectStatements acc s = case s of
     alter (fmap (toString b :) . Just . fromMaybe []) (toString a) acc
   x -> Left ("unsupported dot statements: " ++ show x)
 
-fromMap :: Ord a => Map a [a] -> G.Graph a a
-fromMap m = G.fromListSimple $ Map.toList m
+fromMap :: Ord a => Map a [a] -> G.Graph a ()
+fromMap m = () <$ (G.fromListSimple $ Map.toList m)
 
 toString :: NodeId -> String
 toString (NodeId i _) = case i of
