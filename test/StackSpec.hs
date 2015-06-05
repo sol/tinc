@@ -22,29 +22,29 @@ import           Stack
 spec :: Spec
 spec = beforeAll_ unsetEnvVars . beforeAll mkCachedTestSandbox $ do
     describe "findPackageDB" $ do
-      it "finds the sandbox package db" $ \sandbox -> do
+      it "finds the sandbox package db" $ \ sandbox -> do
         r <- findPackageDB sandbox
-        path r `shouldSatisfy` (\p -> (path sandbox </> ".cabal-sandbox") `isPrefixOf` p && isPackageDB p)
+        path r `shouldSatisfy` (\ p -> (path sandbox </> ".cabal-sandbox") `isPrefixOf` p && isPackageDB p)
 
-      it "returns an absolute path" $ \sandbox -> do
+      it "returns an absolute path" $ \ sandbox -> do
         r <- findPackageDB sandbox
         path r `shouldSatisfy` ("/" `isPrefixOf`)
 
     describe "extractPackages" $ do
-      it "extracts the packages" $ \sandbox -> do
+      it "extracts the packages" $ \ sandbox -> do
         packageDB <- findPackageDB sandbox
         packages <- extractPackages packageDB
         packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 
     describe "createStackedSandbox" $ do
-      it "registers packages from one sandbox in another" $ \sandbox -> do
+      it "registers packages from one sandbox in another" $ \ sandbox -> do
         inTempDirectoryNamed "b" $ do
           createStackedSandbox sandbox
           output <- readProcess "cabal" (words "exec ghc-pkg list") ""
           output `shouldContain` getoptGenerics
 
-      it "yields a working sandbox" $ \sandbox -> do
+      it "yields a working sandbox" $ \ sandbox -> do
         withDirectory (path sandbox) $ do
           hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
 
@@ -60,19 +60,19 @@ spec = beforeAll_ unsetEnvVars . beforeAll mkCachedTestSandbox $ do
           listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""
           packageImportDirs package = readProcess "cabal" ["exec", "ghc-pkg", "field", package, "import-dirs"] ""
 
-      it "installs dependencies" $ \cache -> do
+      it "installs dependencies" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv"]
           installDependencies cache
           listPackages >>= (`shouldContain` "setenv")
 
-      it "reuses packages" $ \cache -> do
+      it "reuses packages" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
           installDependencies cache
           packageImportDirs "generics-sop" >>= (`shouldContain` path cache)
 
-      it "skips redundant packages" $ \cache -> do
+      it "skips redundant packages" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
           installDependencies cache
@@ -85,7 +85,7 @@ unsetEnvVars = do
   unsetEnv "GHC_PACKAGE_PATH"
 
 withDirectory :: FilePath -> IO a -> IO a
-withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \_ -> do
+withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \ _ -> do
   createDirectoryIfMissing True dir
   setCurrentDirectory dir
   action
