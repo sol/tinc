@@ -13,6 +13,7 @@ import           System.IO
 import           System.IO.Silently
 import           System.Process
 import           Test.Hspec
+import           Test.Hspec.Expectations.Contrib
 import           Test.Mockery.Directory
 
 import           Stack
@@ -45,11 +46,41 @@ spec =
         inTempDirectoryNamed "b" $ do
           createStackedSandbox src
           output <- readProcess "cabal" (words "exec ghc-pkg list") ""
-          output `shouldContain` "getopt-generics"
+          output `shouldContain` target
 
       it "yields a working sandbox" $ \ src -> do
         withDirectory (path src) $ do
           hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
+
+    describe "installDependencies" $ do
+      let cabalFile =
+            [ "name:           foo"
+            , "version:        0.0.0"
+            , "cabal-version:  >= 1.8"
+            , "library"
+            , "  build-depends:"
+            , "      generics-sop"
+            ]
+          listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""
+          packageImportDirs package = readProcess "cabal" ["exec", "ghc-pkg", "field", package, "import-dirs"] ""
+
+      it "installs dependencies" $ \ cache -> do
+        inTempDirectoryNamed "foo" $ do
+          writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , safe"]
+          installDependencies cache
+          listPackages >>= (`shouldContain` "safe")
+
+      it "reuses packages" $ \ cache -> do
+        inTempDirectoryNamed "foo" $ do
+          writeFile "foo.cabal" $ unlines cabalFile
+          installDependencies cache
+          packageImportDirs "generics-sop" >>= (`shouldContain` path cache)
+
+      it "skips redundant packages" $ \ cache -> do
+        inTempDirectoryNamed "foo" $ do
+          writeFile "foo.cabal" $ unlines cabalFile
+          installDependencies cache
+          listPackages >>= (`shouldNotContain` target)
 
 unsetEnvVars :: IO ()
 unsetEnvVars = do
@@ -57,11 +88,14 @@ unsetEnvVars = do
   unsetEnv "CABAL_SANDBOX_PACKAGE_PATH"
   unsetEnv "GHC_PACKAGE_PATH"
 
+target :: String
+target = "getopt-generics-0.6"
+
 mkTestSandbox :: Path SandboxParent -> IO ()
 mkTestSandbox dir = do
   withDirectory (path dir) $ do
     callCommand "cabal sandbox init"
-    callCommand "cabal install getopt-generics"
+    callCommand $ "cabal install " ++ target
 
 mkCachedTestSandbox :: IO (Path SandboxParent)
 mkCachedTestSandbox = do
