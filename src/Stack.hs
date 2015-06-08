@@ -15,8 +15,9 @@ module Stack (
 import           Prelude ()
 import           Prelude.Compat
 
+import           Data.Function
 import           Data.Graph.Wrapper
-import           Data.List
+import           Data.List.Compat
 import           Data.Maybe
 import           Data.Traversable
 import           System.Directory
@@ -24,8 +25,8 @@ import           System.Exit.Compat
 import           System.FilePath
 import           System.Process
 
-import           PackageGraph
 import           Package
+import           PackageGraph
 
 newtype Path a = Path {path :: FilePath}
   deriving (Eq, Show)
@@ -42,19 +43,33 @@ initSandbox = do
 installDependencies :: Path Sandbox -> IO ()
 installDependencies cache = do
   destPackageDB <- initSandbox
-  packages <- parseInstallPlan <$> readProcess "cabal" (command ++ ["--dry-run"]) ""
+  installPlan <- parseInstallPlan <$> readProcess "cabal" (command ++ ["--dry-run"]) ""
   packageDB <- findPackageDB cache
-  lookupPackages packageDB packages >>= mapM_ (registerPackage destPackageDB)
+  cacheGraph <- readPackageGraph packageDB
+  globalPackages <- listGlobalPackages
+  let reusable = findReusablePackages installPlan globalPackages cacheGraph
+  lookupPackages packageDB reusable >>= mapM_ (registerPackageConfig destPackageDB)
   callProcess "cabal" command
   where
     command = words "install --only-dependencies"
+
+findReusablePackages :: [Package] -> [Package] -> PackageGraph -> [Package]
+findReusablePackages installPlan globalPackages cache =
+  reusablePackages packages cache
+  where
+    packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
+
+listGlobalPackages :: IO [Package]
+listGlobalPackages = do
+  packageDB <- findGlobalPackageDB
+  vertices <$> readPackageGraph_ [packageDB]
 
 createStackedSandbox :: Path Sandbox -> IO ()
 createStackedSandbox source = do
   destPackageDB <- initSandbox
   sourcePackageDB <- findPackageDB source
   packages <- extractPackages sourcePackageDB
-  mapM_ (registerPackage destPackageDB) packages
+  mapM_ (registerPackageConfig destPackageDB) packages
 
 findPackageDB :: Path Sandbox -> IO (Path PackageDB)
 findPackageDB sandbox = do
@@ -70,17 +85,22 @@ isPackageDB = ("-packages.conf.d" `isSuffixOf`)
 
 extractPackages :: Path PackageDB -> IO [Path PackageConfig]
 extractPackages packageDB = do
+  graph <- readPackageGraph packageDB
+  lookupPackages packageDB $ reverse $ topologicalSort graph
+
+readPackageGraph :: Path PackageDB -> IO PackageGraph
+readPackageGraph packageDB = do
   globalPackageDB <- findGlobalPackageDB
+  readPackageGraph_ [globalPackageDB, packageDB]
+
+readPackageGraph_ :: [Path PackageDB] -> IO PackageGraph
+readPackageGraph_ packageDBs = do
   dot <- readProcess "ghc-pkg"
-    ("--package-db" : path globalPackageDB :
-     "--package-db" : path packageDB :
+    ((concatMap (\ pdb -> ["--package-db", path pdb]) packageDBs) ++
      "dot" : []) []
-  packagesInTopologicalOrder <- do
-    case fromDot dot of
-      Right graph -> do
-        return $ reverse $ topologicalSort graph
-      Left message -> die message
-  lookupPackages packageDB packagesInTopologicalOrder
+  case fromDot dot of
+    Right graph -> return graph
+    Left message -> die message
 
 findPackageConfigs :: Path PackageDB -> IO [FilePath]
 findPackageConfigs packageDB =
@@ -99,8 +119,8 @@ findGlobalPackageDB = do
   output <- readProcess "ghc-pkg" ["list"] []
   return $ Path $ takeWhile (/= ':') output
 
-registerPackage :: Path PackageDB -> Path PackageConfig -> IO ()
-registerPackage packageDB package = do
+registerPackageConfig :: Path PackageDB -> Path PackageConfig -> IO ()
+registerPackageConfig packageDB package = do
   callProcess "cabal" $
     "exec" :
     "--" :

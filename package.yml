@@ -12,7 +12,7 @@ ghc-options: -Wall -fno-warn-name-shadowing
 dependencies:
   - base == 4.*
   - base-compat
-  - graph-wrapper
+  - graph-wrapper >= 0.2.5
   - language-dot
   - containers
   - directory

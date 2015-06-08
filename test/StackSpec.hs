@@ -42,7 +42,7 @@ spec = beforeAll_ unsetEnvVars . beforeAll mkCachedTestSandbox $ do
         inTempDirectory $ do
           createStackedSandbox sandbox
           output <- readProcess "cabal" (words "exec ghc-pkg list") ""
-          output `shouldContain` getoptGenerics
+          output `shouldContain` showPackage getoptGenerics
 
       it "yields a working sandbox" $ \ sandbox -> do
         inTempDirectory $ do
@@ -77,7 +77,7 @@ spec = beforeAll_ unsetEnvVars . beforeAll mkCachedTestSandbox $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
           installDependencies cache
-          listPackages >>= (`shouldNotContain` getoptGenerics)
+          listPackages >>= (`shouldNotContain` showPackage getoptGenerics)
 
 unsetEnvVars :: IO ()
 unsetEnvVars = do
@@ -91,8 +91,8 @@ withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \ _
   setCurrentDirectory dir
   action
 
-getoptGenerics :: String
-getoptGenerics = "getopt-generics-0.6.3"
+getoptGenerics :: Package
+getoptGenerics = Package "getopt-generics" "0.6.3"
 
 ghcPkgCheck :: IO ()
 ghcPkgCheck = hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
@@ -101,15 +101,17 @@ mkTestSandbox :: Path Sandbox -> IO ()
 mkTestSandbox dir = do
   withDirectory (path dir) $ do
     callCommand "cabal sandbox init"
-    callCommand ("cabal install --disable-library-profiling --disable-optimization --disable-documentation " ++ unwords packages)
-  where
-    packages = [
-        "base-compat-0.8.2"
-      , "base-orphans-0.3.2"
-      , "generics-sop-0.1.1.2"
-      , "tagged-0.8.0.1"
-      , getoptGenerics
-      ]
+    callCommand ("cabal install --disable-library-profiling --disable-optimization --disable-documentation " ++
+                 unwords (map showPackage sandboxPackages))
+
+sandboxPackages :: [Package]
+sandboxPackages = [
+    Package "base-compat" "0.8.2"
+  , Package "base-orphans" "0.3.2"
+  , Package "generics-sop" "0.1.1.2"
+  , Package "tagged" "0.8.0.1"
+  , getoptGenerics
+  ]
 
 cacheDir :: FilePath
 cacheDir = "test-cache/tinc-1209"
