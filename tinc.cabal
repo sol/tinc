@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 
-name:           stack-sandbox
+name:           tinc
 version:        0.1
 category:       Development
 homepage:       https://github.com/soenkehahn/link-sandbox#readme
@@ -36,14 +36,13 @@ library
     , directory
     , filepath
     , process >= 1.2
-    , getopt-generics
     , parsec
   ghc-options: -Wall -fno-warn-name-shadowing
   default-language: Haskell2010
 
-executable stack-sandbox
+executable tinc
   hs-source-dirs: src, driver
-  main-is: stack-sandbox.hs
+  main-is: tinc.hs
   other-modules:
       Package
       PackageGraph
@@ -59,7 +58,6 @@ executable stack-sandbox
     , directory
     , filepath
     , process >= 1.2
-    , getopt-generics
     , parsec
   ghc-options: -Wall -fno-warn-name-shadowing
   default-language: Haskell2010
@@ -87,7 +85,6 @@ test-suite spec
     , directory
     , filepath
     , process >= 1.2
-    , getopt-generics
     , parsec
 
     , hspec
