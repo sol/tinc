@@ -27,9 +27,10 @@ import           System.Process
 
 import           Package
 import           PackageGraph
+import           Util
 
 newtype Path a = Path {path :: FilePath}
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 data Sandbox
 data PackageDB
@@ -40,15 +41,17 @@ initSandbox = do
   callCommand "cabal sandbox init"
   findPackageDB (Path "." :: Path Sandbox)
 
-installDependencies :: Path Sandbox -> IO ()
-installDependencies cache = do
+installDependencies :: [Path Sandbox] -> IO ()
+installDependencies caches = do
   destPackageDB <- initSandbox
   installPlan <- parseInstallPlan <$> readProcess "cabal" (command ++ ["--dry-run"]) ""
-  packageDB <- findPackageDB cache
-  cacheGraph <- readPackageGraph packageDB
   globalPackages <- listGlobalPackages
-  let reusable = findReusablePackages installPlan globalPackages cacheGraph
-  lookupPackages packageDB reusable >>= mapM_ (registerPackageConfig destPackageDB)
+  cachedPackages <- forM caches $ \ cache -> do
+    packageDB <- findPackageDB cache
+    cacheGraph <- readPackageGraph packageDB
+    let reusable = findReusablePackages installPlan globalPackages cacheGraph
+    lookupPackages packageDB reusable
+  mapM_ (registerPackageConfig destPackageDB) (ordNub $ concat cachedPackages)
   callProcess "cabal" command
   where
     command = words "install --only-dependencies"

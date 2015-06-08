@@ -20,7 +20,7 @@ import           Package
 import           Stack
 
 spec :: Spec
-spec = beforeAll_ unsetEnvVars . beforeAll mkCachedTestSandbox $ do
+spec = beforeAll_ unsetEnvVars . beforeAll (mkCachedTestSandbox "getopt-generics" getoptGenericsPackages) $ do
     describe "findPackageDB" $ do
       it "finds the sandbox package db" $ \ sandbox -> do
         r <- findPackageDB sandbox
@@ -63,20 +63,22 @@ spec = beforeAll_ unsetEnvVars . beforeAll mkCachedTestSandbox $ do
 
       it "installs dependencies" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
-          writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv"]
-          installDependencies cache
+          writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
+          installDependencies [cache]
           listPackages >>= (`shouldContain` "setenv")
 
       it "reuses packages" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
-          writeFile "foo.cabal" $ unlines cabalFile
-          installDependencies cache
+          setenvCache <- mkCachedTestSandbox "setenv" [Package "setenv" "0.1.1.3"]
+          writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
+          installDependencies [cache, setenvCache]
           packageImportDirs "generics-sop" >>= (`shouldContain` path cache)
+          packageImportDirs "setenv" >>= (`shouldContain` path setenvCache)
 
       it "skips redundant packages" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
-          installDependencies cache
+          installDependencies [cache]
           listPackages >>= (`shouldNotContain` showPackage getoptGenerics)
 
 unsetEnvVars :: IO ()
@@ -97,15 +99,15 @@ getoptGenerics = Package "getopt-generics" "0.6.3"
 ghcPkgCheck :: IO ()
 ghcPkgCheck = hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
 
-mkTestSandbox :: Path Sandbox -> IO ()
-mkTestSandbox dir = do
+mkTestSandbox :: [Package] -> Path Sandbox -> IO ()
+mkTestSandbox packages dir = do
   withDirectory (path dir) $ do
     callCommand "cabal sandbox init"
     callCommand ("cabal install --disable-library-profiling --disable-optimization --disable-documentation " ++
-                 unwords (map showPackage sandboxPackages))
+                 unwords (map showPackage packages))
 
-sandboxPackages :: [Package]
-sandboxPackages = [
+getoptGenericsPackages :: [Package]
+getoptGenericsPackages = [
     Package "base-compat" "0.8.2"
   , Package "base-orphans" "0.3.2"
   , Package "generics-sop" "0.1.1.2"
@@ -113,13 +115,13 @@ sandboxPackages = [
   , getoptGenerics
   ]
 
-cacheDir :: FilePath
-cacheDir = "test-cache/tinc-1209"
-
-mkCachedTestSandbox :: IO (Path Sandbox)
-mkCachedTestSandbox = do
+mkCachedTestSandbox :: String -> [Package] -> IO (Path Sandbox)
+mkCachedTestSandbox pattern packages = do
   exists <- doesDirectoryExist cacheDir
   when (not exists) $ createDirectoryIfMissing True cacheDir
   sandbox <- Path <$> canonicalizePath cacheDir
-  when (not exists) $ mkTestSandbox sandbox
+  when (not exists) $ mkTestSandbox packages sandbox
   return sandbox
+  where
+    cacheDir :: FilePath
+    cacheDir = "test-cache/tinc-" ++ pattern
