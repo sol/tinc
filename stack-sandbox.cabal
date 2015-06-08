@@ -26,6 +26,7 @@ library
       PackageGraph
       Run
       Stack
+      Util
   build-depends:
       base == 4.*
     , base-compat
@@ -48,6 +49,7 @@ executable stack-sandbox
       PackageGraph
       Run
       Stack
+      Util
   build-depends:
       base == 4.*
     , base-compat
@@ -71,9 +73,11 @@ test-suite spec
       PackageGraph
       Run
       Stack
+      Util
       PackageGraphSpec
       PackageSpec
       StackSpec
+      UtilSpec
   build-depends:
       base == 4.*
     , base-compat

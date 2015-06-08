@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 module StackSpec (spec) where
 
 import           Prelude ()
@@ -20,31 +22,31 @@ import           Package
 import           Stack
 
 spec :: Spec
-spec = beforeAll_ unsetEnvVars . beforeAll (mkCachedTestSandbox "getopt-generics" getoptGenericsPackages) $ do
+spec = beforeAll_ unsetEnvVars . beforeAll mkCache $ do
     describe "findPackageDB" $ do
-      it "finds the sandbox package db" $ \ sandbox -> do
+      it "finds the sandbox package db" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
         r <- findPackageDB sandbox
         path r `shouldSatisfy` (\ p -> (path sandbox </> ".cabal-sandbox") `isPrefixOf` p && isPackageDB p)
 
-      it "returns an absolute path" $ \ sandbox -> do
+      it "returns an absolute path" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
         r <- findPackageDB sandbox
         path r `shouldSatisfy` ("/" `isPrefixOf`)
 
     describe "extractPackages" $ do
-      it "extracts the packages" $ \ sandbox -> do
+      it "extracts the packages" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
         packageDB <- findPackageDB sandbox
         packages <- extractPackages packageDB
         packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 
     describe "createStackedSandbox" $ do
-      it "registers packages from one sandbox in another" $ \ sandbox -> do
+      it "registers packages from one sandbox in another" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
         inTempDirectory $ do
           createStackedSandbox sandbox
           output <- readProcess "cabal" (words "exec ghc-pkg list") ""
           output `shouldContain` showPackage getoptGenerics
 
-      it "yields a working sandbox" $ \ sandbox -> do
+      it "yields a working sandbox" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
         inTempDirectory $ do
           createStackedSandbox sandbox
           ghcPkgCheck
@@ -64,21 +66,20 @@ spec = beforeAll_ unsetEnvVars . beforeAll (mkCachedTestSandbox "getopt-generics
       it "installs dependencies" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
-          installDependencies [cache]
+          installDependencies cache
           listPackages >>= (`shouldContain` "setenv")
 
       it "reuses packages" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
-          setenvCache <- mkCachedTestSandbox "setenv" [Package "setenv" "0.1.1.3"]
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
-          installDependencies [cache, setenvCache]
-          packageImportDirs "generics-sop" >>= (`shouldContain` path cache)
-          packageImportDirs "setenv" >>= (`shouldContain` path setenvCache)
+          installDependencies cache
+          packageImportDirs "generics-sop" >>= (`shouldContain` path (toSandbox "getopt-generics" cache))
+          packageImportDirs "setenv" >>= (`shouldContain` path (toSandbox "setenv" cache))
 
       it "skips redundant packages" $ \ cache -> do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
-          installDependencies [cache]
+          installDependencies cache
           listPackages >>= (`shouldNotContain` showPackage getoptGenerics)
 
 unsetEnvVars :: IO ()
@@ -93,18 +94,11 @@ withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \ _
   setCurrentDirectory dir
   action
 
-getoptGenerics :: Package
-getoptGenerics = Package "getopt-generics" "0.6.3"
-
 ghcPkgCheck :: IO ()
 ghcPkgCheck = hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
 
-mkTestSandbox :: [Package] -> Path Sandbox -> IO ()
-mkTestSandbox packages dir = do
-  withDirectory (path dir) $ do
-    callCommand "cabal sandbox init"
-    callCommand ("cabal install --disable-library-profiling --disable-optimization --disable-documentation " ++
-                 unwords (map showPackage packages))
+getoptGenerics :: Package
+getoptGenerics = Package "getopt-generics" "0.6.3"
 
 getoptGenericsPackages :: [Package]
 getoptGenericsPackages = [
@@ -115,13 +109,24 @@ getoptGenericsPackages = [
   , getoptGenerics
   ]
 
-mkCachedTestSandbox :: String -> [Package] -> IO (Path Sandbox)
-mkCachedTestSandbox pattern packages = do
-  exists <- doesDirectoryExist cacheDir
-  when (not exists) $ createDirectoryIfMissing True cacheDir
-  sandbox <- Path <$> canonicalizePath cacheDir
-  when (not exists) $ mkTestSandbox packages sandbox
-  return sandbox
-  where
-    cacheDir :: FilePath
-    cacheDir = "test-cache/tinc-" ++ pattern
+mkTestSandbox :: Path Cache -> String -> [Package] -> IO ()
+mkTestSandbox cache pattern packages = do
+  let sandbox = toSandbox pattern cache
+  exists <- doesDirectoryExist $ path sandbox
+  when (not exists) $ do
+    createDirectoryIfMissing True $ path sandbox
+    withDirectory (path sandbox) $ do
+      callCommand "cabal sandbox init"
+      callCommand ("cabal install --disable-library-profiling --disable-optimization --disable-documentation " ++
+                   unwords (map showPackage packages))
+
+mkCache :: IO (Path Cache)
+mkCache = do
+  createDirectoryIfMissing True "test-cache"
+  cache <- Path <$> canonicalizePath "test-cache"
+  mkTestSandbox cache "setenv" [Package "setenv" "0.1.1.3"]
+  mkTestSandbox cache "getopt-generics" getoptGenericsPackages
+  return cache
+
+toSandbox :: String -> Path Cache -> Path Sandbox
+toSandbox pattern (Path cache) = Path (cache </> "tinc-" ++ pattern)

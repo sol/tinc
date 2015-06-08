@@ -3,6 +3,7 @@ module Stack (
 , Sandbox
 , PackageDB
 , PackageConfig
+, Cache
 , installDependencies
 , createStackedSandbox
 
@@ -36,19 +37,21 @@ newtype Path a = Path {path :: FilePath}
 data Sandbox
 data PackageDB
 data PackageConfig
+data Cache
 
 initSandbox :: IO (Path PackageDB)
 initSandbox = do
   callCommand "cabal sandbox init"
   findPackageDB (Path "." :: Path Sandbox)
 
-installDependencies :: [Path Sandbox] -> IO ()
-installDependencies caches = do
+installDependencies :: Path Cache -> IO ()
+installDependencies cache = do
+  sandboxes <- lookupSandboxes cache
   destPackageDB <- initSandbox
   installPlan <- parseInstallPlan <$> readProcess "cabal" (command ++ ["--dry-run"]) ""
   globalPackages <- listGlobalPackages
-  cachedPackages <- forM caches $ \ cache -> do
-    packageDB <- findPackageDB cache
+  cachedPackages <- forM sandboxes $ \ sandbox -> do
+    packageDB <- findPackageDB sandbox
     cacheGraph <- readPackageGraph packageDB
     let reusable = findReusablePackages installPlan globalPackages cacheGraph
     lookupPackages packageDB reusable
@@ -56,6 +59,9 @@ installDependencies caches = do
   callProcess "cabal" command
   where
     command = words "install --only-dependencies"
+
+lookupSandboxes :: Path Cache -> IO [Path Sandbox]
+lookupSandboxes (Path cache) = map Path <$> listDirectories cache
 
 findReusablePackages :: [Package] -> [Package] -> PackageGraph -> [Package]
 findReusablePackages installPlan globalPackages cache =
