@@ -15,6 +15,7 @@ module Stack (
 import           Prelude ()
 import           Prelude.Compat
 
+import           Data.Foldable
 import           Data.Function
 import           Data.Graph.Wrapper
 import           Data.List.Compat
@@ -51,7 +52,7 @@ installDependencies caches = do
     cacheGraph <- readPackageGraph packageDB
     let reusable = findReusablePackages installPlan globalPackages cacheGraph
     lookupPackages packageDB reusable
-  mapM_ (registerPackageConfig destPackageDB) (ordNub $ concat cachedPackages)
+  registerPackageConfigs destPackageDB $ ordNub $ concat cachedPackages
   callProcess "cabal" command
   where
     command = words "install --only-dependencies"
@@ -72,7 +73,7 @@ createStackedSandbox source = do
   destPackageDB <- initSandbox
   sourcePackageDB <- findPackageDB source
   packages <- extractPackages sourcePackageDB
-  mapM_ (registerPackageConfig destPackageDB) packages
+  registerPackageConfigs destPackageDB packages
 
 findPackageDB :: Path Sandbox -> IO (Path PackageDB)
 findPackageDB sandbox = do
@@ -122,13 +123,14 @@ findGlobalPackageDB = do
   output <- readProcess "ghc-pkg" ["list"] []
   return $ Path $ takeWhile (/= ':') output
 
-registerPackageConfig :: Path PackageDB -> Path PackageConfig -> IO ()
-registerPackageConfig packageDB package = do
+registerPackageConfigs :: Path PackageDB -> [Path PackageConfig] -> IO ()
+registerPackageConfigs packageDB packages = do
+  forM_ packages $ \ package ->
+    copyFile (path package) (path packageDB </> takeFileName (path package))
   callProcess "cabal" $
     "exec" :
     "--" :
     "ghc-pkg" :
-    "register" :
+    "recache" :
     "--package-db" : path packageDB :
-    path package :
     []
