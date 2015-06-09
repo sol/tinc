@@ -79,7 +79,10 @@ spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
           installDependencies cache
+          xs <- getDirectoryContents (path cache)
           installDependencies cache
+          ys <- getDirectoryContents (path cache)
+          ys `shouldMatchList` xs
 
 unsetEnvVars :: IO ()
 unsetEnvVars = do

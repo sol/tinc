@@ -57,18 +57,22 @@ installDependencies cache = do
   when exists deleteSandbox
   initSandbox
   installPlan <- parseInstallPlan <$> readProcess "cabal" command ""
-  sandbox <- createCacheSandbox cache installPlan
-  cloneSandbox sandbox
+  (packages, packageConfigs)  <- unzip <$> findReusablePackages cache installPlan
+  if null (installPlan \\ packages)
+    then do
+      destPackageDB <- findPackageDB currentDirectory
+      registerPackageConfigs destPackageDB packageConfigs
+    else do
+      createCacheSandbox cache installPlan packageConfigs
   where
     command :: [String]
     command = words "install --only-dependencies --enable-tests --dry-run"
 
-createCacheSandbox :: Path Cache -> [Package] -> IO (Path Sandbox)
-createCacheSandbox cache installPlan = do
-  cachedPackages <- findReusablePackages cache installPlan
+createCacheSandbox :: Path Cache -> [Package] -> [Path PackageConfig] -> IO ()
+createCacheSandbox cache installPlan packageConfigs = do
   sandbox <- createTempDirectory (path cache) "sandbox"
-  create sandbox cachedPackages `onException` removeDirectoryRecursive sandbox
-  return (Path sandbox)
+  create sandbox packageConfigs `onException` removeDirectoryRecursive sandbox
+  cloneSandbox (Path sandbox)
   where
     create sandbox cachedPackages = do
       withCurrentDirectory sandbox $ do
@@ -77,7 +81,7 @@ createCacheSandbox cache installPlan = do
         registerPackageConfigs destPackageDB cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
 
-findReusablePackages :: Path Cache -> [Package] -> IO [Path PackageConfig]
+findReusablePackages :: Path Cache -> [Package] -> IO [(Package, Path PackageConfig)]
 findReusablePackages cache installPlan = do
   sandboxes <- lookupSandboxes cache
   globalPackages <- listGlobalPackages
@@ -119,7 +123,7 @@ isPackageDB = ("-packages.conf.d" `isSuffixOf`)
 extractPackages :: Path PackageDB -> IO [Path PackageConfig]
 extractPackages packageDB = do
   graph <- readPackageGraph packageDB
-  lookupPackages packageDB $ reverse $ topologicalSort graph
+  map snd <$> lookupPackages packageDB (reverse $ topologicalSort graph)
 
 readPackageGraph :: Path PackageDB -> IO PackageGraph
 readPackageGraph packageDB = do
@@ -139,13 +143,15 @@ findPackageConfigs :: Path PackageDB -> IO [FilePath]
 findPackageConfigs packageDB =
   filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path packageDB)
 
-lookupPackages :: Path PackageDB -> [Package] -> IO [Path PackageConfig]
+lookupPackages :: Path PackageDB -> [Package] -> IO [(Package, Path PackageConfig)]
 lookupPackages packageDB packages = do
   packageConfigs <- findPackageConfigs packageDB
   fmap catMaybes . forM packages $ \ package ->
     case lookupPackage package packageConfigs of
-      Right x -> return (Path . (path packageDB </>) <$> x)
-      Left message -> die message
+      Right packageConfig -> return $ (,) package . mkAbsolute <$> packageConfig
+      Left err -> die err
+  where
+    mkAbsolute = Path . (path packageDB </>)
 
 findGlobalPackageDB :: IO (Path PackageDB)
 findGlobalPackageDB = do
