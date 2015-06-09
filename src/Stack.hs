@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Stack (
   Path (..)
 , Sandbox
@@ -26,13 +27,14 @@ import           System.Directory
 import           System.Exit.Compat
 import           System.FilePath
 import           System.Process
+import           Data.String
 
 import           Package
 import           PackageGraph
 import           Util
 
 newtype Path a = Path {path :: FilePath}
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, IsString)
 
 data Sandbox
 data PackageDB

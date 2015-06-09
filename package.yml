@@ -44,3 +44,4 @@ tests:
       - hspec-expectations
       - mockery
       - silently
+      - shelly

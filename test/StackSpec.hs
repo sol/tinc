@@ -1,4 +1,5 @@
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module StackSpec (spec) where
 
@@ -8,7 +9,7 @@ import           Prelude.Compat
 import           Control.Monad
 import           Control.Exception
 import           Data.List.Compat
-import           System.Directory
+import           System.Directory hiding (removeDirectory)
 import           System.Environment.Compat
 import           System.FilePath
 import           System.IO
@@ -17,12 +18,14 @@ import           System.Process
 import           Test.Hspec
 import           Test.Hspec.Expectations.Contrib
 import           Test.Mockery.Directory
+import           Shelly (shelly, rm_rf, cp_r)
+import           Data.String
 
 import           Package
 import           Stack
 
 spec :: Spec
-spec = beforeAll_ unsetEnvVars . beforeAll mkCache $ do
+spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before restoreCache $ do
     describe "findPackageDB" $ do
       it "finds the sandbox package db" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
         r <- findPackageDB sandbox
@@ -120,13 +123,34 @@ mkTestSandbox cache pattern packages = do
       callCommand ("cabal install --disable-library-profiling --disable-optimization --disable-documentation " ++
                    unwords (map showPackage packages))
 
-mkCache :: IO (Path Cache)
+mkCache :: IO ()
 mkCache = do
-  createDirectoryIfMissing True "test-cache"
-  cache <- Path <$> canonicalizePath "test-cache"
-  mkTestSandbox cache "setenv" [Package "setenv" "0.1.1.3"]
-  mkTestSandbox cache "getopt-generics" getoptGenericsPackages
+  exists <- doesDirectoryExist (path cacheBackup)
+  unless exists $ do
+    createDirectory (path cache)
+    mkTestSandbox cache "setenv" [Package "setenv" "0.1.1.3"]
+    mkTestSandbox cache "getopt-generics" getoptGenericsPackages
+    copyDirectory cache cacheBackup
+
+restoreCache :: IO (Path Cache)
+restoreCache = do
+  removeDirectory cache
+  copyDirectory cacheBackup cache
   return cache
+
+cache :: Path Cache
+cache = "/tmp/tinc-test-cache"
+
+cacheBackup :: Path Cache
+cacheBackup = "cache-backup"
+
+copyDirectory :: Path a -> Path a -> IO ()
+copyDirectory src dst = shelly $ do
+  cp_r (fromString $ path src) (fromString $ path dst)
+
+removeDirectory :: Path a -> IO ()
+removeDirectory dir = shelly $ do
+  rm_rf (fromString $ path dir)
 
 toSandbox :: String -> Path Cache -> Path Sandbox
 toSandbox pattern (Path cache) = Path (cache </> "tinc-" ++ pattern)

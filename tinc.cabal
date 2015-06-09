@@ -91,5 +91,6 @@ test-suite spec
     , hspec-expectations
     , mockery
     , silently
+    , shelly
   ghc-options: -Wall -fno-warn-name-shadowing -threaded -O0
   default-language: Haskell2010
