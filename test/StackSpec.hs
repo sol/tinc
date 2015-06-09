@@ -7,7 +7,6 @@ import           Prelude ()
 import           Prelude.Compat
 
 import           Control.Monad
-import           Control.Exception
 import           Data.List.Compat
 import           System.Directory hiding (removeDirectory)
 import           System.Environment.Compat
@@ -18,9 +17,10 @@ import           System.Process
 import           Test.Hspec
 import           Test.Hspec.Expectations.Contrib
 import           Test.Mockery.Directory
-import           Shelly (shelly, rm_rf, cp_r)
+import           Shelly (shelly, rm_rf, cp_r, touchfile)
 import           Data.String
 
+import           Util
 import           Package
 import           Stack
 
@@ -66,12 +66,12 @@ spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do
           listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""
           packageImportDirs package = readProcess "cabal" ["exec", "ghc-pkg", "field", package, "import-dirs"] ""
 
-      it "installs dependencies" $ do
+      it "populates cache" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
           removeDirectory setenvSandbox
           installDependencies cache
-          listPackages >>= (`shouldContain` "setenv")
+          packageImportDirs "setenv" >>= (`shouldContain` path cache)
 
       it "reuses packages" $ do
         inTempDirectoryNamed "foo" $ do
@@ -93,10 +93,9 @@ unsetEnvVars = do
   unsetEnv "GHC_PACKAGE_PATH"
 
 withDirectory :: FilePath -> IO a -> IO a
-withDirectory dir action = bracket getCurrentDirectory setCurrentDirectory $ \ _ -> do
+withDirectory dir action = do
   createDirectoryIfMissing True dir
-  setCurrentDirectory dir
-  action
+  withCurrentDirectory dir action
 
 ghcPkgCheck :: IO ()
 ghcPkgCheck = hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"
@@ -128,6 +127,7 @@ mkCache :: IO ()
 mkCache = do
   exists <- doesDirectoryExist (path cacheBackup)
   unless exists $ do
+    removeDirectory cache
     createDirectory (path cache)
     mkTestSandbox cache "setenv" [Package "setenv" "0.1.1.3"]
     mkTestSandbox cache "getopt-generics" getoptGenericsPackages
@@ -137,6 +137,9 @@ restoreCache :: IO ()
 restoreCache = do
   removeDirectory cache
   copyDirectory cacheBackup cache
+  forM_ [getoptGenericsSandbox, setenvSandbox] $ \ sandbox -> do
+    Path packageDB <- findPackageDB sandbox
+    shelly $ touchfile $ fromString (packageDB </> "package.cache")
 
 cache :: Path Cache
 cache = "/tmp/tinc-test-cache"

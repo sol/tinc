@@ -19,6 +19,7 @@ dependencies:
   - filepath
   - process >= 1.2
   - parsec
+  - temporary
 
 library:
   source-dirs:

@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Stack (
   Path (..)
 , Sandbox
@@ -22,12 +23,13 @@ import           Data.Function
 import           Data.Graph.Wrapper
 import           Data.List.Compat
 import           Data.Maybe
+import           Data.String
 import           Data.Traversable
 import           System.Directory
 import           System.Exit.Compat
 import           System.FilePath
+import           System.IO.Temp
 import           System.Process
-import           Data.String
 
 import           Package
 import           PackageGraph
@@ -41,26 +43,43 @@ data PackageDB
 data PackageConfig
 data Cache
 
-initSandbox :: IO (Path PackageDB)
-initSandbox = do
-  callCommand "cabal sandbox init"
-  findPackageDB (Path "." :: Path Sandbox)
+currentDirectory :: Path Sandbox
+currentDirectory = "."
+
+initSandbox :: IO ()
+initSandbox = callCommand "cabal sandbox init"
 
 installDependencies :: Path Cache -> IO ()
 installDependencies cache = do
-  sandboxes <- lookupSandboxes cache
-  destPackageDB <- initSandbox
+  initSandbox
   installPlan <- parseInstallPlan <$> readProcess "cabal" (command ++ ["--dry-run"]) ""
+  sandbox <- createCacheSandbox cache installPlan
+  cloneSandbox sandbox
+  where
+    command :: [String]
+    command = words "install --only-dependencies"
+
+createCacheSandbox :: Path Cache -> [Package] -> IO (Path Sandbox)
+createCacheSandbox cache installPlan = do
+  cachedPackages <- lookup_ cache installPlan
+  sandbox <- createTempDirectory (path cache) "sandbox"
+  withCurrentDirectory sandbox $ do
+    initSandbox
+    destPackageDB <- findPackageDB currentDirectory
+    registerPackageConfigs destPackageDB cachedPackages
+    callProcess "cabal" ("install" : map showPackage installPlan)
+  return (Path sandbox)
+
+lookup_ :: Path Cache -> [Package] -> IO [Path PackageConfig]
+lookup_ cache installPlan = do
+  sandboxes <- lookupSandboxes cache
   globalPackages <- listGlobalPackages
   cachedPackages <- forM sandboxes $ \ sandbox -> do
     packageDB <- findPackageDB sandbox
     cacheGraph <- readPackageGraph packageDB
     let reusable = findReusablePackages installPlan globalPackages cacheGraph
     lookupPackages packageDB reusable
-  registerPackageConfigs destPackageDB $ ordNub $ concat cachedPackages
-  callProcess "cabal" command
-  where
-    command = words "install --only-dependencies"
+  return $ ordNub $ concat cachedPackages
 
 lookupSandboxes :: Path Cache -> IO [Path Sandbox]
 lookupSandboxes (Path cache) = map Path <$> listDirectories cache
@@ -78,8 +97,13 @@ listGlobalPackages = do
 
 createStackedSandbox :: Path Sandbox -> IO ()
 createStackedSandbox source = do
-  destPackageDB <- initSandbox
+  initSandbox
+  cloneSandbox source
+
+cloneSandbox :: Path Sandbox -> IO ()
+cloneSandbox source = do
   sourcePackageDB <- findPackageDB source
+  destPackageDB <- findPackageDB currentDirectory
   packages <- extractPackages sourcePackageDB
   registerPackageConfigs destPackageDB packages
 
