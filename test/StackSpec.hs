@@ -69,6 +69,7 @@ spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do
       it "installs dependencies" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
+          removeDirectory setenvSandbox
           installDependencies cache
           listPackages >>= (`shouldContain` "setenv")
 
