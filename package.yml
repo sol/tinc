@@ -1,5 +1,5 @@
 name: tinc
-version: "0.1"
+version: 0.1.0
 category: Development
 license: "BSD3"
 author: "Sönke Hahn"

@@ -3,7 +3,7 @@
 -- see: https://github.com/sol/hpack
 
 name:           tinc
-version:        0.1
+version:        0.1.0
 category:       Development
 homepage:       https://github.com/soenkehahn/link-sandbox#readme
 bug-reports:    https://github.com/soenkehahn/link-sandbox/issues
