@@ -70,7 +70,8 @@ installDependencies cache = do
 
 createCacheSandbox :: Path Cache -> [Package] -> [Path PackageConfig] -> IO ()
 createCacheSandbox cache installPlan packageConfigs = do
-  sandbox <- createTempDirectory (path cache) "sandbox"
+  basename <- takeBaseName <$> getCurrentDirectory
+  sandbox <- createTempDirectory (path cache) (basename ++ "-")
   create sandbox packageConfigs `onException` removeDirectoryRecursive sandbox
   cloneSandbox (Path sandbox)
   where
