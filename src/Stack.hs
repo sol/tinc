@@ -18,13 +18,13 @@ module Stack (
 import           Prelude ()
 import           Prelude.Compat
 
-import           Data.Foldable
+import           Control.Exception
+import           Control.Monad.Compat
 import           Data.Function
 import           Data.Graph.Wrapper
 import           Data.List.Compat
 import           Data.Maybe
 import           Data.String
-import           Data.Traversable
 import           System.Directory
 import           System.Exit.Compat
 import           System.FilePath
@@ -49,8 +49,13 @@ currentDirectory = "."
 initSandbox :: IO ()
 initSandbox = callCommand "cabal sandbox init"
 
+deleteSandbox :: IO ()
+deleteSandbox = callCommand "cabal sandbox delete"
+
 installDependencies :: Path Cache -> IO ()
 installDependencies cache = do
+  exists <- doesDirectoryExist ".cabal-sandbox"
+  when exists deleteSandbox
   initSandbox
   installPlan <- parseInstallPlan <$> readProcess "cabal" command ""
   sandbox <- createCacheSandbox cache installPlan

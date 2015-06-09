@@ -86,6 +86,12 @@ spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do
           installDependencies cache
           listPackages >>= (`shouldNotContain` showPackage getoptGenerics)
 
+      it "is idempotent" $ do
+        inTempDirectoryNamed "foo" $ do
+          writeFile "foo.cabal" $ unlines cabalFile
+          installDependencies cache
+          installDependencies cache
+
 unsetEnvVars :: IO ()
 unsetEnvVars = do
   unsetEnv "CABAL_SANDBOX_CONFIG"
