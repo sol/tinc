@@ -8,4 +8,7 @@ import Stack
 run :: IO ()
 run = do
   home <- getHomeDirectory
-  installDependencies (Path (home </> ".tinc" </> "cache") :: Path Cache)
+  let cache :: Path Cache
+      cache = Path (home </> ".tinc" </> "cache")
+  createDirectoryIfMissing True (path cache)
+  installDependencies cache
