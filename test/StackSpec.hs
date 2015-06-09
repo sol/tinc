@@ -42,18 +42,6 @@ spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do
         packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 
-    describe "createStackedSandbox" $ do
-      it "registers packages from one sandbox in another" $ do
-        inTempDirectory $ do
-          createStackedSandbox getoptGenericsSandbox
-          output <- readProcess "cabal" (words "exec ghc-pkg list") ""
-          output `shouldContain` showPackage getoptGenerics
-
-      it "yields a working sandbox" $ do
-        inTempDirectory $ do
-          createStackedSandbox getoptGenericsSandbox
-          ghcPkgCheck
-
     describe "installDependencies" $ do
       let cabalFile =
             [ "name:           foo"
@@ -77,6 +65,7 @@ spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
           installDependencies cache
+          ghcPkgCheck
           packageImportDirs "generics-sop" >>= (`shouldContain` path getoptGenericsSandbox)
           packageImportDirs "setenv" >>= (`shouldContain` path setenvSandbox)
 

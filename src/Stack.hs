@@ -7,7 +7,6 @@ module Stack (
 , PackageConfig
 , Cache
 , installDependencies
-, createStackedSandbox
 
 -- exported for testing
 , findPackageDB
@@ -97,11 +96,6 @@ listGlobalPackages :: IO [Package]
 listGlobalPackages = do
   packageDB <- findGlobalPackageDB
   vertices <$> readPackageGraph_ [packageDB]
-
-createStackedSandbox :: Path Sandbox -> IO ()
-createStackedSandbox source = do
-  initSandbox
-  cloneSandbox source
 
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
