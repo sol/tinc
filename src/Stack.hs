@@ -52,12 +52,12 @@ initSandbox = callCommand "cabal sandbox init"
 installDependencies :: Path Cache -> IO ()
 installDependencies cache = do
   initSandbox
-  installPlan <- parseInstallPlan <$> readProcess "cabal" (command ++ ["--dry-run"]) ""
+  installPlan <- parseInstallPlan <$> readProcess "cabal" command ""
   sandbox <- createCacheSandbox cache installPlan
   cloneSandbox sandbox
   where
     command :: [String]
-    command = words "install --only-dependencies"
+    command = words "install --only-dependencies --enable-tests --dry-run"
 
 createCacheSandbox :: Path Cache -> [Package] -> IO (Path Sandbox)
 createCacheSandbox cache installPlan = do
