@@ -66,9 +66,10 @@ installDependencies cache = do
 
 createCacheSandbox :: Path Cache -> [Package] -> IO (Path Sandbox)
 createCacheSandbox cache installPlan = do
-  cachedPackages <- lookup_ cache installPlan
+  cachedPackages <- findReusablePackages cache installPlan
   sandbox <- createTempDirectory (path cache) "sandbox"
   create sandbox cachedPackages `onException` removeDirectoryRecursive sandbox
+  return (Path sandbox)
   where
     create sandbox cachedPackages = do
       withCurrentDirectory sandbox $ do
@@ -76,28 +77,21 @@ createCacheSandbox cache installPlan = do
         destPackageDB <- findPackageDB currentDirectory
         registerPackageConfigs destPackageDB cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
-      return (Path sandbox)
 
-
-lookup_ :: Path Cache -> [Package] -> IO [Path PackageConfig]
-lookup_ cache installPlan = do
+findReusablePackages :: Path Cache -> [Package] -> IO [Path PackageConfig]
+findReusablePackages cache installPlan = do
   sandboxes <- lookupSandboxes cache
   globalPackages <- listGlobalPackages
   cachedPackages <- forM sandboxes $ \ sandbox -> do
     packageDB <- findPackageDB sandbox
     cacheGraph <- readPackageGraph packageDB
-    let reusable = findReusablePackages installPlan globalPackages cacheGraph
+    let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
+        reusable = reusablePackages packages cacheGraph
     lookupPackages packageDB reusable
   return $ ordNub $ concat cachedPackages
 
 lookupSandboxes :: Path Cache -> IO [Path Sandbox]
 lookupSandboxes (Path cache) = map Path <$> listDirectories cache
-
-findReusablePackages :: [Package] -> [Package] -> PackageGraph -> [Package]
-findReusablePackages installPlan globalPackages cache =
-  reusablePackages packages cache
-  where
-    packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
 
 listGlobalPackages :: IO [Package]
 listGlobalPackages = do
