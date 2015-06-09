@@ -68,12 +68,16 @@ createCacheSandbox :: Path Cache -> [Package] -> IO (Path Sandbox)
 createCacheSandbox cache installPlan = do
   cachedPackages <- lookup_ cache installPlan
   sandbox <- createTempDirectory (path cache) "sandbox"
-  withCurrentDirectory sandbox $ do
-    initSandbox
-    destPackageDB <- findPackageDB currentDirectory
-    registerPackageConfigs destPackageDB cachedPackages
-    callProcess "cabal" ("install" : map showPackage installPlan)
-  return (Path sandbox)
+  create sandbox cachedPackages `onException` removeDirectoryRecursive sandbox
+  where
+    create sandbox cachedPackages = do
+      withCurrentDirectory sandbox $ do
+        initSandbox
+        destPackageDB <- findPackageDB currentDirectory
+        registerPackageConfigs destPackageDB cachedPackages
+        callProcess "cabal" ("install" : map showPackage installPlan)
+      return (Path sandbox)
+
 
 lookup_ :: Path Cache -> [Package] -> IO [Path PackageConfig]
 lookup_ cache installPlan = do
