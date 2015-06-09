@@ -25,33 +25,33 @@ import           Package
 import           Stack
 
 spec :: Spec
-spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before restoreCache $ do
+spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do
     describe "findPackageDB" $ do
-      it "finds the sandbox package db" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
-        r <- findPackageDB sandbox
-        path r `shouldSatisfy` (\ p -> (path sandbox </> ".cabal-sandbox") `isPrefixOf` p && isPackageDB p)
+      it "finds the sandbox package db" $ do
+        r <- findPackageDB getoptGenericsSandbox
+        path r `shouldSatisfy` (\ p -> (path getoptGenericsSandbox </> ".cabal-sandbox") `isPrefixOf` p && isPackageDB p)
 
-      it "returns an absolute path" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
-        r <- findPackageDB sandbox
+      it "returns an absolute path" $ do
+        r <- findPackageDB getoptGenericsSandbox
         path r `shouldSatisfy` ("/" `isPrefixOf`)
 
     describe "extractPackages" $ do
-      it "extracts the packages" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
-        packageDB <- findPackageDB sandbox
+      it "extracts the packages" $ do
+        packageDB <- findPackageDB getoptGenericsSandbox
         packages <- extractPackages packageDB
         packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 
     describe "createStackedSandbox" $ do
-      it "registers packages from one sandbox in another" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
+      it "registers packages from one sandbox in another" $ do
         inTempDirectory $ do
-          createStackedSandbox sandbox
+          createStackedSandbox getoptGenericsSandbox
           output <- readProcess "cabal" (words "exec ghc-pkg list") ""
           output `shouldContain` showPackage getoptGenerics
 
-      it "yields a working sandbox" $ \ (toSandbox "getopt-generics" -> sandbox) -> do
+      it "yields a working sandbox" $ do
         inTempDirectory $ do
-          createStackedSandbox sandbox
+          createStackedSandbox getoptGenericsSandbox
           ghcPkgCheck
 
     describe "installDependencies" $ do
@@ -66,20 +66,20 @@ spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before restoreCache $ do
           listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""
           packageImportDirs package = readProcess "cabal" ["exec", "ghc-pkg", "field", package, "import-dirs"] ""
 
-      it "installs dependencies" $ \ cache -> do
+      it "installs dependencies" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
           installDependencies cache
           listPackages >>= (`shouldContain` "setenv")
 
-      it "reuses packages" $ \ cache -> do
+      it "reuses packages" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
           installDependencies cache
-          packageImportDirs "generics-sop" >>= (`shouldContain` path (toSandbox "getopt-generics" cache))
-          packageImportDirs "setenv" >>= (`shouldContain` path (toSandbox "setenv" cache))
+          packageImportDirs "generics-sop" >>= (`shouldContain` path getoptGenericsSandbox)
+          packageImportDirs "setenv" >>= (`shouldContain` path setenvSandbox)
 
-      it "skips redundant packages" $ \ cache -> do
+      it "skips redundant packages" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
           installDependencies cache
@@ -132,11 +132,10 @@ mkCache = do
     mkTestSandbox cache "getopt-generics" getoptGenericsPackages
     copyDirectory cache cacheBackup
 
-restoreCache :: IO (Path Cache)
+restoreCache :: IO ()
 restoreCache = do
   removeDirectory cache
   copyDirectory cacheBackup cache
-  return cache
 
 cache :: Path Cache
 cache = "/tmp/tinc-test-cache"
@@ -154,3 +153,9 @@ removeDirectory dir = shelly $ do
 
 toSandbox :: String -> Path Cache -> Path Sandbox
 toSandbox pattern (Path cache) = Path (cache </> "tinc-" ++ pattern)
+
+setenvSandbox :: Path Sandbox
+setenvSandbox = toSandbox "setenv" cache
+
+getoptGenericsSandbox :: Path Sandbox
+getoptGenericsSandbox = toSandbox "getopt-generics" cache
