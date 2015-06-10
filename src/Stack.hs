@@ -149,10 +149,9 @@ lookupPackages packageDB packages = do
   packageConfigs <- findPackageConfigs packageDB
   fmap catMaybes . forM packages $ \ package ->
     case lookupPackage package packageConfigs of
-      Right packageConfig -> return $ (,) package . mkAbsolute <$> packageConfig
+      Right (Just packageConfig) -> return $ Just (package, Path $ path packageDB </> packageConfig)
+      Right Nothing -> return Nothing
       Left err -> die err
-  where
-    mkAbsolute = Path . (path packageDB </>)
 
 findGlobalPackageDB :: IO (Path PackageDB)
 findGlobalPackageDB = do
