@@ -57,6 +57,7 @@ test-suite spec
       PackageGraphSpec
       PackageSpec
       StackSpec
+      Tinc.SetupSpec
       UtilSpec
   build-depends:
       base == 4.*
@@ -72,7 +73,7 @@ test-suite spec
 
     , hspec
     , hspec-expectations
-    , mockery
+    , mockery >= 0.3.0
     , silently
     , shelly
   ghc-options: -Wall
