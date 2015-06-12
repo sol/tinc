@@ -23,24 +23,20 @@ import           Data.Function
 import           Data.Graph.Wrapper
 import           Data.List.Compat
 import           Data.Maybe
-import           Data.String
 import           System.Directory
 import           System.Exit.Compat
 import           System.FilePath
 import           System.IO.Temp
 import           System.Process
 
+import           Tinc.Setup
 import           Package
 import           PackageGraph
 import           Util
 
-newtype Path a = Path {path :: FilePath}
-  deriving (Eq, Ord, Show, IsString)
-
 data Sandbox
 data PackageDB
 data PackageConfig
-data Cache
 
 currentDirectory :: Path Sandbox
 currentDirectory = "."

@@ -27,6 +27,7 @@ executable tinc
       PackageGraph
       Run
       Stack
+      Tinc.Setup
       Util
   build-depends:
       base == 4.*
@@ -51,6 +52,7 @@ test-suite spec
       PackageGraph
       Run
       Stack
+      Tinc.Setup
       Util
       PackageGraphSpec
       PackageSpec
