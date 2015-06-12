@@ -19,28 +19,6 @@ source-repository head
   type: git
   location: https://github.com/soenkehahn/tinc
 
-library
-  hs-source-dirs: src
-  exposed-modules:
-      Package
-      PackageGraph
-      Run
-      Stack
-      Util
-  build-depends:
-      base == 4.*
-    , base-compat
-    , graph-wrapper >= 0.2.5
-    , language-dot
-    , containers
-    , directory
-    , filepath
-    , process >= 1.2
-    , parsec
-    , temporary
-  ghc-options: -Wall
-  default-language: Haskell2010
-
 executable tinc
   hs-source-dirs: src, driver
   main-is: tinc.hs
@@ -95,5 +73,5 @@ test-suite spec
     , mockery
     , silently
     , shelly
-  ghc-options: -Wall -threaded -O0
+  ghc-options: -Wall
   default-language: Haskell2010

@@ -21,24 +21,17 @@ dependencies:
   - parsec
   - temporary
 
-library:
-  source-dirs:
-    - src
+source-dirs: src
 
 executables:
   tinc:
     main: tinc.hs
-    source-dirs:
-      - src
-      - driver
+    source-dirs: driver
 
 tests:
   spec:
     main: "Spec.hs"
-    ghc-options: "-threaded -O0"
-    source-dirs:
-      - src
-      - test
+    source-dirs: test
 
     dependencies:
       - hspec
