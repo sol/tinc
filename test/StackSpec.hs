@@ -110,9 +110,9 @@ getoptGenericsPackages = [
   , getoptGenerics
   ]
 
-mkTestSandbox :: Path Cache -> String -> [Package] -> IO ()
-mkTestSandbox cache pattern packages = do
-  let sandbox = toSandbox pattern cache
+mkTestSandbox :: String -> [Package] -> IO ()
+mkTestSandbox pattern packages = do
+  let sandbox = toSandbox pattern
   exists <- doesDirectoryExist $ path sandbox
   when (not exists) $ do
     createDirectoryIfMissing True $ path sandbox
@@ -127,8 +127,8 @@ mkCache = do
   unless exists $ do
     removeDirectory cache
     createDirectory (path cache)
-    mkTestSandbox cache "setenv" [Package "setenv" "0.1.1.3"]
-    mkTestSandbox cache "getopt-generics" getoptGenericsPackages
+    mkTestSandbox "setenv" [Package "setenv" "0.1.1.3"]
+    mkTestSandbox "getopt-generics" getoptGenericsPackages
     copyDirectory cache cacheBackup
 
 restoreCache :: IO ()
@@ -153,11 +153,11 @@ removeDirectory :: Path a -> IO ()
 removeDirectory dir = shelly $ do
   rm_rf (fromString $ path dir)
 
-toSandbox :: String -> Path Cache -> Path Sandbox
-toSandbox pattern (Path cache) = Path (cache </> "tinc-" ++ pattern)
+toSandbox :: String -> Path Sandbox
+toSandbox pattern = Path (path cache </> "tinc-" ++ pattern)
 
 setenvSandbox :: Path Sandbox
-setenvSandbox = toSandbox "setenv" cache
+setenvSandbox = toSandbox "setenv"
 
 getoptGenericsSandbox :: Path Sandbox
-getoptGenericsSandbox = toSandbox "getopt-generics" cache
+getoptGenericsSandbox = toSandbox "getopt-generics"

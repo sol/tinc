@@ -1,4 +1,4 @@
--- This file has been generated from package.yml by hpack version 0.2.0.
+-- This file has been generated from package.yaml by hpack version 0.3.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -38,7 +38,7 @@ library
     , process >= 1.2
     , parsec
     , temporary
-  ghc-options: -Wall -fno-warn-name-shadowing
+  ghc-options: -Wall
   default-language: Haskell2010
 
 executable tinc
@@ -61,7 +61,7 @@ executable tinc
     , process >= 1.2
     , parsec
     , temporary
-  ghc-options: -Wall -fno-warn-name-shadowing
+  ghc-options: -Wall
   default-language: Haskell2010
 
 test-suite spec
@@ -95,5 +95,5 @@ test-suite spec
     , mockery
     , silently
     , shelly
-  ghc-options: -Wall -fno-warn-name-shadowing -threaded -O0
+  ghc-options: -Wall -threaded -O0
   default-language: Haskell2010

@@ -56,6 +56,6 @@ toString :: NodeId -> Package
 toString (NodeId i _) = parsePackage $ case i of
   NameId s -> s
   StringId s -> s
-  IntegerId i -> show i
+  IntegerId int -> show int
   FloatId f -> show f
   x@XmlId{} -> show x

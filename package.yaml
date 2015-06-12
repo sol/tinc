@@ -7,7 +7,7 @@ copyright: "Sönke Hahn"
 maintainer: "soenke.hahn@zalora.com"
 github: soenkehahn/link-sandbox
 
-ghc-options: -Wall -fno-warn-name-shadowing
+ghc-options: -Wall
 
 dependencies:
   - base == 4.*
