@@ -160,10 +160,7 @@ registerPackageConfigs :: Path PackageDB -> [Path PackageConfig] -> IO ()
 registerPackageConfigs packageDB packages = do
   forM_ packages $ \ package ->
     copyFile (path package) (path packageDB </> takeFileName (path package))
-  callProcess "cabal" $
-    "exec" :
-    "--" :
-    "ghc-pkg" :
-    "recache" :
-    "--package-db" : path packageDB :
-    []
+  recache packageDB
+
+recache :: Path PackageDB -> IO ()
+recache packageDB = callProcess "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDB]
