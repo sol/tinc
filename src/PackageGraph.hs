@@ -1,5 +1,5 @@
 
-module PackageGraph (PackageGraph, fromDot, reusablePackages, toGraph) where
+module PackageGraph (PackageGraph, fromDot, calculateReusablePackages, toGraph) where
 
 import           Control.Monad
 import           Data.Graph.Wrapper as G
@@ -15,8 +15,8 @@ import           Package
 
 type PackageGraph = G.Graph Package ()
 
-reusablePackages :: Ord a => [a] -> G.Graph a () -> [a]
-reusablePackages installPlan cache =
+calculateReusablePackages :: Ord a => [a] -> G.Graph a () -> [a]
+calculateReusablePackages installPlan cache =
   filter p installPlan
   where
     installPlanSet = Set.fromList installPlan

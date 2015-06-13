@@ -86,7 +86,7 @@ findReusablePackages cache installPlan = do
     packageDB <- findPackageDB sandbox
     cacheGraph <- readPackageGraph packageDB
     let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
-        reusable = reusablePackages packages cacheGraph
+        reusable = calculateReusablePackages packages cacheGraph
     lookupPackages packageDB reusable
   return $ nubBy ((==) `on` fst) cachedPackages
 
