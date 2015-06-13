@@ -1,7 +1,7 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module StackSpec (spec) where
+module Tinc.InstallSpec (spec) where
 
 import           Prelude ()
 import           Prelude.Compat
@@ -22,7 +22,7 @@ import           Data.String
 
 import           Util
 import           Package
-import           Stack
+import           Tinc.Install
 
 spec :: Spec
 spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do

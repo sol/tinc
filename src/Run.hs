@@ -5,7 +5,7 @@ import           System.Process
 import           System.Exit.Compat
 
 import           Tinc.Setup
-import           Stack
+import           Tinc.Install
 
 tinc :: [String] -> IO ()
 tinc args = do

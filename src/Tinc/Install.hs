@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Stack (
+module Tinc.Install (
   Path (..)
 , Sandbox
 , PackageDB

@@ -26,7 +26,7 @@ executable tinc
       Package
       PackageGraph
       Run
-      Stack
+      Tinc.Install
       Tinc.Setup
       Util
   build-depends:
@@ -51,12 +51,12 @@ test-suite spec
       Package
       PackageGraph
       Run
-      Stack
+      Tinc.Install
       Tinc.Setup
       Util
       PackageGraphSpec
       PackageSpec
-      StackSpec
+      Tinc.InstallSpec
       Tinc.SetupSpec
       UtilSpec
   build-depends:
