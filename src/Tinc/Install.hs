@@ -41,44 +41,45 @@ data PackageConfig
 currentDirectory :: Path Sandbox
 currentDirectory = "."
 
-initSandbox :: IO (Path PackageDB)
-initSandbox = do
+initSandbox :: [Path PackageConfig] -> IO ()
+initSandbox packageConfigs = do
   callCommand "cabal sandbox init"
-  findPackageDB currentDirectory
+  packageDB <- findPackageDB currentDirectory
+  registerPackageConfigs packageDB packageConfigs
 
 deleteSandbox :: IO ()
-deleteSandbox = callCommand "cabal sandbox delete"
+deleteSandbox = do
+  exists <- doesDirectoryExist ".cabal-sandbox"
+  when exists (callCommand "cabal sandbox delete")
 
 installDependencies :: Path Cache -> IO ()
 installDependencies cache = do
-  exists <- doesDirectoryExist ".cabal-sandbox"
-  when exists deleteSandbox
+  deleteSandbox
   installPlan <- parseInstallPlan <$> readProcess "cabal" command ""
-  (packages, packageConfigs)  <- unzip <$> findReusablePackages cache installPlan
-  if null (installPlan \\ packages)
-    then do
-      destPackageDB <- initSandbox
-      registerPackageConfigs destPackageDB packageConfigs
-    else do
-      createCacheSandbox cache installPlan packageConfigs
+  (missing, reusable)  <- findReusablePackages cache installPlan
+  createProjectSandbox cache installPlan missing reusable
   where
     command :: [String]
     command = words "install --only-dependencies --enable-tests --dry-run --package-db=clear --package-db=global"
 
+createProjectSandbox :: Path Cache -> [Package] -> [Package] -> [Path PackageConfig] -> IO ()
+createProjectSandbox cache installPlan missing reusable
+  | null missing = initSandbox reusable
+  | otherwise = createCacheSandbox cache installPlan reusable
+
 createCacheSandbox :: Path Cache -> [Package] -> [Path PackageConfig] -> IO ()
-createCacheSandbox cache installPlan packageConfigs = do
+createCacheSandbox cache installPlan reusable = do
   basename <- takeBaseName <$> getCurrentDirectory
   sandbox <- createTempDirectory (path cache) (basename ++ "-")
-  create sandbox packageConfigs `onException` removeDirectoryRecursive sandbox
+  create sandbox reusable `onException` removeDirectoryRecursive sandbox
   cloneSandbox (Path sandbox)
   where
     create sandbox cachedPackages = do
       withCurrentDirectory sandbox $ do
-        destPackageDB <- initSandbox
-        registerPackageConfigs destPackageDB cachedPackages
+        initSandbox cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
 
-findReusablePackages :: Path Cache -> [Package] -> IO [(Package, Path PackageConfig)]
+findReusablePackages :: Path Cache -> [Package] -> IO ([Package], [Path PackageConfig])
 findReusablePackages cache installPlan = do
   sandboxes <- lookupSandboxes cache
   globalPackages <- listGlobalPackages
@@ -88,7 +89,9 @@ findReusablePackages cache installPlan = do
     let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
         reusable = calculateReusablePackages packages cacheGraph
     lookupPackages packageDB reusable
-  return $ nubBy ((==) `on` fst) cachedPackages
+  let (reusablePackages, reusablePackageConfigs) = unzip $ nubBy ((==) `on` fst) cachedPackages
+      missingPackages = installPlan \\ reusablePackages
+  return (missingPackages, reusablePackageConfigs)
 
 lookupSandboxes :: Path Cache -> IO [Path Sandbox]
 lookupSandboxes (Path cache) = map Path <$> listDirectories cache
@@ -101,9 +104,8 @@ listGlobalPackages = do
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
   sourcePackageDB <- findPackageDB source
-  destPackageDB <- initSandbox
   packages <- extractPackages sourcePackageDB
-  registerPackageConfigs destPackageDB packages
+  initSandbox packages
 
 findPackageDB :: Path Sandbox -> IO (Path PackageDB)
 findPackageDB sandbox = do
