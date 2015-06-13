@@ -11,6 +11,7 @@ tinc :: [String] -> IO ()
 tinc args = do
   Facts{..} <- setup
   case args of
-    [] -> installDependencies factsCache
+    [] -> installDependencies False factsCache
+    ["--dry-run"] -> installDependencies True factsCache
     name : rest | Just plugin <- lookup name factsPlugins -> callProcess plugin rest
     _ -> die ("unrecognized arguments: " ++ show args)

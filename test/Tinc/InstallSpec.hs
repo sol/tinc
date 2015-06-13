@@ -29,7 +29,7 @@ spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do
     describe "findPackageDB" $ do
       it "finds the sandbox package db" $ do
         r <- findPackageDB getoptGenericsSandbox
-        path r `shouldSatisfy` (\ p -> (path getoptGenericsSandbox </> ".cabal-sandbox") `isPrefixOf` p && isPackageDB p)
+        path r `shouldSatisfy` (\ p -> (path getoptGenericsSandbox </> cabalSandboxDirectory) `isPrefixOf` p && isPackageDB p)
 
       it "returns an absolute path" $ do
         r <- findPackageDB getoptGenericsSandbox
@@ -58,31 +58,39 @@ spec = beforeAll_ unsetEnvVars . beforeAll_ mkCache . before_ restoreCache $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
           removeDirectory setenvSandbox
-          installDependencies cache
+          silence $ installDependencies False cache
           packageImportDirs "setenv" >>= (`shouldContain` path cache)
 
       it "reuses packages" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
-          installDependencies cache
+          silence $ installDependencies False cache
           ghcPkgCheck
+          doesDirectoryExist cabalSandboxDirectory `shouldReturn` True
           packageImportDirs "generics-sop" >>= (`shouldContain` path getoptGenericsSandbox)
           packageImportDirs "setenv" >>= (`shouldContain` path setenvSandbox)
 
       it "skips redundant packages" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
-          installDependencies cache
+          silence $ installDependencies False cache
           listPackages >>= (`shouldNotContain` showPackage getoptGenerics)
 
       it "is idempotent" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
-          installDependencies cache
+          silence $ installDependencies False cache
           xs <- getDirectoryContents (path cache)
-          installDependencies cache
+          silence $ installDependencies False cache
           ys <- getDirectoryContents (path cache)
           ys `shouldMatchList` xs
+
+      context "with --dry-run" $ do
+        it "does not create sandbox" $ do
+          inTempDirectoryNamed "foo" $ do
+            writeFile "foo.cabal" (unlines cabalFile)
+            silence $ installDependencies True cache
+            doesDirectoryExist cabalSandboxDirectory `shouldReturn` False
 
 unsetEnvVars :: IO ()
 unsetEnvVars = do

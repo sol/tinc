@@ -7,6 +7,7 @@ module Tinc.Install (
 , PackageConfig
 , Cache
 , installDependencies
+, cabalSandboxDirectory
 
 -- exported for testing
 , findPackageDB
@@ -38,6 +39,9 @@ data Sandbox
 data PackageDB
 data PackageConfig
 
+cabalSandboxDirectory :: FilePath
+cabalSandboxDirectory = ".cabal-sandbox"
+
 currentDirectory :: Path Sandbox
 currentDirectory = "."
 
@@ -49,18 +53,24 @@ initSandbox packageConfigs = do
 
 deleteSandbox :: IO ()
 deleteSandbox = do
-  exists <- doesDirectoryExist ".cabal-sandbox"
+  exists <- doesDirectoryExist cabalSandboxDirectory
   when exists (callCommand "cabal sandbox delete")
 
-installDependencies :: Path Cache -> IO ()
-installDependencies cache = do
+installDependencies :: Bool -> Path Cache -> IO ()
+installDependencies dryRun cache = do
   deleteSandbox
   installPlan <- parseInstallPlan <$> readProcess "cabal" command ""
   (missing, reusable)  <- findReusablePackages cache installPlan
-  createProjectSandbox cache installPlan missing reusable
+  printInstallPlan reusable missing
+  unless dryRun (createProjectSandbox cache installPlan missing reusable)
   where
     command :: [String]
     command = words "install --only-dependencies --enable-tests --dry-run --package-db=clear --package-db=global"
+
+printInstallPlan :: [Path PackageConfig] -> [Package] -> IO ()
+printInstallPlan reusable missing = do
+  mapM_ (putStrLn . ("reusing " ++) . path) reusable
+  mapM_ (putStrLn . ("installing " ++) . showPackage) missing
 
 createProjectSandbox :: Path Cache -> [Package] -> [Package] -> [Path PackageConfig] -> IO ()
 createProjectSandbox cache installPlan missing reusable
@@ -114,7 +124,7 @@ findPackageDB sandbox = do
     Just p -> Path <$> canonicalizePath (sandboxDir </> p)
     Nothing -> die ("package db not found in " ++ sandboxDir)
   where
-    sandboxDir = path sandbox </> ".cabal-sandbox"
+    sandboxDir = path sandbox </> cabalSandboxDirectory
 
 isPackageDB :: FilePath -> Bool
 isPackageDB = ("-packages.conf.d" `isSuffixOf`)
