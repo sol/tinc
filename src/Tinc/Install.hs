@@ -82,13 +82,13 @@ findReusablePackages :: Path Cache -> [Package] -> IO [(Package, Path PackageCon
 findReusablePackages cache installPlan = do
   sandboxes <- lookupSandboxes cache
   globalPackages <- listGlobalPackages
-  cachedPackages <- forM sandboxes $ \ sandbox -> do
+  cachedPackages <- fmap concat . forM sandboxes $ \ sandbox -> do
     packageDB <- findPackageDB sandbox
     cacheGraph <- readPackageGraph packageDB
     let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
         reusable = reusablePackages packages cacheGraph
     lookupPackages packageDB reusable
-  return $ ordNub $ concat cachedPackages
+  return $ nubBy ((==) `on` fst) cachedPackages
 
 lookupSandboxes :: Path Cache -> IO [Path Sandbox]
 lookupSandboxes (Path cache) = map Path <$> listDirectories cache
