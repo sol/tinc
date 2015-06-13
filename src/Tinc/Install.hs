@@ -41,8 +41,10 @@ data PackageConfig
 currentDirectory :: Path Sandbox
 currentDirectory = "."
 
-initSandbox :: IO ()
-initSandbox = callCommand "cabal sandbox init"
+initSandbox :: IO (Path PackageDB)
+initSandbox = do
+  callCommand "cabal sandbox init"
+  findPackageDB currentDirectory
 
 deleteSandbox :: IO ()
 deleteSandbox = callCommand "cabal sandbox delete"
@@ -51,18 +53,17 @@ installDependencies :: Path Cache -> IO ()
 installDependencies cache = do
   exists <- doesDirectoryExist ".cabal-sandbox"
   when exists deleteSandbox
-  initSandbox
   installPlan <- parseInstallPlan <$> readProcess "cabal" command ""
   (packages, packageConfigs)  <- unzip <$> findReusablePackages cache installPlan
   if null (installPlan \\ packages)
     then do
-      destPackageDB <- findPackageDB currentDirectory
+      destPackageDB <- initSandbox
       registerPackageConfigs destPackageDB packageConfigs
     else do
       createCacheSandbox cache installPlan packageConfigs
   where
     command :: [String]
-    command = words "install --only-dependencies --enable-tests --dry-run"
+    command = words "install --only-dependencies --enable-tests --dry-run --package-db=clear --package-db=global"
 
 createCacheSandbox :: Path Cache -> [Package] -> [Path PackageConfig] -> IO ()
 createCacheSandbox cache installPlan packageConfigs = do
@@ -73,8 +74,7 @@ createCacheSandbox cache installPlan packageConfigs = do
   where
     create sandbox cachedPackages = do
       withCurrentDirectory sandbox $ do
-        initSandbox
-        destPackageDB <- findPackageDB currentDirectory
+        destPackageDB <- initSandbox
         registerPackageConfigs destPackageDB cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
 
@@ -101,7 +101,7 @@ listGlobalPackages = do
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
   sourcePackageDB <- findPackageDB source
-  destPackageDB <- findPackageDB currentDirectory
+  destPackageDB <- initSandbox
   packages <- extractPackages sourcePackageDB
   registerPackageConfigs destPackageDB packages
 
