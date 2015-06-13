@@ -17,7 +17,7 @@ import           System.Process
 import           Test.Hspec
 import           Test.Hspec.Expectations.Contrib
 import           Test.Mockery.Directory
-import           Shelly (shelly, rm_rf, cp_r, touchfile)
+import           Shelly (shelly, rm_rf, cp_r)
 import           Data.String
 
 import           Util
@@ -137,7 +137,7 @@ restoreCache = do
   copyDirectory cacheBackup cache
   forM_ [getoptGenericsSandbox, setenvSandbox] $ \ sandbox -> do
     Path packageDB <- findPackageDB sandbox
-    shelly $ touchfile $ fromString (packageDB </> "package.cache")
+    touch (packageDB </> "package.cache")
 
 cache :: Path Cache
 cache = "/tmp/tinc-test-cache"
