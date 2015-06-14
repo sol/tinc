@@ -31,6 +31,7 @@ import           System.IO.Temp
 import           System.Process
 
 import           Tinc.Setup
+import           Tinc.GhcPkg
 import           Package
 import           PackageGraph
 import           Util
@@ -106,11 +107,6 @@ findReusablePackages cache installPlan = do
 lookupSandboxes :: Path Cache -> IO [Path Sandbox]
 lookupSandboxes (Path cache) = map Path <$> listDirectories cache
 
-listGlobalPackages :: IO [Package]
-listGlobalPackages = do
-  packageDB <- findGlobalPackageDB
-  vertices <$> readPackageGraph_ [packageDB]
-
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
   sourcePackageDB <- findPackageDB source
@@ -135,15 +131,9 @@ extractPackages packageDB = do
   map snd <$> lookupPackages packageDB (reverse $ topologicalSort graph)
 
 readPackageGraph :: Path PackageDB -> IO PackageGraph
-readPackageGraph packageDB = do
-  globalPackageDB <- findGlobalPackageDB
-  readPackageGraph_ [globalPackageDB, packageDB]
-
-readPackageGraph_ :: [Path PackageDB] -> IO PackageGraph
-readPackageGraph_ packageDBs = do
-  dot <- readProcess "ghc-pkg"
-    ((concatMap (\ pdb -> ["--package-db", path pdb]) packageDBs) ++
-     "dot" : []) []
+readPackageGraph (Path packageDB) = do
+  Path globalPackageDB <- findGlobalPackageDB
+  dot <- readGhcPkg ["--package-db", globalPackageDB, "--package-db", packageDB, "dot"]
   case fromDot dot of
     Right graph -> return graph
     Left message -> die message
