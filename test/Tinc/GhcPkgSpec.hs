@@ -1,13 +1,21 @@
 {-# LANGUAGE CPP #-}
 module Tinc.GhcPkgSpec (spec) where
 
-import           Test.Hspec
+import           Helper
 
 import           Tinc.GhcPkg
+import           Tinc.Install
 import           Package
 
 spec :: Spec
 spec = do
+  describe "listPackages" $ do
+    it "lists packages from specified package database" $ do
+      ensureCache
+      packageDB <- findPackageDB getoptGenericsSandbox
+      packages <- listPackages packageDB
+      packages `shouldMatchList` getoptGenericsPackages
+
   describe "listGlobalPackages" $ do
     it "lists packages from global package database" $ do
       packages <- listGlobalPackages

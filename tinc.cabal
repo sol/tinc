@@ -26,8 +26,10 @@ executable tinc
       Package
       PackageGraph
       Run
+      Tinc.GhcPkg
       Tinc.Install
       Tinc.Setup
+      Tinc.Types
       Util
   build-depends:
       base == 4.*
@@ -51,11 +53,15 @@ test-suite spec
       Package
       PackageGraph
       Run
+      Tinc.GhcPkg
       Tinc.Install
       Tinc.Setup
+      Tinc.Types
       Util
+      Helper
       PackageGraphSpec
       PackageSpec
+      Tinc.GhcPkgSpec
       Tinc.InstallSpec
       Tinc.SetupSpec
       UtilSpec

@@ -1,8 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Tinc.Install (
-  Path (..)
-, Sandbox
+  Sandbox
 , PackageDB
 , PackageConfig
 , Cache
@@ -21,7 +20,6 @@ import           Prelude.Compat
 import           Control.Exception
 import           Control.Monad.Compat
 import           Data.Function
-import           Data.Graph.Wrapper
 import           Data.List.Compat
 import           Data.Maybe
 import           System.Directory
@@ -30,6 +28,7 @@ import           System.FilePath
 import           System.IO.Temp
 import           System.Process
 
+import           Tinc.Types
 import           Tinc.Setup
 import           Tinc.GhcPkg
 import           Package
@@ -37,7 +36,6 @@ import           PackageGraph
 import           Util
 
 data Sandbox
-data PackageDB
 data PackageConfig
 
 cabalSandboxDirectory :: FilePath
@@ -127,8 +125,8 @@ isPackageDB = ("-packages.conf.d" `isSuffixOf`)
 
 extractPackages :: Path PackageDB -> IO [Path PackageConfig]
 extractPackages packageDB = do
-  graph <- readPackageGraph packageDB
-  map snd <$> lookupPackages packageDB (reverse $ topologicalSort graph)
+  packages <- listPackages packageDB
+  map snd <$> lookupPackages packageDB packages
 
 readPackageGraph :: Path PackageDB -> IO PackageGraph
 readPackageGraph (Path packageDB) = do

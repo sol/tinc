@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Tinc.Setup where
 
 import           Prelude ()
@@ -6,9 +5,10 @@ import           Prelude.Compat
 
 import           Data.List.Compat
 import           Data.Maybe
-import           Data.String
 import           System.Directory
 import           System.FilePath
+
+import           Tinc.Types
 
 type Plugins = [(String, Plugin)]
 type Plugin = FilePath
@@ -19,9 +19,6 @@ data Facts = Facts {
 } deriving (Eq, Show)
 
 data Cache
-
-newtype Path a = Path {path :: FilePath}
-  deriving (Eq, Ord, Show, IsString)
 
 setup :: IO Facts
 setup = do
