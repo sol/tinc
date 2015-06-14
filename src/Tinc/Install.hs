@@ -31,6 +31,7 @@ import           System.Process
 import           Tinc.Types
 import           Tinc.Setup
 import           Tinc.GhcPkg
+import           Tinc.GhcInfo
 import           Package
 import           PackageGraph
 import           Util
@@ -130,7 +131,7 @@ extractPackages packageDB = do
 
 readPackageGraph :: Path PackageDB -> IO PackageGraph
 readPackageGraph (Path packageDB) = do
-  Path globalPackageDB <- findGlobalPackageDB
+  Path globalPackageDB <- ghcInfoGlobalPackageDB <$> ghcInfo
   dot <- readGhcPkg ["--package-db", globalPackageDB, "--package-db", packageDB, "dot"]
   case fromDot dot of
     Right graph -> return graph
@@ -148,11 +149,6 @@ lookupPackages packageDB packages = do
       Right (Just packageConfig) -> return $ Just (package, Path $ path packageDB </> packageConfig)
       Right Nothing -> return Nothing
       Left err -> die err
-
-findGlobalPackageDB :: IO (Path PackageDB)
-findGlobalPackageDB = do
-  output <- readProcess "ghc-pkg" ["list"] []
-  return $ Path $ takeWhile (/= ':') output
 
 registerPackageConfigs :: Path PackageDB -> [Path PackageConfig] -> IO ()
 registerPackageConfigs packageDB packages = do

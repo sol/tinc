@@ -12,8 +12,7 @@ import           System.Process
 
 import           Package
 import           Tinc.Types
-
-data PackageDB
+import           Tinc.GhcInfo
 
 listPackages :: Path PackageDB -> IO [Package]
 listPackages (Path packageDB) = parsePackages <$> readGhcPkg ["--package-db", packageDB, "list"]

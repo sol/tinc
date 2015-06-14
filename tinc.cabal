@@ -26,6 +26,7 @@ executable tinc
       Package
       PackageGraph
       Run
+      Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
       Tinc.Setup
@@ -53,6 +54,7 @@ test-suite spec
       Package
       PackageGraph
       Run
+      Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
       Tinc.Setup
@@ -61,6 +63,7 @@ test-suite spec
       Helper
       PackageGraphSpec
       PackageSpec
+      Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
       Tinc.InstallSpec
       Tinc.SetupSpec
