@@ -10,6 +10,8 @@ import qualified Data.Set as Set
 import           System.Directory
 import           System.FilePath
 
+import           System.Clock
+
 ordNub :: (Ord a) => [a] -> [a]
 ordNub l = go Set.empty l
   where
@@ -30,3 +32,11 @@ listDirectories dir = do
     filter (`notElem` [".", ".."]) <$>
     getDirectoryContents dir
   filterM doesDirectoryExist $ map (dir </>) files
+
+measure :: String -> IO a -> IO a
+measure name action = do
+  t0 <- getTime Monotonic
+  a <- action
+  t1 <- getTime Monotonic
+  putStrLn (name ++ " " ++ show (timeSpecAsNanoSecs (t1 - t0) `div` 1000000) ++ "ms")
+  return a

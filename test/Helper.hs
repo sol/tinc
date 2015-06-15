@@ -3,8 +3,10 @@ module Helper (
   module Test.Hspec
 , ensureCache
 , cache
+, setenv
 , getoptGenericsSandbox
 , getoptGenerics
+, hspecDiscover
 , getoptGenericsPackages
 , removeDirectory
 , setenvSandbox
@@ -49,12 +51,22 @@ withDirectory dir action = do
 getoptGenerics :: Package
 getoptGenerics = Package "getopt-generics" "0.6.3"
 
+hspecDiscover :: Package
+hspecDiscover = Package "hspec-discover" "2.1.7"
+
+genericsSop :: Package
+genericsSop = Package "generics-sop" "0.1.1.2"
+
+setenv :: Package
+setenv = Package "setenv" "0.1.1.3"
+
 getoptGenericsPackages :: [Package]
 getoptGenericsPackages = [
     Package "base-compat" "0.8.2"
   , Package "base-orphans" "0.3.2"
-  , Package "generics-sop" "0.1.1.2"
+  , genericsSop
   , Package "tagged" "0.8.0.1"
+  , hspecDiscover
   , getoptGenerics
   ]
 
@@ -75,7 +87,7 @@ mkCache = do
   unless exists $ do
     removeDirectory cache
     createDirectory (path cache)
-    mkTestSandbox "setenv" [Package "setenv" "0.1.1.3"]
+    mkTestSandbox "setenv" [setenv]
     mkTestSandbox "getopt-generics" getoptGenericsPackages
     copyDirectory cache cacheBackup
 

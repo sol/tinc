@@ -20,6 +20,7 @@ dependencies:
   - process >= 1.2
   - parsec
   - temporary
+  - clock
 
 source-dirs: src
 

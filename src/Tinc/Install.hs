@@ -9,6 +9,7 @@ module Tinc.Install (
 , cabalSandboxDirectory
 
 -- exported for testing
+, findReusablePackages
 , findPackageDB
 , extractPackages
 , isPackageDB
