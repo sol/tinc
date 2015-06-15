@@ -39,6 +39,31 @@ spec = before_ ensureCache $ do
         packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 
+    describe "findReusablePackages" $ do
+    {-
+      it "" $ do
+        pending
+        findReusablePackages cache [genericsSop] `shouldReturn`
+          ([], ["/tmp/tinc-test-cache/tinc-getopt-generics/.cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/generics-sop-0.1.1.2-ea79b4f97618c1d053ba280adf4ba238.conf"])
+          -}
+
+      it "" $ do
+        findReusablePackages cache [hspecDiscover] `shouldReturn` ([], ["hspec-discover.conf"])
+
+{-
+      it "" $ do
+        pending
+        findReusablePackages cache [genericsSop, setenv] `shouldReturn` ([],[
+            "/tmp/tinc-test-cache/tinc-getopt-generics/.cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/generics-sop-0.1.1.2-ea79b4f97618c1d053ba280adf4ba238.conf"
+          , "/tmp/tinc-test-cache/tinc-setenv/.cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/setenv-0.1.1.3-c06acd2a7950de6c8bef6488f34c8beb.conf"
+          ])
+
+      it "" $ do
+        pending
+        findReusablePackages cache [getoptGenerics] `shouldReturn`
+          ([getoptGenerics], [])
+          -}
+
     describe "installDependencies" $ do
       let cabalFile =
             [ "name:           foo"
