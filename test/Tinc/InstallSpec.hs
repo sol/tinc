@@ -49,7 +49,7 @@ spec = before_ ensureCache $ do
         packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 
-    describe "installDependencies" $ do
+    describe "realizeInstallPlan" $ do
       let listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""
           packageImportDirs package = readProcess "cabal" ["exec", "ghc-pkg", "field", package, "import-dirs"] ""
 
@@ -57,13 +57,13 @@ spec = before_ ensureCache $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
           removeDirectory setenvSandbox
-          silence $ installDependencies False cache
+          silence $ realizeInstallPlan False cache [genericsSop, setenv]
           packageImportDirs "setenv" >>= (`shouldContain` path cache)
 
       it "reuses packages" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
-          silence $ installDependencies False cache
+          silence $ realizeInstallPlan False cache [genericsSop, setenv]
           ghcPkgCheck
           doesDirectoryExist cabalSandboxDirectory `shouldReturn` True
           packageImportDirs "generics-sop" >>= (`shouldContain` path getoptGenericsSandbox)
@@ -72,19 +72,18 @@ spec = before_ ensureCache $ do
       it "skips redundant packages" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
-          silence $ installDependencies False cache
+          silence $ realizeInstallPlan False cache [genericsSop]
           listPackages >>= (`shouldNotContain` showPackage getoptGenerics)
 
       it "is idempotent" $ do
         inTempDirectoryNamed "foo" $ do
           writeFile "foo.cabal" $ unlines cabalFile
-          silence $ installDependencies False cache
+          silence $ realizeInstallPlan False cache [genericsSop]
           xs <- getDirectoryContents (path cache)
-          silence $ installDependencies False cache
+          silence $ realizeInstallPlan False cache [genericsSop]
           ys <- getDirectoryContents (path cache)
           ys `shouldMatchList` xs
 
-    describe "realizeInstallPlan" $ do
       context "with --dry-run" $ do
         it "does not create a sandbox" $ do
           inTempDirectoryNamed "foo" $ do
