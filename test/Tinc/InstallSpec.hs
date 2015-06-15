@@ -21,6 +21,16 @@ import           Package
 import           Tinc.Types
 import           Tinc.Install
 
+cabalFile :: [String]
+cabalFile =
+  [ "name:           foo"
+  , "version:        0.0.0"
+  , "cabal-version:  >= 1.8"
+  , "library"
+  , "  build-depends:"
+  , "      generics-sop"
+  ]
+
 spec :: Spec
 spec = before_ ensureCache $ do
     describe "findPackageDB" $ do
@@ -40,15 +50,7 @@ spec = before_ ensureCache $ do
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 
     describe "installDependencies" $ do
-      let cabalFile =
-            [ "name:           foo"
-            , "version:        0.0.0"
-            , "cabal-version:  >= 1.8"
-            , "library"
-            , "  build-depends:"
-            , "      generics-sop"
-            ]
-          listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""
+      let listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""
           packageImportDirs package = readProcess "cabal" ["exec", "ghc-pkg", "field", package, "import-dirs"] ""
 
       it "populates cache" $ do
@@ -82,12 +84,21 @@ spec = before_ ensureCache $ do
           ys <- getDirectoryContents (path cache)
           ys `shouldMatchList` xs
 
+    describe "realizeInstallPlan" $ do
       context "with --dry-run" $ do
-        it "does not create sandbox" $ do
+        it "does not create a sandbox" $ do
           inTempDirectoryNamed "foo" $ do
             writeFile "foo.cabal" (unlines cabalFile)
-            silence $ installDependencies True cache
+            silence $ realizeInstallPlan True cache []
             doesDirectoryExist cabalSandboxDirectory `shouldReturn` False
+
+        it "does not delete an existing sandbox" $ do
+          inTempDirectory $ do
+            writeFile "foo.cabal" (unlines cabalFile)
+            touch "cabal.sandbox.config"
+            touch ".cabal-sandbox/foo"
+            silence $ realizeInstallPlan True cache []
+            doesFileExist ".cabal-sandbox/foo" `shouldReturn` True
 
 ghcPkgCheck :: IO ()
 ghcPkgCheck = hSilence [stderr] $ callCommand "cabal exec ghc-pkg check"

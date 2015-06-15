@@ -41,12 +41,10 @@ spec = do
         , "template-haskell"
         , "time"
         , "unix"
-#if __GLASGOW_HASKELL__ > 706
         , "haskeline"
         , "terminfo"
         , "transformers"
         , "xhtml"
-#endif
 #if __GLASGOW_HASKELL__ < 710
         , "haskell2010"
         , "haskell98"

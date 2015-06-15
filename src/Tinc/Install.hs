@@ -12,6 +12,7 @@ module Tinc.Install (
 , findPackageDB
 , extractPackages
 , isPackageDB
+, realizeInstallPlan
 ) where
 
 import           Prelude ()
@@ -47,6 +48,7 @@ currentDirectory = "."
 
 initSandbox :: [Path PackageConfig] -> IO ()
 initSandbox packageConfigs = do
+  deleteSandbox
   callCommand "cabal sandbox init"
   packageDB <- findPackageDB currentDirectory
   registerPackageConfigs packageDB packageConfigs
@@ -58,14 +60,19 @@ deleteSandbox = do
 
 installDependencies :: Bool -> Path Cache -> IO ()
 installDependencies dryRun cache = do
-  deleteSandbox
-  installPlan <- parseInstallPlan <$> readProcess "cabal" command ""
+  cabalInstallPlan >>= realizeInstallPlan dryRun cache
+
+realizeInstallPlan :: Bool -> Path Cache -> [Package] -> IO ()
+realizeInstallPlan dryRun cache installPlan = do
   (missing, reusable)  <- findReusablePackages cache installPlan
   printInstallPlan reusable missing
   unless dryRun (createProjectSandbox cache installPlan missing reusable)
+
+cabalInstallPlan :: IO [Package]
+cabalInstallPlan = parseInstallPlan <$> readProcess "cabal" command ""
   where
     command :: [String]
-    command = words "install --only-dependencies --enable-tests --dry-run --package-db=clear --package-db=global"
+    command = words "--ignore-sandbox --no-require-sandbox install --only-dependencies --enable-tests --dry-run --package-db=clear --package-db=global"
 
 printInstallPlan :: [Path PackageConfig] -> [Package] -> IO ()
 printInstallPlan reusable missing = do
