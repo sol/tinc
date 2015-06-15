@@ -60,11 +60,12 @@ deleteSandbox = do
 
 installDependencies :: Bool -> Path Cache -> IO ()
 installDependencies dryRun cache = do
-  cabalInstallPlan >>= realizeInstallPlan dryRun cache
+  ghcInfo <- getGhcInfo
+  cabalInstallPlan >>= realizeInstallPlan ghcInfo dryRun cache
 
-realizeInstallPlan :: Bool -> Path Cache -> [Package] -> IO ()
-realizeInstallPlan dryRun cache installPlan = do
-  (missing, reusable)  <- findReusablePackages cache installPlan
+realizeInstallPlan :: GhcInfo -> Bool -> Path Cache -> [Package] -> IO ()
+realizeInstallPlan ghcInfo dryRun cache installPlan = do
+  (missing, reusable) <- findReusablePackages ghcInfo cache installPlan
   printInstallPlan reusable missing
   unless dryRun (createProjectSandbox cache installPlan missing reusable)
 
@@ -96,13 +97,13 @@ createCacheSandbox cache installPlan reusable = do
         initSandbox cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
 
-findReusablePackages :: Path Cache -> [Package] -> IO ([Package], [Path PackageConfig])
-findReusablePackages cache installPlan = do
+findReusablePackages :: GhcInfo -> Path Cache -> [Package] -> IO ([Package], [Path PackageConfig])
+findReusablePackages ghcInfo cache installPlan = do
   sandboxes <- lookupSandboxes cache
   globalPackages <- listGlobalPackages
   cachedPackages <- fmap concat . forM sandboxes $ \ sandbox -> do
     packageDB <- findPackageDB sandbox
-    cacheGraph <- readPackageGraph packageDB
+    cacheGraph <- readPackageGraph (ghcInfoGlobalPackageDB ghcInfo) packageDB
     let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
         reusable = calculateReusablePackages packages cacheGraph
     lookupPackages packageDB reusable
@@ -136,9 +137,8 @@ extractPackages packageDB = do
   packages <- listPackages packageDB
   map snd <$> lookupPackages packageDB packages
 
-readPackageGraph :: Path PackageDB -> IO PackageGraph
-readPackageGraph (Path packageDB) = do
-  Path globalPackageDB <- ghcInfoGlobalPackageDB <$> ghcInfo
+readPackageGraph :: Path PackageDB -> Path PackageDB -> IO PackageGraph
+readPackageGraph (Path globalPackageDB) (Path packageDB) = do
   dot <- readGhcPkg ["--package-db", globalPackageDB, "--package-db", packageDB, "dot"]
   case fromDot dot of
     Right graph -> return graph

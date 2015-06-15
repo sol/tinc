@@ -15,8 +15,8 @@ data GhcInfo = GhcInfo {
   ghcInfoGlobalPackageDB :: Path PackageDB
 } deriving (Eq, Show)
 
-ghcInfo :: IO GhcInfo
-ghcInfo = do
+getGhcInfo :: IO GhcInfo
+getGhcInfo = do
   fields <- read <$> readProcess "ghc" ["--info"] ""
   globalPackageDB <- Path <$> lookupField "Global Package DB" fields
   return (GhcInfo globalPackageDB)

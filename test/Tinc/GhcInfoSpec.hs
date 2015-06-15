@@ -9,7 +9,7 @@ import           Tinc.GhcInfo
 
 spec :: Spec
 spec = do
-  describe "ghcInfo" $ do
+  describe "getGhcInfo" $ do
     it "includes path to global package database" $ do
-      info <- ghcInfo
+      info <- getGhcInfo
       path (ghcInfoGlobalPackageDB info) `shouldSatisfy` ("package.conf.d" `isSuffixOf`)
