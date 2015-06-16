@@ -51,6 +51,10 @@ spec = before_ ensureCache $ do
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 
     beforeAll getGhcInfo $ do
+      describe "findReusablePackages" $ do
+        it "reuses packages that have no dependencies at all" $ \ ghcInfo -> do
+          fmap (map fst) <$> findReusablePackages ghcInfo cache [hspecDiscover] `shouldReturn` ([], [hspecDiscover])
+
       describe "realizeInstallPlan" $ do
         let listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""
             packageImportDirs package = readProcess "cabal" ["exec", "ghc-pkg", "field", package, "import-dirs"] ""

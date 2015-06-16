@@ -9,12 +9,16 @@ import           Package
 
 spec :: Spec
 spec = do
-  describe "listPackages" $ do
+  describe "listPackages" $ beforeAll_ ensureCache $ do
     it "lists packages from specified package database" $ do
-      ensureCache
       packageDB <- findPackageDB getoptGenericsSandbox
-      packages <- listPackages packageDB
+      packages <- listPackages [packageDB]
       packages `shouldMatchList` getoptGenericsPackages
+
+    it "accepts multiple package databases" $ do
+      packageDBs <- mapM findPackageDB [getoptGenericsSandbox, setenvSandbox]
+      packages <- listPackages packageDBs
+      packages `shouldMatchList` (setenv : getoptGenericsPackages)
 
   describe "listGlobalPackages" $ do
     it "lists packages from global package database" $ do

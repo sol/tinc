@@ -1,10 +1,10 @@
-
+{-# LANGUAGE TupleSections #-}
 module PackageGraph (PackageGraph, fromDot, calculateReusablePackages, toGraph) where
 
 import           Control.Monad
 import           Data.Graph.Wrapper as G
-import           Data.Map as Map (empty, Map, toList, alter)
-import           Data.Maybe
+import           Data.Map (Map)
+import qualified Data.Map as Map
 import           Data.Set (member)
 import qualified Data.Set as Set
 import           Language.Dot.Parser as Dot
@@ -29,22 +29,24 @@ calculateReusablePackages installPlan cache =
 
 -- * dot
 
-fromDot :: String -> Either String PackageGraph
-fromDot dot = case parseDot "<input>" dot of
+fromDot :: [Package] -> String -> Either String PackageGraph
+fromDot packages dot = case parseDot "<input>" dot of
   Right (Dot.Graph _ _ _ statements) ->
     fmap fromMap $
-    foldM collectStatements Map.empty statements
+    foldM collectStatements (Map.fromList $ map (,[]) packages) statements
   Left parseError -> Left $ unlines $ map messageString $ errorMessages parseError
 
 collectStatements :: Map Package [Package] -> Statement -> Either String (Map Package [Package])
 collectStatements acc s = case s of
   NodeStatement a _ ->
-    return $ alter (Just . fromMaybe []) (toString a) acc
+    return $ insert (toPackage a) [] acc
   EdgeStatement [ENodeId _ a, ENodeId _ b] _ ->
     return $
-    alter (Just . fromMaybe []) (toString b) $
-    alter (fmap (toString b :) . Just . fromMaybe []) (toString a) acc
+    insert (toPackage b) [] $
+    insert (toPackage a) [toPackage b] acc
   x -> Left ("unsupported dot statements: " ++ show x)
+  where
+    insert package dependencies = Map.insertWith (++) package dependencies
 
 fromMap :: Ord a => Map a [a] -> G.Graph a ()
 fromMap = toGraph . Map.toList
@@ -52,8 +54,8 @@ fromMap = toGraph . Map.toList
 toGraph :: Ord a => [(a, [a])] -> G.Graph a ()
 toGraph = void . fromListSimple
 
-toString :: NodeId -> Package
-toString (NodeId i _) = parsePackage $ case i of
+toPackage :: NodeId -> Package
+toPackage (NodeId i _) = parsePackage $ case i of
   NameId s -> s
   StringId s -> s
   IntegerId int -> show int

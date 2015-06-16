@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 module Tinc.GhcPkg (
   PackageDB
 , readGhcPkg
@@ -14,14 +15,18 @@ import           Package
 import           Tinc.Types
 import           Tinc.GhcInfo
 
-listPackages :: Path PackageDB -> IO [Package]
-listPackages (Path packageDB) = parsePackages <$> readGhcPkg ["--package-db", packageDB, "list"]
+listPackages :: [Path PackageDB] -> IO [Package]
+listPackages packageDBs = parsePackages <$> readGhcPkg packageDBs ["list"]
+  where
+    parsePackages :: String -> [Package]
+    parsePackages = map parsePackage . words
 
 listGlobalPackages :: IO [Package]
-listGlobalPackages = parsePackages <$> readGhcPkg ["list"]
+listGlobalPackages = listPackages []
 
-parsePackages :: String -> [Package]
-parsePackages = map parsePackage . words
+readGhcPkg :: [Path PackageDB] -> [String] -> IO String
+readGhcPkg (packageDBsToArgs -> packageDBs) args = do
+  readProcess "ghc-pkg" ("--no-user-package-db" : "--simple-output" : packageDBs ++ args) ""
 
-readGhcPkg :: [String] -> IO String
-readGhcPkg args = readProcess "ghc-pkg" ("--no-user-package-db" : "--simple-output" : args) ""
+packageDBsToArgs :: [Path PackageDB] -> [String]
+packageDBsToArgs packageDBs = concatMap (\ packageDB -> ["--package-db", path packageDB]) packageDBs

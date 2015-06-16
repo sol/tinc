@@ -9,6 +9,7 @@ module Tinc.Install (
 , cabalSandboxDirectory
 
 -- exported for testing
+, findReusablePackages
 , findPackageDB
 , extractPackages
 , isPackageDB
@@ -66,7 +67,7 @@ realizeInstallPlan :: GhcInfo -> Bool -> Path Cache -> [Package] -> IO ()
 realizeInstallPlan ghcInfo dryRun cache installPlan = do
   (missing, reusable) <- findReusablePackages ghcInfo cache installPlan
   printInstallPlan reusable missing
-  unless dryRun (createProjectSandbox cache installPlan missing reusable)
+  unless dryRun (createProjectSandbox cache installPlan missing (map snd reusable))
 
 cabalInstallPlan :: IO [Package]
 cabalInstallPlan = parseInstallPlan <$> readProcess "cabal" command ""
@@ -74,9 +75,9 @@ cabalInstallPlan = parseInstallPlan <$> readProcess "cabal" command ""
     command :: [String]
     command = words "--ignore-sandbox --no-require-sandbox install --only-dependencies --enable-tests --dry-run --package-db=clear --package-db=global"
 
-printInstallPlan :: [Path PackageConfig] -> [Package] -> IO ()
+printInstallPlan :: [(Package, Path PackageConfig)] -> [Package] -> IO ()
 printInstallPlan reusable missing = do
-  mapM_ (putStrLn . ("reusing " ++) . path) reusable
+  mapM_ (putStrLn . ("reusing " ++) . showPackage) (map fst reusable)
   mapM_ (putStrLn . ("installing " ++) . showPackage) missing
 
 createProjectSandbox :: Path Cache -> [Package] -> [Package] -> [Path PackageConfig] -> IO ()
@@ -96,19 +97,19 @@ createCacheSandbox cache installPlan reusable = do
         initSandbox cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
 
-findReusablePackages :: GhcInfo -> Path Cache -> [Package] -> IO ([Package], [Path PackageConfig])
+findReusablePackages :: GhcInfo -> Path Cache -> [Package] -> IO ([Package], [(Package, Path PackageConfig)])
 findReusablePackages ghcInfo cache installPlan = do
   sandboxes <- lookupSandboxes cache
   globalPackages <- listGlobalPackages
   cachedPackages <- fmap concat . forM sandboxes $ \ sandbox -> do
     packageDB <- findPackageDB sandbox
-    cacheGraph <- readPackageGraph (ghcInfoGlobalPackageDB ghcInfo) packageDB
+    cacheGraph <- readPackageGraph [ghcInfoGlobalPackageDB ghcInfo, packageDB]
     let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
         reusable = calculateReusablePackages packages cacheGraph
     lookupPackages packageDB reusable
-  let (reusablePackages, reusablePackageConfigs) = unzip $ nubBy ((==) `on` fst) cachedPackages
-      missingPackages = installPlan \\ reusablePackages
-  return (missingPackages, reusablePackageConfigs)
+  let reusablePackages = nubBy ((==) `on` fst) cachedPackages
+      missingPackages = installPlan \\ map fst reusablePackages
+  return (missingPackages, reusablePackages)
 
 lookupSandboxes :: Path Cache -> IO [Path Sandbox]
 lookupSandboxes (Path cache) = map Path <$> listDirectories cache
@@ -133,13 +134,23 @@ isPackageDB = ("-packages.conf.d" `isSuffixOf`)
 
 extractPackages :: Path PackageDB -> IO [Path PackageConfig]
 extractPackages packageDB = do
-  packages <- listPackages packageDB
+  packages <- listPackages [packageDB]
   map snd <$> lookupPackages packageDB packages
 
-readPackageGraph :: Path PackageDB -> Path PackageDB -> IO PackageGraph
-readPackageGraph (Path globalPackageDB) (Path packageDB) = do
-  dot <- readGhcPkg ["--package-db", globalPackageDB, "--package-db", packageDB, "dot"]
-  case fromDot dot of
+readPackageGraph :: [Path PackageDB] -> IO PackageGraph
+readPackageGraph packageDBs = do
+  dot <- readGhcPkg packageDBs ["dot"]
+
+  -- NOTE: `ghc-pkg dot` omits packages from the graph that both:
+  --
+  -- 1. have no dependencies
+  -- 2. no other package depends on
+  --
+  -- For that reason we initialize the dependency graph with a list of all
+  -- packages.
+  packages <- listPackages packageDBs
+
+  case fromDot packages dot of
     Right graph -> return graph
     Left message -> die message
 

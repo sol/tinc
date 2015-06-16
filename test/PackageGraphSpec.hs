@@ -34,17 +34,23 @@ spec = do
         calculateReusablePackages [a] g `shouldBe` []
 
   describe "fromDot" $ do
+    let dot = unlines $
+          "digraph g {" :
+          "  b -> c;" :
+          "  a -> b;" :
+          "  d;" :
+          "}" :
+          []
+        expected =
+          (Package "a" "", (), [Package "b" ""]) :
+          (Package "b" "", (), [Package "c" ""]) :
+          (Package "c" "", (), []) :
+          (Package "d" "", (), []) :
+          []
     it "can parse dot graphs" $ do
-      let Right graph = fromDot $ unlines $
-            "digraph g {" :
-            "  b -> c;" :
-            "  a -> b;" :
-            "  d;" :
-            "}" :
-            []
-      sort (toList graph) `shouldBe`
-        (Package "a" "", (), [Package "b" ""]) :
-        (Package "b" "", (), [Package "c" ""]) :
-        (Package "c" "", (), []) :
-        (Package "d" "", (), []) :
-        []
+      let Right graph = fromDot [] dot
+      sort (toList graph) `shouldBe` expected
+
+    it "accepts an additional list of nodes" $ do
+      let Right graph = fromDot [Package "a" "", Package "e" ""] dot
+      sort (toList graph) `shouldBe` expected ++ [(Package "e" "", (), [])]

@@ -4,6 +4,7 @@ module Helper (
 , ensureCache
 , cache
 , setenv
+, hspecDiscover
 , getoptGenericsSandbox
 , getoptGenericsPackages
 , getoptGenerics
@@ -57,11 +58,14 @@ getoptGenerics = Package "getopt-generics" "0.6.3"
 genericsSop :: Package
 genericsSop = Package "generics-sop" "0.1.1.2"
 
+hspecDiscover :: Package
+hspecDiscover = Package "hspec-discover" "2.1.7"
+
 getoptGenericsPackages :: [Package]
 getoptGenericsPackages = [
     Package "base-compat" "0.8.2"
   , Package "base-orphans" "0.3.2"
-  , Package "generics-sop" "0.1.1.2"
+  , genericsSop
   , Package "tagged" "0.8.0.1"
   , getoptGenerics
   ]
@@ -85,6 +89,7 @@ mkCache = do
     createDirectory (path cache)
     mkTestSandbox "setenv" [setenv]
     mkTestSandbox "getopt-generics" getoptGenericsPackages
+    mkTestSandbox "hspec-discover" [hspecDiscover]
     copyDirectory cache cacheBackup
 
 restoreCache :: IO ()
