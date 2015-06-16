@@ -8,10 +8,16 @@ import           Test.Mockery.Directory
 import           System.Directory
 import           System.FilePath
 
+import           Tinc.Types
+import           Tinc.GhcInfo
 import           Tinc.Setup
 
 spec :: Spec
 spec = do
+  describe "setup" $ beforeAll setup $ do
+    it "includes GHC version in cache directory" $ \ facts -> do
+      path (factsCache facts) `shouldContain` ghcInfoVersion (factsGhcInfo facts)
+
   describe "listPlugins" $ do
     it "lists plugins" $ do
       inTempDirectory $ do

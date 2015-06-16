@@ -58,9 +58,8 @@ deleteSandbox = do
   exists <- doesDirectoryExist cabalSandboxDirectory
   when exists (callCommand "cabal sandbox delete")
 
-installDependencies :: Bool -> Path Cache -> IO ()
-installDependencies dryRun cache = do
-  ghcInfo <- getGhcInfo
+installDependencies :: GhcInfo -> Bool -> Path Cache -> IO ()
+installDependencies ghcInfo dryRun cache = do
   cabalInstallPlan >>= realizeInstallPlan ghcInfo dryRun cache
 
 realizeInstallPlan :: GhcInfo -> Bool -> Path Cache -> [Package] -> IO ()
