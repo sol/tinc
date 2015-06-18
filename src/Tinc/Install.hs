@@ -137,23 +137,6 @@ extractPackages packageDB = do
   packages <- listPackages [packageDB]
   map snd <$> lookupPackages packageDB packages
 
-readPackageGraph :: [Path PackageDB] -> IO PackageGraph
-readPackageGraph packageDBs = do
-  dot <- readGhcPkg packageDBs ["dot"]
-
-  -- NOTE: `ghc-pkg dot` omits packages from the graph that both:
-  --
-  -- 1. have no dependencies
-  -- 2. no other package depends on
-  --
-  -- For that reason we initialize the dependency graph with a list of all
-  -- packages.
-  packages <- listPackages packageDBs
-
-  case fromDot packages dot of
-    Right graph -> return graph
-    Left message -> die message
-
 findPackageConfigs :: Path PackageDB -> IO [FilePath]
 findPackageConfigs packageDB =
   filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path packageDB)

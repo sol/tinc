@@ -1,8 +1,6 @@
 
 module PackageGraphSpec where
 
-import           Data.Graph.Wrapper
-import           Data.List
 import           Test.Hspec
 
 import           PackageGraph

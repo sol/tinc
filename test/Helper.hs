@@ -1,16 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Helper (
   module Test.Hspec
+
 , ensureCache
 , cache
+
 , setenv
-, hspecDiscover
-, getoptGenericsSandbox
-, getoptGenericsPackages
-, getoptGenerics
-, genericsSop
-, removeDirectory
 , setenvSandbox
+
+, hspecDiscover
+, hspecDiscoverSandbox
+
+, genericsSop
+, getoptGenerics
+, getoptGenericsPackages
+, getoptGenericsSandbox
+
+, removeDirectory
 ) where
 
 import           Prelude ()
@@ -96,7 +102,7 @@ restoreCache :: IO ()
 restoreCache = do
   removeDirectory cache
   copyDirectory cacheBackup cache
-  forM_ [getoptGenericsSandbox, setenvSandbox] $ \ sandbox -> do
+  forM_ [setenvSandbox, getoptGenericsSandbox, hspecDiscoverSandbox] $ \ sandbox -> do
     Path packageDB <- findPackageDB sandbox
     touch (packageDB </> "package.cache")
 
@@ -122,3 +128,6 @@ setenvSandbox = toSandbox "setenv"
 
 getoptGenericsSandbox :: Path Sandbox
 getoptGenericsSandbox = toSandbox "getopt-generics"
+
+hspecDiscoverSandbox :: Path Sandbox
+hspecDiscoverSandbox = toSandbox "hspec-discover"
