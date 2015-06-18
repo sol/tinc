@@ -5,8 +5,8 @@
 name:           tinc
 version:        0.1.0
 category:       Development
-homepage:       https://github.com/soenkehahn/tinc#readme
-bug-reports:    https://github.com/soenkehahn/tinc/issues
+homepage:       https://github.com/haskell-tinc/tinc#readme
+bug-reports:    https://github.com/haskell-tinc/tinc/issues
 author:         Sönke Hahn
 maintainer:     soenke.hahn@zalora.com
 copyright:      Sönke Hahn
@@ -17,7 +17,7 @@ cabal-version:  >= 1.10
 
 source-repository head
   type: git
-  location: https://github.com/soenkehahn/tinc
+  location: https://github.com/haskell-tinc/tinc
 
 executable tinc
   hs-source-dirs: src, driver
@@ -60,6 +60,7 @@ test-suite spec
       Tinc.Setup
       Tinc.Types
       Util
+      All
       Helper
       PackageGraphSpec
       PackageSpec

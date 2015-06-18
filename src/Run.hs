@@ -3,12 +3,20 @@ module Run where
 
 import           System.Process
 import           System.Exit.Compat
+import           System.Environment.Compat
 
 import           Tinc.Setup
 import           Tinc.Install
 
+unsetEnvVars :: IO ()
+unsetEnvVars = do
+  unsetEnv "CABAL_SANDBOX_CONFIG"
+  unsetEnv "CABAL_SANDBOX_PACKAGE_PATH"
+  unsetEnv "GHC_PACKAGE_PATH"
+
 tinc :: [String] -> IO ()
 tinc args = do
+  unsetEnvVars
   Facts{..} <- setup
   case args of
     [] -> installDependencies factsGhcInfo False factsCache

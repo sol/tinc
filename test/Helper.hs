@@ -26,7 +26,6 @@ import           Test.Hspec
 
 import           Control.Monad
 import           System.Directory hiding (removeDirectory)
-import           System.Environment.Compat
 import           System.FilePath
 import           System.Process
 import           Test.Mockery.Directory
@@ -40,15 +39,8 @@ import           Tinc.Install
 
 ensureCache :: IO ()
 ensureCache = do
-  unsetEnvVars
   mkCache
   restoreCache
-
-unsetEnvVars :: IO ()
-unsetEnvVars = do
-  unsetEnv "CABAL_SANDBOX_CONFIG"
-  unsetEnv "CABAL_SANDBOX_PACKAGE_PATH"
-  unsetEnv "GHC_PACKAGE_PATH"
 
 withDirectory :: FilePath -> IO a -> IO a
 withDirectory dir action = do

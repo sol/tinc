@@ -5,7 +5,7 @@ license: "BSD3"
 author: "Sönke Hahn"
 copyright: "Sönke Hahn"
 maintainer: "soenke.hahn@zalora.com"
-github: soenkehahn/tinc
+github: haskell-tinc/tinc
 
 ghc-options: -Wall
 
