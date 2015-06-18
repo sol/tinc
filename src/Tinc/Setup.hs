@@ -15,12 +15,10 @@ type Plugins = [(String, Plugin)]
 type Plugin = FilePath
 
 data Facts = Facts {
-  factsCache :: Path Cache
+  factsCache :: Path CacheDir
 , factsPlugins :: Plugins
 , factsGhcInfo :: GhcInfo
 } deriving (Eq, Show)
-
-data Cache
 
 setup :: IO Facts
 setup = do
@@ -32,14 +30,14 @@ setup = do
       ghcFlavor :: String
       ghcFlavor = ghcInfoPlatform ghcInfo ++ "-ghc-" ++ ghcInfoVersion ghcInfo
 
-      cache :: Path Cache
-      cache = Path (home </> ".tinc" </> "cache" </> ghcFlavor)
+      cacheDir :: Path CacheDir
+      cacheDir = Path (home </> ".tinc" </> "cache" </> ghcFlavor)
 
-  createDirectoryIfMissing True (path cache)
+  createDirectoryIfMissing True (path cacheDir)
   createDirectoryIfMissing True pluginsDir
   plugins <- listPlugins pluginsDir
   return Facts {
-    factsCache = cache
+    factsCache = cacheDir
   , factsPlugins = plugins
   , factsGhcInfo = ghcInfo
   }

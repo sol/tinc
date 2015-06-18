@@ -3,7 +3,7 @@ module Helper (
   module Test.Hspec
 
 , ensureCache
-, cache
+, cacheDir
 
 , setenv
 , setenvSandbox
@@ -83,25 +83,25 @@ mkCache :: IO ()
 mkCache = do
   exists <- doesDirectoryExist (path cacheBackup)
   unless exists $ do
-    removeDirectory cache
-    createDirectory (path cache)
+    removeDirectory cacheDir
+    createDirectory (path cacheDir)
     mkTestSandbox "setenv" [setenv]
     mkTestSandbox "getopt-generics" getoptGenericsPackages
     mkTestSandbox "hspec-discover" [hspecDiscover]
-    copyDirectory cache cacheBackup
+    copyDirectory cacheDir cacheBackup
 
 restoreCache :: IO ()
 restoreCache = do
-  removeDirectory cache
-  copyDirectory cacheBackup cache
+  removeDirectory cacheDir
+  copyDirectory cacheBackup cacheDir
   forM_ [setenvSandbox, getoptGenericsSandbox, hspecDiscoverSandbox] $ \ sandbox -> do
     Path packageDB <- findPackageDB sandbox
     touch (packageDB </> "package.cache")
 
-cache :: Path Cache
-cache = "/tmp/tinc-test-cache"
+cacheDir :: Path CacheDir
+cacheDir = "/tmp/tinc-test-cache"
 
-cacheBackup :: Path Cache
+cacheBackup :: Path CacheDir
 cacheBackup = "cache-backup"
 
 copyDirectory :: Path a -> Path a -> IO ()
@@ -113,7 +113,7 @@ removeDirectory dir = shelly $ do
   rm_rf (fromString $ path dir)
 
 toSandbox :: String -> Path Sandbox
-toSandbox pattern = Path (path cache </> "tinc-" ++ pattern)
+toSandbox pattern = Path (path cacheDir </> "tinc-" ++ pattern)
 
 setenvSandbox :: Path Sandbox
 setenvSandbox = toSandbox "setenv"

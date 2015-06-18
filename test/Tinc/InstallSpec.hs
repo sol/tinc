@@ -59,13 +59,13 @@ spec = before_ ensureCache $ do
           inTempDirectoryNamed "foo" $ do
             writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
             removeDirectory setenvSandbox
-            silence $ realizeInstallPlan ghcInfo False cache [genericsSop, setenv]
-            packageImportDirs "setenv" >>= (`shouldContain` path cache)
+            silence $ realizeInstallPlan ghcInfo False cacheDir [genericsSop, setenv]
+            packageImportDirs "setenv" >>= (`shouldContain` path cacheDir)
 
         it "reuses packages" $ \ ghcInfo -> do
           inTempDirectoryNamed "foo" $ do
             writeFile "foo.cabal" . unlines $ cabalFile ++ ["    , setenv == 0.1.1.3"]
-            silence $ realizeInstallPlan ghcInfo False cache [genericsSop, setenv]
+            silence $ realizeInstallPlan ghcInfo False cacheDir [genericsSop, setenv]
             ghcPkgCheck
             doesDirectoryExist cabalSandboxDirectory `shouldReturn` True
             packageImportDirs "generics-sop" >>= (`shouldContain` path getoptGenericsSandbox)
@@ -74,23 +74,23 @@ spec = before_ ensureCache $ do
         it "skips redundant packages" $ \ ghcInfo -> do
           inTempDirectoryNamed "foo" $ do
             writeFile "foo.cabal" $ unlines cabalFile
-            silence $ realizeInstallPlan ghcInfo False cache [genericsSop]
+            silence $ realizeInstallPlan ghcInfo False cacheDir [genericsSop]
             listPackages >>= (`shouldNotContain` showPackage getoptGenerics)
 
         it "is idempotent" $ \ ghcInfo -> do
           inTempDirectoryNamed "foo" $ do
             writeFile "foo.cabal" $ unlines cabalFile
-            silence $ realizeInstallPlan ghcInfo False cache [genericsSop]
-            xs <- getDirectoryContents (path cache)
-            silence $ realizeInstallPlan ghcInfo False cache [genericsSop]
-            ys <- getDirectoryContents (path cache)
+            silence $ realizeInstallPlan ghcInfo False cacheDir [genericsSop]
+            xs <- getDirectoryContents (path cacheDir)
+            silence $ realizeInstallPlan ghcInfo False cacheDir [genericsSop]
+            ys <- getDirectoryContents (path cacheDir)
             ys `shouldMatchList` xs
 
         context "with --dry-run" $ do
           it "does not create a sandbox" $ \ ghcInfo -> do
             inTempDirectoryNamed "foo" $ do
               writeFile "foo.cabal" (unlines cabalFile)
-              silence $ realizeInstallPlan ghcInfo True cache []
+              silence $ realizeInstallPlan ghcInfo True cacheDir []
               doesDirectoryExist cabalSandboxDirectory `shouldReturn` False
 
           it "does not delete an existing sandbox" $ \ ghcInfo -> do
@@ -98,7 +98,7 @@ spec = before_ ensureCache $ do
               writeFile "foo.cabal" (unlines cabalFile)
               touch "cabal.sandbox.config"
               touch ".cabal-sandbox/foo"
-              silence $ realizeInstallPlan ghcInfo True cache []
+              silence $ realizeInstallPlan ghcInfo True cacheDir []
               doesFileExist ".cabal-sandbox/foo" `shouldReturn` True
 
 ghcPkgCheck :: IO ()

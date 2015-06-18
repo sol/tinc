@@ -4,7 +4,6 @@ module Tinc.Install (
   Sandbox
 , PackageDB
 , PackageConfig
-, Cache
 , installDependencies
 , cabalSandboxDirectory
 
@@ -31,7 +30,6 @@ import           System.IO.Temp
 import           System.Process
 
 import           Tinc.Types
-import           Tinc.Setup
 import           Tinc.GhcPkg
 import           Tinc.GhcInfo
 import           Package
@@ -59,15 +57,15 @@ deleteSandbox = do
   exists <- doesDirectoryExist cabalSandboxDirectory
   when exists (callCommand "cabal sandbox delete")
 
-installDependencies :: GhcInfo -> Bool -> Path Cache -> IO ()
-installDependencies ghcInfo dryRun cache = do
-  cabalInstallPlan >>= realizeInstallPlan ghcInfo dryRun cache
+installDependencies :: GhcInfo -> Bool -> Path CacheDir -> IO ()
+installDependencies ghcInfo dryRun cacheDir = do
+  cabalInstallPlan >>= realizeInstallPlan ghcInfo dryRun cacheDir
 
-realizeInstallPlan :: GhcInfo -> Bool -> Path Cache -> [Package] -> IO ()
-realizeInstallPlan ghcInfo dryRun cache installPlan = do
-  (missing, reusable) <- findReusablePackages ghcInfo cache installPlan
+realizeInstallPlan :: GhcInfo -> Bool -> Path CacheDir -> [Package] -> IO ()
+realizeInstallPlan ghcInfo dryRun cacheDir installPlan = do
+  (missing, reusable) <- findReusablePackages ghcInfo cacheDir installPlan
   printInstallPlan reusable missing
-  unless dryRun (createProjectSandbox cache installPlan missing (map snd reusable))
+  unless dryRun (createProjectSandbox cacheDir installPlan missing (map snd reusable))
 
 cabalInstallPlan :: IO [Package]
 cabalInstallPlan = parseInstallPlan <$> readProcess "cabal" command ""
@@ -80,15 +78,15 @@ printInstallPlan reusable missing = do
   mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map fst reusable)
   mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
 
-createProjectSandbox :: Path Cache -> [Package] -> [Package] -> [Path PackageConfig] -> IO ()
-createProjectSandbox cache installPlan missing reusable
+createProjectSandbox :: Path CacheDir -> [Package] -> [Package] -> [Path PackageConfig] -> IO ()
+createProjectSandbox cacheDir installPlan missing reusable
   | null missing = initSandbox reusable
-  | otherwise = createCacheSandbox cache installPlan reusable
+  | otherwise = createCacheSandbox cacheDir installPlan reusable
 
-createCacheSandbox :: Path Cache -> [Package] -> [Path PackageConfig] -> IO ()
-createCacheSandbox cache installPlan reusable = do
+createCacheSandbox :: Path CacheDir -> [Package] -> [Path PackageConfig] -> IO ()
+createCacheSandbox cacheDir installPlan reusable = do
   basename <- takeBaseName <$> getCurrentDirectory
-  sandbox <- createTempDirectory (path cache) (basename ++ "-")
+  sandbox <- createTempDirectory (path cacheDir) (basename ++ "-")
   create sandbox reusable `onException` removeDirectoryRecursive sandbox
   cloneSandbox (Path sandbox)
   where
@@ -97,9 +95,9 @@ createCacheSandbox cache installPlan reusable = do
         initSandbox cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
 
-findReusablePackages :: GhcInfo -> Path Cache -> [Package] -> IO ([Package], [(Package, Path PackageConfig)])
-findReusablePackages ghcInfo cache installPlan = do
-  sandboxes <- lookupSandboxes cache
+findReusablePackages :: GhcInfo -> Path CacheDir -> [Package] -> IO ([Package], [(Package, Path PackageConfig)])
+findReusablePackages ghcInfo cacheDir installPlan = do
+  sandboxes <- lookupSandboxes cacheDir
   globalPackages <- listGlobalPackages
   cachedPackages <- fmap concat . forM sandboxes $ \ sandbox -> do
     packageDB <- findPackageDB sandbox
@@ -111,8 +109,8 @@ findReusablePackages ghcInfo cache installPlan = do
       missingPackages = installPlan \\ map fst reusablePackages
   return (missingPackages, reusablePackages)
 
-lookupSandboxes :: Path Cache -> IO [Path Sandbox]
-lookupSandboxes (Path cache) = map Path <$> listDirectories cache
+lookupSandboxes :: Path CacheDir -> IO [Path Sandbox]
+lookupSandboxes (Path cacheDir) = map Path <$> listDirectories cacheDir
 
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
