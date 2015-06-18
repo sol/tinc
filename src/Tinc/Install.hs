@@ -77,8 +77,8 @@ cabalInstallPlan = parseInstallPlan <$> readProcess "cabal" command ""
 
 printInstallPlan :: [(Package, Path PackageConfig)] -> [Package] -> IO ()
 printInstallPlan reusable missing = do
-  mapM_ (putStrLn . ("reusing " ++) . showPackage) (map fst reusable)
-  mapM_ (putStrLn . ("installing " ++) . showPackage) missing
+  mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map fst reusable)
+  mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
 
 createProjectSandbox :: Path Cache -> [Package] -> [Package] -> [Path PackageConfig] -> IO ()
 createProjectSandbox cache installPlan missing reusable
