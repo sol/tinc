@@ -42,15 +42,15 @@ spec = do
           "}" :
           []
         expected =
-          (Package "a" "", (), [Package "b" ""]) :
-          (Package "b" "", (), [Package "c" ""]) :
-          (Package "c" "", (), []) :
-          (Package "d" "", (), []) :
+          (Package "a" "", [Package "b" ""]) :
+          (Package "b" "", [Package "c" ""]) :
+          (Package "c" "", []) :
+          (Package "d" "", []) :
           []
     it "can parse dot graphs" $ do
       let Right graph = fromDot [] dot
-      sort (toList graph) `shouldBe` expected
+      graph `shouldBe` toGraph expected
 
     it "accepts an additional list of nodes" $ do
       let Right graph = fromDot [Package "a" "", Package "e" ""] dot
-      sort (toList graph) `shouldBe` expected ++ [(Package "e" "", (), [])]
+      graph `shouldBe` toGraph ((Package "e" "", []) : expected)

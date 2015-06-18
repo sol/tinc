@@ -1,5 +1,11 @@
 {-# LANGUAGE TupleSections #-}
-module PackageGraph (PackageGraph, fromDot, calculateReusablePackages, toGraph) where
+module PackageGraph (
+  SimpleGraph
+, PackageGraph
+, fromDot
+, calculateReusablePackages
+, toGraph
+) where
 
 import           Control.Monad
 import           Data.Graph.Wrapper as G
@@ -10,13 +16,20 @@ import qualified Data.Set as Set
 import           Language.Dot.Parser as Dot
 import           Language.Dot.Syntax as Dot
 import           Text.Parsec.Error
+import           Data.List (sort)
 
 import           Package
 
-type PackageGraph = G.Graph Package ()
+newtype SimpleGraph a = SimpleGraph (G.Graph a ())
+  deriving Show
 
-calculateReusablePackages :: Ord a => [a] -> G.Graph a () -> [a]
-calculateReusablePackages installPlan cache =
+instance (Eq a, Ord a) => Eq (SimpleGraph a) where
+  SimpleGraph a == SimpleGraph b = sort (toList a) == sort (toList b)
+
+type PackageGraph = SimpleGraph Package
+
+calculateReusablePackages :: Ord a => [a] -> SimpleGraph a -> [a]
+calculateReusablePackages installPlan (SimpleGraph cache) =
   filter p installPlan
   where
     installPlanSet = Set.fromList installPlan
@@ -48,11 +61,11 @@ collectStatements acc s = case s of
   where
     insert package dependencies = Map.insertWith (++) package dependencies
 
-fromMap :: Ord a => Map a [a] -> G.Graph a ()
+fromMap :: Ord a => Map a [a] -> SimpleGraph a
 fromMap = toGraph . Map.toList
 
-toGraph :: Ord a => [(a, [a])] -> G.Graph a ()
-toGraph = void . fromListSimple
+toGraph :: Ord a => [(a, [a])] -> SimpleGraph a
+toGraph = SimpleGraph . void . fromListSimple
 
 toPackage :: NodeId -> Package
 toPackage (NodeId i _) = parsePackage $ case i of
