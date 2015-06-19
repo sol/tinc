@@ -9,7 +9,7 @@ module Tinc.Install (
 -- exported for testing
 , findReusablePackages
 , findPackageDb
-, extractPackages
+, extractPackageConfigs
 , isPackageDb
 , realizeInstallPlan
 ) where
@@ -114,7 +114,7 @@ lookupSandboxes (Path cacheDir) = map Path <$> listDirectories cacheDir
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
   sourcePackageDb <- findPackageDb source
-  packages <- extractPackages sourcePackageDb
+  packages <- extractPackageConfigs sourcePackageDb
   initSandbox packages
 
 findPackageDb :: Path Sandbox -> IO (Path PackageDb)
@@ -129,8 +129,8 @@ findPackageDb sandbox = do
 isPackageDb :: FilePath -> Bool
 isPackageDb = ("-packages.conf.d" `isSuffixOf`)
 
-extractPackages :: Path PackageDb -> IO [Path PackageConfig]
-extractPackages packageDb = do
+extractPackageConfigs :: Path PackageDb -> IO [Path PackageConfig]
+extractPackageConfigs packageDb = do
   packages <- listPackages [packageDb]
   map snd <$> lookupPackages packageDb packages
 
