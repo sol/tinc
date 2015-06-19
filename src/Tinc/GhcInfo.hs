@@ -7,14 +7,13 @@ import           Prelude.Compat
 import           Control.Exception
 import           System.Process
 
+import           Tinc.PackageDb
 import           Tinc.Types
-
-data PackageDB
 
 data GhcInfo = GhcInfo {
   ghcInfoPlatform :: String
 , ghcInfoVersion :: String
-, ghcInfoGlobalPackageDB :: Path PackageDB
+, ghcInfoGlobalPackageDB :: Path PackageDb
 } deriving (Eq, Show)
 
 getGhcInfo :: IO GhcInfo
