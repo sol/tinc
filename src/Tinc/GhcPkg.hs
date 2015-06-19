@@ -1,6 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.GhcPkg (
-  PackageDB
+  PackageDb
 , readGhcPkg
 , listPackages
 , listGlobalPackages
@@ -18,8 +18,8 @@ import           PackageGraph
 import           Tinc.Types
 import           Tinc.GhcInfo
 
-listPackages :: [Path PackageDB] -> IO [Package]
-listPackages packageDBs = parsePackages <$> readGhcPkg packageDBs ["list"]
+listPackages :: [Path PackageDb] -> IO [Package]
+listPackages packageDbs = parsePackages <$> readGhcPkg packageDbs ["list"]
   where
     parsePackages :: String -> [Package]
     parsePackages = map parsePackage . words
@@ -27,17 +27,17 @@ listPackages packageDBs = parsePackages <$> readGhcPkg packageDBs ["list"]
 listGlobalPackages :: IO [Package]
 listGlobalPackages = listPackages []
 
-readPackageGraph :: [Path PackageDB] -> IO PackageGraph
-readPackageGraph packageDBs = do
-  dot <- readGhcPkg packageDBs ["dot"]
-  packages <- listPackages packageDBs
+readPackageGraph :: [Path PackageDb] -> IO PackageGraph
+readPackageGraph packageDbs = do
+  dot <- readGhcPkg packageDbs ["dot"]
+  packages <- listPackages packageDbs
   case fromDot packages dot of
     Right graph -> return graph
     Left message -> die message
 
-readGhcPkg :: [Path PackageDB] -> [String] -> IO String
-readGhcPkg (packageDBsToArgs -> packageDBs) args = do
-  readProcess "ghc-pkg" ("--no-user-package-db" : "--simple-output" : packageDBs ++ args) ""
+readGhcPkg :: [Path PackageDb] -> [String] -> IO String
+readGhcPkg (packageDbsToArgs -> packageDbs) args = do
+  readProcess "ghc-pkg" ("--no-user-package-db" : "--simple-output" : packageDbs ++ args) ""
 
-packageDBsToArgs :: [Path PackageDB] -> [String]
-packageDBsToArgs packageDBs = concatMap (\ packageDB -> ["--package-db", path packageDB]) packageDBs
+packageDbsToArgs :: [Path PackageDb] -> [String]
+packageDbsToArgs packageDbs = concatMap (\ packageDb -> ["--package-db", path packageDb]) packageDbs

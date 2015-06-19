@@ -34,19 +34,19 @@ cabalFile =
 
 spec :: Spec
 spec = before_ ensureCache $ do
-    describe "findPackageDB" $ do
+    describe "findPackageDb" $ do
       it "finds the sandbox package db" $ do
-        r <- findPackageDB getoptGenericsSandbox
-        path r `shouldSatisfy` (\ p -> (path getoptGenericsSandbox </> cabalSandboxDirectory) `isPrefixOf` p && isPackageDB p)
+        r <- findPackageDb getoptGenericsSandbox
+        path r `shouldSatisfy` (\ p -> (path getoptGenericsSandbox </> cabalSandboxDirectory) `isPrefixOf` p && isPackageDb p)
 
       it "returns an absolute path" $ do
-        r <- findPackageDB getoptGenericsSandbox
+        r <- findPackageDb getoptGenericsSandbox
         path r `shouldSatisfy` ("/" `isPrefixOf`)
 
     describe "extractPackages" $ do
       it "extracts the packages" $ do
-        packageDB <- findPackageDB getoptGenericsSandbox
-        packages <- extractPackages packageDB
+        packageDb <- findPackageDb getoptGenericsSandbox
+        packages <- extractPackages packageDb
         packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 

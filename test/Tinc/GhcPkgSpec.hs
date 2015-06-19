@@ -53,13 +53,13 @@ spec = do
   beforeAll_ ensureCache $ do
     describe "listPackages" $ do
       it "lists packages from specified package database" $ do
-        packageDB <- findPackageDB getoptGenericsSandbox
-        packages <- listPackages [packageDB]
+        packageDb <- findPackageDb getoptGenericsSandbox
+        packages <- listPackages [packageDb]
         packages `shouldMatchList` getoptGenericsPackages
 
       it "accepts multiple package databases" $ do
-        packageDBs <- mapM findPackageDB [getoptGenericsSandbox, setenvSandbox]
-        packages <- listPackages packageDBs
+        packageDbs <- mapM findPackageDb [getoptGenericsSandbox, setenvSandbox]
+        packages <- listPackages packageDbs
         packages `shouldMatchList` (setenv : getoptGenericsPackages)
 
     describe "readPackageGraph" $ do
@@ -71,5 +71,5 @@ spec = do
           -- 2. no other packages depend on
           --
           -- This test case makes sure that we properly handle this.
-          packageDB <- findPackageDB hspecDiscoverSandbox
-          readPackageGraph [packageDB] `shouldReturn` toGraph [(hspecDiscover, [])]
+          packageDb <- findPackageDb hspecDiscoverSandbox
+          readPackageGraph [packageDb] `shouldReturn` toGraph [(hspecDiscover, [])]

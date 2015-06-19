@@ -2,16 +2,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Tinc.Install (
   Sandbox
-, PackageDB
 , PackageConfig
 , installDependencies
 , cabalSandboxDirectory
 
 -- exported for testing
 , findReusablePackages
-, findPackageDB
+, findPackageDb
 , extractPackages
-, isPackageDB
+, isPackageDb
 , realizeInstallPlan
 ) where
 
@@ -49,8 +48,8 @@ initSandbox :: [Path PackageConfig] -> IO ()
 initSandbox packageConfigs = do
   deleteSandbox
   callCommand "cabal sandbox init"
-  packageDB <- findPackageDB currentDirectory
-  registerPackageConfigs packageDB packageConfigs
+  packageDb <- findPackageDb currentDirectory
+  registerPackageConfigs packageDb packageConfigs
 
 deleteSandbox :: IO ()
 deleteSandbox = do
@@ -100,11 +99,11 @@ findReusablePackages ghcInfo cacheDir installPlan = do
   sandboxes <- lookupSandboxes cacheDir
   globalPackages <- listGlobalPackages
   cachedPackages <- fmap concat . forM sandboxes $ \ sandbox -> do
-    packageDB <- findPackageDB sandbox
-    cacheGraph <- readPackageGraph [ghcInfoGlobalPackageDB ghcInfo, packageDB]
+    packageDb <- findPackageDb sandbox
+    cacheGraph <- readPackageGraph [ghcInfoGlobalPackageDb ghcInfo, packageDb]
     let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
         reusable = calculateReusablePackages packages cacheGraph
-    lookupPackages packageDB reusable
+    lookupPackages packageDb reusable
   let reusablePackages = nubBy ((==) `on` fst) cachedPackages
       missingPackages = installPlan \\ map fst reusablePackages
   return (missingPackages, reusablePackages)
@@ -114,45 +113,45 @@ lookupSandboxes (Path cacheDir) = map Path <$> listDirectories cacheDir
 
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
-  sourcePackageDB <- findPackageDB source
-  packages <- extractPackages sourcePackageDB
+  sourcePackageDb <- findPackageDb source
+  packages <- extractPackages sourcePackageDb
   initSandbox packages
 
-findPackageDB :: Path Sandbox -> IO (Path PackageDB)
-findPackageDB sandbox = do
+findPackageDb :: Path Sandbox -> IO (Path PackageDb)
+findPackageDb sandbox = do
   xs <- getDirectoryContents sandboxDir
-  case listToMaybe (filter isPackageDB xs) of
+  case listToMaybe (filter isPackageDb xs) of
     Just p -> Path <$> canonicalizePath (sandboxDir </> p)
     Nothing -> die ("package db not found in " ++ sandboxDir)
   where
     sandboxDir = path sandbox </> cabalSandboxDirectory
 
-isPackageDB :: FilePath -> Bool
-isPackageDB = ("-packages.conf.d" `isSuffixOf`)
+isPackageDb :: FilePath -> Bool
+isPackageDb = ("-packages.conf.d" `isSuffixOf`)
 
-extractPackages :: Path PackageDB -> IO [Path PackageConfig]
-extractPackages packageDB = do
-  packages <- listPackages [packageDB]
-  map snd <$> lookupPackages packageDB packages
+extractPackages :: Path PackageDb -> IO [Path PackageConfig]
+extractPackages packageDb = do
+  packages <- listPackages [packageDb]
+  map snd <$> lookupPackages packageDb packages
 
-findPackageConfigs :: Path PackageDB -> IO [FilePath]
-findPackageConfigs packageDB =
-  filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path packageDB)
+findPackageConfigs :: Path PackageDb -> IO [FilePath]
+findPackageConfigs packageDb =
+  filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path packageDb)
 
-lookupPackages :: Path PackageDB -> [Package] -> IO [(Package, Path PackageConfig)]
-lookupPackages packageDB packages = do
-  packageConfigs <- findPackageConfigs packageDB
+lookupPackages :: Path PackageDb -> [Package] -> IO [(Package, Path PackageConfig)]
+lookupPackages packageDb packages = do
+  packageConfigs <- findPackageConfigs packageDb
   fmap catMaybes . forM packages $ \ package ->
     case lookupPackage package packageConfigs of
-      Right (Just packageConfig) -> return $ Just (package, Path $ path packageDB </> packageConfig)
+      Right (Just packageConfig) -> return $ Just (package, Path $ path packageDb </> packageConfig)
       Right Nothing -> return Nothing
       Left err -> die err
 
-registerPackageConfigs :: Path PackageDB -> [Path PackageConfig] -> IO ()
-registerPackageConfigs packageDB packages = do
+registerPackageConfigs :: Path PackageDb -> [Path PackageConfig] -> IO ()
+registerPackageConfigs packageDb packages = do
   forM_ packages $ \ package ->
-    copyFile (path package) (path packageDB </> takeFileName (path package))
-  recache packageDB
+    copyFile (path package) (path packageDb </> takeFileName (path package))
+  recache packageDb
 
-recache :: Path PackageDB -> IO ()
-recache packageDB = callProcess "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDB]
+recache :: Path PackageDb -> IO ()
+recache packageDb = callProcess "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDb]

@@ -95,8 +95,8 @@ restoreCache = do
   removeDirectory cacheDir
   copyDirectory cacheBackup cacheDir
   forM_ [setenvSandbox, getoptGenericsSandbox, hspecDiscoverSandbox] $ \ sandbox -> do
-    Path packageDB <- findPackageDB sandbox
-    touch (packageDB </> "package.cache")
+    Path packageDb <- findPackageDb sandbox
+    touch (packageDb </> "package.cache")
 
 cacheDir :: Path CacheDir
 cacheDir = "/tmp/tinc-test-cache"

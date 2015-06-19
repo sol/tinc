@@ -27,4 +27,4 @@ spec = do
         ghcInfoVersion ghcInfo `shouldSatisfy` (major `isPrefixOf`)
 
       it "includes the path to the global package database" $ \ ghcInfo -> do
-        path (ghcInfoGlobalPackageDB ghcInfo) `shouldSatisfy` ("package.conf.d" `isSuffixOf`)
+        path (ghcInfoGlobalPackageDb ghcInfo) `shouldSatisfy` ("package.conf.d" `isSuffixOf`)

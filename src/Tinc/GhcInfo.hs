@@ -9,12 +9,12 @@ import           System.Process
 
 import           Tinc.Types
 
-data PackageDB
+data PackageDb
 
 data GhcInfo = GhcInfo {
   ghcInfoPlatform :: String
 , ghcInfoVersion :: String
-, ghcInfoGlobalPackageDB :: Path PackageDB
+, ghcInfoGlobalPackageDb :: Path PackageDb
 } deriving (Eq, Show)
 
 getGhcInfo :: IO GhcInfo
