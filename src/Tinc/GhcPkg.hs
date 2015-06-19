@@ -1,7 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.GhcPkg (
-  PackageDb
-, readGhcPkg
+  readGhcPkg
 , listPackages
 , listGlobalPackages
 , readPackageGraph
@@ -15,8 +14,8 @@ import           System.Process
 
 import           Package
 import           PackageGraph
+import           Tinc.PackageDb
 import           Tinc.Types
-import           Tinc.GhcInfo
 
 listPackages :: [Path PackageDb] -> IO [Package]
 listPackages packageDbs = parsePackages <$> readGhcPkg packageDbs ["list"]

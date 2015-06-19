@@ -28,15 +28,15 @@ import           System.FilePath
 import           System.IO.Temp
 import           System.Process
 
-import           Tinc.Types
-import           Tinc.GhcPkg
-import           Tinc.GhcInfo
 import           Package
 import           PackageGraph
+import           Tinc.GhcInfo
+import           Tinc.GhcPkg
+import           Tinc.PackageDb
+import           Tinc.Types
 import           Util
 
 data Sandbox
-data PackageConfig
 
 cabalSandboxDirectory :: FilePath
 cabalSandboxDirectory = ".cabal-sandbox"
@@ -99,11 +99,12 @@ findReusablePackages ghcInfo cacheDir installPlan = do
   sandboxes <- lookupSandboxes cacheDir
   globalPackages <- listGlobalPackages
   cachedPackages <- fmap concat . forM sandboxes $ \ sandbox -> do
-    packageDb <- findPackageDb sandbox
-    cacheGraph <- readPackageGraph [ghcInfoGlobalPackageDb ghcInfo, packageDb]
+    packageDbPath <- findPackageDb sandbox
+    cacheGraph <- readPackageGraph [ghcInfoGlobalPackageDb ghcInfo, packageDbPath]
     let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
-        reusable = calculateReusablePackages packages cacheGraph
-    lookupPackages packageDb reusable
+        reusable = calculateReusablePackages packages cacheGraph \\ globalPackages
+    packageDb <- readPackageDb packageDbPath
+    zip reusable <$> mapM (lookupPackageConfig packageDb) reusable
   let reusablePackages = nubBy ((==) `on` fst) cachedPackages
       missingPackages = installPlan \\ map fst reusablePackages
   return (missingPackages, reusablePackages)
@@ -131,21 +132,7 @@ isPackageDb = ("-packages.conf.d" `isSuffixOf`)
 
 extractPackageConfigs :: Path PackageDb -> IO [Path PackageConfig]
 extractPackageConfigs packageDb = do
-  packages <- listPackages [packageDb]
-  map snd <$> lookupPackages packageDb packages
-
-findPackageConfigs :: Path PackageDb -> IO [FilePath]
-findPackageConfigs packageDb =
-  filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path packageDb)
-
-lookupPackages :: Path PackageDb -> [Package] -> IO [(Package, Path PackageConfig)]
-lookupPackages packageDb packages = do
-  packageConfigs <- findPackageConfigs packageDb
-  fmap catMaybes . forM packages $ \ package ->
-    case lookupPackage package packageConfigs of
-      Right (Just packageConfig) -> return $ Just (package, Path $ path packageDb </> packageConfig)
-      Right Nothing -> return Nothing
-      Left err -> die err
+  allPackageConfigs <$> readPackageDb packageDb
 
 registerPackageConfigs :: Path PackageDb -> [Path PackageConfig] -> IO ()
 registerPackageConfigs packageDb packages = do
