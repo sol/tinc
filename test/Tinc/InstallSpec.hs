@@ -43,10 +43,10 @@ spec = before_ ensureCache $ do
         r <- findPackageDB getoptGenericsSandbox
         path r `shouldSatisfy` ("/" `isPrefixOf`)
 
-    describe "extractPackages" $ do
+    describe "extractPackageConfigs" $ do
       it "extracts the packages" $ do
         packageDB <- findPackageDB getoptGenericsSandbox
-        packages <- extractPackages packageDB
+        packages <- extractPackageConfigs packageDB
         packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
         packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
 

@@ -2,7 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Tinc.Install (
   Sandbox
-, PackageDB
 , PackageConfig
 , installDependencies
 , cabalSandboxDirectory
@@ -10,7 +9,7 @@ module Tinc.Install (
 -- exported for testing
 , findReusablePackages
 , findPackageDB
-, extractPackages
+, extractPackageConfigs
 , isPackageDB
 , realizeInstallPlan
 ) where
@@ -22,6 +21,7 @@ import           Control.Exception
 import           Control.Monad.Compat
 import           Data.Function
 import           Data.List.Compat
+import qualified Data.Map as Map
 import           Data.Maybe
 import           System.Directory
 import           System.Exit.Compat
@@ -29,15 +29,15 @@ import           System.FilePath
 import           System.IO.Temp
 import           System.Process
 
-import           Tinc.Types
-import           Tinc.GhcPkg
-import           Tinc.GhcInfo
 import           Package
 import           PackageGraph
+import           Tinc.GhcInfo
+import           Tinc.GhcPkg
+import           Tinc.PackageDb
+import           Tinc.Types
 import           Util
 
 data Sandbox
-data PackageConfig
 
 cabalSandboxDirectory :: FilePath
 cabalSandboxDirectory = ".cabal-sandbox"
@@ -49,8 +49,8 @@ initSandbox :: [Path PackageConfig] -> IO ()
 initSandbox packageConfigs = do
   deleteSandbox
   callCommand "cabal sandbox init"
-  packageDB <- findPackageDB currentDirectory
-  registerPackageConfigs packageDB packageConfigs
+  packageDb <- findPackageDB currentDirectory
+  registerPackageConfigs packageDb packageConfigs
 
 deleteSandbox :: IO ()
 deleteSandbox = do
@@ -100,11 +100,12 @@ findReusablePackages ghcInfo cacheDir installPlan = do
   sandboxes <- lookupSandboxes cacheDir
   globalPackages <- listGlobalPackages
   cachedPackages <- fmap concat . forM sandboxes $ \ sandbox -> do
-    packageDB <- findPackageDB sandbox
-    cacheGraph <- readPackageGraph [ghcInfoGlobalPackageDB ghcInfo, packageDB]
+    packageDbPath <- findPackageDB sandbox
+    cacheGraph <- readPackageGraph [ghcInfoGlobalPackageDB ghcInfo, packageDbPath]
     let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
-        reusable = calculateReusablePackages packages cacheGraph
-    lookupPackages packageDB reusable
+        reusable = calculateReusablePackages packages cacheGraph \\ globalPackages
+    packageDb <- readPackageDb packageDbPath
+    zip reusable <$> mapM (lookupPackageConfig packageDb) reusable
   let reusablePackages = nubBy ((==) `on` fst) cachedPackages
       missingPackages = installPlan \\ map fst reusablePackages
   return (missingPackages, reusablePackages)
@@ -115,10 +116,10 @@ lookupSandboxes (Path cacheDir) = map Path <$> listDirectories cacheDir
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
   sourcePackageDB <- findPackageDB source
-  packages <- extractPackages sourcePackageDB
+  packages <- extractPackageConfigs sourcePackageDB
   initSandbox packages
 
-findPackageDB :: Path Sandbox -> IO (Path PackageDB)
+findPackageDB :: Path Sandbox -> IO (Path PackageDb)
 findPackageDB sandbox = do
   xs <- getDirectoryContents sandboxDir
   case listToMaybe (filter isPackageDB xs) of
@@ -130,29 +131,15 @@ findPackageDB sandbox = do
 isPackageDB :: FilePath -> Bool
 isPackageDB = ("-packages.conf.d" `isSuffixOf`)
 
-extractPackages :: Path PackageDB -> IO [Path PackageConfig]
-extractPackages packageDB = do
-  packages <- listPackages [packageDB]
-  map snd <$> lookupPackages packageDB packages
+extractPackageConfigs :: Path PackageDb -> IO [Path PackageConfig]
+extractPackageConfigs packageDb = do
+  Map.elems . packageDbPackageConfigs <$> readPackageDb packageDb
 
-findPackageConfigs :: Path PackageDB -> IO [FilePath]
-findPackageConfigs packageDB =
-  filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path packageDB)
-
-lookupPackages :: Path PackageDB -> [Package] -> IO [(Package, Path PackageConfig)]
-lookupPackages packageDB packages = do
-  packageConfigs <- findPackageConfigs packageDB
-  fmap catMaybes . forM packages $ \ package ->
-    case lookupPackage package packageConfigs of
-      Right (Just packageConfig) -> return $ Just (package, Path $ path packageDB </> packageConfig)
-      Right Nothing -> return Nothing
-      Left err -> die err
-
-registerPackageConfigs :: Path PackageDB -> [Path PackageConfig] -> IO ()
-registerPackageConfigs packageDB packages = do
+registerPackageConfigs :: Path PackageDb -> [Path PackageConfig] -> IO ()
+registerPackageConfigs packageDb packages = do
   forM_ packages $ \ package ->
-    copyFile (path package) (path packageDB </> takeFileName (path package))
-  recache packageDB
+    copyFile (path package) (path packageDb </> takeFileName (path package))
+  recache packageDb
 
-recache :: Path PackageDB -> IO ()
-recache packageDB = callProcess "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDB]
+recache :: Path PackageDb -> IO ()
+recache packageDb = callProcess "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDb]
