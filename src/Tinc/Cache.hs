@@ -15,8 +15,8 @@ import           Control.Monad.Compat
 import           Data.List.Compat
 import           Data.Maybe
 import           System.Directory
-import           System.Exit.Compat
 import           System.FilePath
+import           Control.Exception
 
 import           Package
 import           PackageGraph
@@ -50,7 +50,7 @@ findPackageDb sandbox = do
   xs <- getDirectoryContents sandboxDir
   case listToMaybe (filter isPackageDb xs) of
     Just p -> Path <$> canonicalizePath (sandboxDir </> p)
-    Nothing -> die ("package db not found in " ++ sandboxDir)
+    Nothing -> throwIO (ErrorCall $ "No package database found in " ++ show sandboxDir)
   where
     sandboxDir = path sandbox </> cabalSandboxDirectory
 

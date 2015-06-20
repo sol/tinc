@@ -8,7 +8,6 @@ import           Helper
 
 import           System.IO.Temp
 import           System.Directory
-import           Data.List.Compat
 import           System.FilePath
 
 import           Tinc.Cache
@@ -23,6 +22,9 @@ spec = do
         createDirectoryIfMissing True packageDb
         findPackageDb (Path sandbox) `shouldReturn` (Path packageDb)
 
-    it "returns an absolute path" $ do
-      r <- findPackageDb getoptGenericsSandbox
-      path r `shouldSatisfy` ("/" `isPrefixOf`)
+    context "when sandbox does not contain a package db" $ do
+      it "throws an exception" $ do
+        withSystemTempDirectory "tinc" $ \ sandbox -> do
+          let p = sandbox </> ".cabal-sandbox"
+          createDirectory p
+          findPackageDb (Path sandbox) `shouldThrow` errorCall ("No package database found in " ++ show p)
