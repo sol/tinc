@@ -62,7 +62,8 @@ installDependencies ghcInfo dryRun cacheDir = do
 
 realizeInstallPlan :: GhcInfo -> Bool -> Path CacheDir -> [Package] -> IO ()
 realizeInstallPlan ghcInfo dryRun cacheDir installPlan = do
-  (missing, reusable) <- findReusablePackages ghcInfo cacheDir installPlan
+  cache <- readCache ghcInfo cacheDir
+  (missing, reusable) <- findReusablePackages cache installPlan
   printInstallPlan reusable missing
   unless dryRun (createProjectSandbox cacheDir installPlan missing (map snd reusable))
 
@@ -94,13 +95,23 @@ createCacheSandbox cacheDir installPlan reusable = do
         initSandbox cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
 
-findReusablePackages :: GhcInfo -> Path CacheDir -> [Package] -> IO ([Package], [(Package, Path PackageConfig)])
-findReusablePackages ghcInfo cacheDir installPlan = do
+data Cache = Cache {
+  _cacheGlobalPackages :: [Package]
+, _cachePackageGraphs :: [(Path PackageDb, PackageGraph)]
+}
+
+readCache :: GhcInfo -> Path CacheDir -> IO Cache
+readCache ghcInfo cacheDir = do
   sandboxes <- lookupSandboxes cacheDir
-  globalPackages <- listGlobalPackages
-  cachedPackages <- fmap concat . forM sandboxes $ \ sandbox -> do
+  cache <- forM sandboxes $ \ sandbox -> do
     packageDbPath <- findPackageDb sandbox
-    cacheGraph <- readPackageGraph [ghcInfoGlobalPackageDb ghcInfo, packageDbPath]
+    (,) packageDbPath <$> readPackageGraph [ghcInfoGlobalPackageDb ghcInfo, packageDbPath]
+  globalPackages <- listGlobalPackages
+  return (Cache globalPackages cache)
+
+findReusablePackages :: Cache -> [Package] -> IO ([Package], [(Package, Path PackageConfig)])
+findReusablePackages (Cache globalPackages packageGraphs) installPlan = do
+  cachedPackages <- fmap concat . forM packageGraphs $ \ (packageDbPath, cacheGraph) -> do
     let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
         reusable = calculateReusablePackages packages cacheGraph \\ globalPackages
     packageDb <- readPackageDb packageDbPath
