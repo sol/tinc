@@ -8,9 +8,7 @@ import           Prelude.Compat
 
 import           Helper
 
-import           Data.List.Compat
 import           System.Directory hiding (removeDirectory)
-import           System.FilePath
 import           System.IO
 import           System.IO.Silently
 import           System.Process
@@ -21,6 +19,7 @@ import           Package
 import           Tinc.Types
 import           Tinc.Install
 import           Tinc.GhcInfo
+import           Tinc.Cache
 
 cabalFile :: [String]
 cabalFile =
@@ -34,22 +33,6 @@ cabalFile =
 
 spec :: Spec
 spec = before_ ensureCache $ do
-    describe "findPackageDb" $ do
-      it "finds the sandbox package db" $ do
-        r <- findPackageDb getoptGenericsSandbox
-        path r `shouldSatisfy` (\ p -> (path getoptGenericsSandbox </> cabalSandboxDirectory) `isPrefixOf` p && isPackageDb p)
-
-      it "returns an absolute path" $ do
-        r <- findPackageDb getoptGenericsSandbox
-        path r `shouldSatisfy` ("/" `isPrefixOf`)
-
-    describe "extractPackageConfigs" $ do
-      it "extracts the packages" $ do
-        packageDb <- findPackageDb getoptGenericsSandbox
-        packages <- extractPackageConfigs packageDb
-        packages `shouldSatisfy` any (("tagged" `isInfixOf`) . path)
-        packages `shouldSatisfy` all (("/" `isPrefixOf`) . path)
-
     beforeAll getGhcInfo $ do
       describe "realizeInstallPlan" $ do
         let listPackages = readProcess "cabal" (words "exec ghc-pkg list") ""

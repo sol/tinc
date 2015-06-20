@@ -4,7 +4,7 @@ module Tinc.GhcPkgSpec (spec) where
 import           Helper
 
 import           Tinc.GhcPkg
-import           Tinc.Install
+import           Tinc.Cache
 import           Package
 import           PackageGraph
 

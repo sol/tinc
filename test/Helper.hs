@@ -36,6 +36,7 @@ import           Util
 import           Package
 import           Tinc.Types
 import           Tinc.Install
+import           Tinc.Cache
 
 ensureCache :: IO ()
 ensureCache = do

@@ -4,13 +4,9 @@ module Tinc.Install (
   Sandbox
 , PackageConfig
 , installDependencies
-, cabalSandboxDirectory
 
 -- exported for testing
 , findReusablePackages
-, findPackageDb
-, extractPackageConfigs
-, isPackageDb
 , realizeInstallPlan
 ) where
 
@@ -21,25 +17,18 @@ import           Control.Exception
 import           Control.Monad.Compat
 import           Data.Function
 import           Data.List.Compat
-import           Data.Maybe
 import           System.Directory
-import           System.Exit.Compat
 import           System.FilePath
 import           System.IO.Temp
 import           System.Process
 
 import           Package
 import           PackageGraph
+import           Tinc.Cache
 import           Tinc.GhcInfo
-import           Tinc.GhcPkg
 import           Tinc.PackageDb
 import           Tinc.Types
 import           Util
-
-data Sandbox
-
-cabalSandboxDirectory :: FilePath
-cabalSandboxDirectory = ".cabal-sandbox"
 
 currentDirectory :: Path Sandbox
 currentDirectory = "."
@@ -95,20 +84,6 @@ createCacheSandbox cacheDir installPlan reusable = do
         initSandbox cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
 
-data Cache = Cache {
-  _cacheGlobalPackages :: [Package]
-, _cachePackageGraphs :: [(Path PackageDb, PackageGraph)]
-}
-
-readCache :: GhcInfo -> Path CacheDir -> IO Cache
-readCache ghcInfo cacheDir = do
-  sandboxes <- lookupSandboxes cacheDir
-  cache <- forM sandboxes $ \ sandbox -> do
-    packageDbPath <- findPackageDb sandbox
-    (,) packageDbPath <$> readPackageGraph [ghcInfoGlobalPackageDb ghcInfo, packageDbPath]
-  globalPackages <- listGlobalPackages
-  return (Cache globalPackages cache)
-
 findReusablePackages :: Cache -> [Package] -> IO ([Package], [(Package, Path PackageConfig)])
 findReusablePackages (Cache globalPackages packageGraphs) installPlan = do
   cachedPackages <- fmap concat . forM packageGraphs $ \ (packageDbPath, cacheGraph) -> do
@@ -120,26 +95,11 @@ findReusablePackages (Cache globalPackages packageGraphs) installPlan = do
       missingPackages = installPlan \\ map fst reusablePackages
   return (missingPackages, reusablePackages)
 
-lookupSandboxes :: Path CacheDir -> IO [Path Sandbox]
-lookupSandboxes (Path cacheDir) = map Path <$> listDirectories cacheDir
-
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
   sourcePackageDb <- findPackageDb source
   packages <- extractPackageConfigs sourcePackageDb
   initSandbox packages
-
-findPackageDb :: Path Sandbox -> IO (Path PackageDb)
-findPackageDb sandbox = do
-  xs <- getDirectoryContents sandboxDir
-  case listToMaybe (filter isPackageDb xs) of
-    Just p -> Path <$> canonicalizePath (sandboxDir </> p)
-    Nothing -> die ("package db not found in " ++ sandboxDir)
-  where
-    sandboxDir = path sandbox </> cabalSandboxDirectory
-
-isPackageDb :: FilePath -> Bool
-isPackageDb = ("-packages.conf.d" `isSuffixOf`)
 
 extractPackageConfigs :: Path PackageDb -> IO [Path PackageConfig]
 extractPackageConfigs packageDb = do
