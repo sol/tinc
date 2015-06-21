@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Helper (
   module Test.Hspec
 
@@ -25,18 +26,23 @@ import           Prelude.Compat
 import           Test.Hspec
 
 import           Control.Monad
+import qualified Data.Graph.Wrapper as G
+import           Data.List
+import           Data.String
+import           Shelly (shelly, rm_rf, cp_r)
 import           System.Directory hiding (removeDirectory)
 import           System.FilePath
 import           System.Process
 import           Test.Mockery.Directory
-import           Shelly (shelly, rm_rf, cp_r)
-import           Data.String
 
-import           Util
 import           Package
 import           Tinc.Types
+import           Util
 import           Tinc.Install
 import           Tinc.Cache
+
+instance (Ord a, Ord v) => Eq (G.Graph a v) where
+  a == b = sort (G.toList a) == sort (G.toList b)
 
 ensureCache :: IO ()
 ensureCache = do

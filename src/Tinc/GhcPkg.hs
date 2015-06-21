@@ -1,7 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.GhcPkg (
   readGhcPkg
-, listPackages
 , listGlobalPackages
 ) where
 

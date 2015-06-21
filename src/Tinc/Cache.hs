@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE TupleSections #-}
 module Tinc.Cache (
   Sandbox
 , cabalSandboxDirectory
@@ -6,6 +7,7 @@ module Tinc.Cache (
 , findPackageDb
 
 , Cache(..)
+, PackageLocation(..)
 , readCache
 
 #ifdef TEST
@@ -16,6 +18,7 @@ module Tinc.Cache (
 import           Prelude ()
 import           Prelude.Compat
 
+import qualified Data.Map as Map
 import           Control.Monad.Compat
 import           Data.List.Compat
 import           Data.Maybe
@@ -37,24 +40,29 @@ cabalSandboxDirectory = ".cabal-sandbox"
 
 data Cache = Cache {
   _cacheGlobalPackages :: [Package]
-, _cachePackageGraphs :: [(Path PackageDb, PackageGraph)]
+, _cachePackageGraphs :: [PackageGraph PackageLocation]
 }
 
-readPackageGraph :: [Path PackageDb] -> IO PackageGraph
-readPackageGraph packageDbs = do
+data PackageLocation = GlobalPackage | PackageConfig (Path PackageConfig)
+  deriving (Eq, Ord, Show)
+
+readPackageGraph :: [(Package, a)] -> [Path PackageDb] -> IO (PackageGraph a)
+readPackageGraph values packageDbs = do
   dot <- readGhcPkg packageDbs ["dot"]
-  packages <- listPackages packageDbs
-  case fromDot packages dot of
+  case fromDot values dot of
     Right graph -> return graph
     Left message -> die __FILE__ message
 
 readCache :: GhcInfo -> Path CacheDir -> IO Cache
 readCache ghcInfo cacheDir = do
+  globalPackages <- listGlobalPackages
+  let globalValues = map (, GlobalPackage) globalPackages
   sandboxes <- lookupSandboxes cacheDir
   cache <- forM sandboxes $ \ sandbox -> do
     packageDbPath <- findPackageDb sandbox
-    (,) packageDbPath <$> readPackageGraph [ghcInfoGlobalPackageDb ghcInfo, packageDbPath]
-  globalPackages <- listGlobalPackages
+    packageDb <- readPackageDb packageDbPath
+    let values = map (fmap PackageConfig) . Map.toList $ packageDbPackageConfigs packageDb
+    readPackageGraph (globalValues ++ values) [ghcInfoGlobalPackageDb ghcInfo, packageDbPath]
   return (Cache globalPackages cache)
 
 findPackageDb :: Path Sandbox -> IO (Path PackageDb)

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Tinc.Install (
@@ -5,9 +6,10 @@ module Tinc.Install (
 , PackageConfig
 , installDependencies
 
--- exported for testing
+#ifdef TEST
 , findReusablePackages
 , realizeInstallPlan
+#endif
 ) where
 
 import           Prelude ()
@@ -52,7 +54,7 @@ installDependencies ghcInfo dryRun cacheDir = do
 realizeInstallPlan :: GhcInfo -> Bool -> Path CacheDir -> [Package] -> IO ()
 realizeInstallPlan ghcInfo dryRun cacheDir installPlan = do
   cache <- readCache ghcInfo cacheDir
-  (missing, reusable) <- findReusablePackages cache installPlan
+  let (missing, reusable) = findReusablePackages cache installPlan
   printInstallPlan reusable missing
   unless dryRun (createProjectSandbox cacheDir installPlan missing (map snd reusable))
 
@@ -84,16 +86,16 @@ createCacheSandbox cacheDir installPlan reusable = do
         initSandbox cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
 
-findReusablePackages :: Cache -> [Package] -> IO ([Package], [(Package, Path PackageConfig)])
-findReusablePackages (Cache globalPackages packageGraphs) installPlan = do
-  cachedPackages <- fmap concat . forM packageGraphs $ \ (packageDbPath, cacheGraph) -> do
-    let packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
-        reusable = calculateReusablePackages packages cacheGraph \\ globalPackages
-    packageDb <- readPackageDb packageDbPath
-    zip reusable <$> mapM (lookupPackageConfig packageDb) reusable
-  let reusablePackages = nubBy ((==) `on` fst) cachedPackages
-      missingPackages = installPlan \\ map fst reusablePackages
-  return (missingPackages, reusablePackages)
+findReusablePackages :: Cache -> [Package] -> ([Package], [(Package, Path PackageConfig)])
+findReusablePackages (Cache globalPackages packageGraphs) installPlan = (missingPackages, reusablePackages)
+  where
+    reusablePackages = nubBy ((==) `on` fst) (concatMap findReusable packageGraphs)
+    missingPackages = installPlan \\ map fst reusablePackages
+
+    findReusable cacheGraph =
+      [(p, c) | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
+      where
+        packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
 
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do

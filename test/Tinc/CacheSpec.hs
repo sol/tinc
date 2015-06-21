@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Tinc.CacheSpec (spec) where
 
 import           Prelude ()
@@ -6,13 +5,13 @@ import           Prelude.Compat
 
 import           Helper
 
-import           System.IO.Temp
+import qualified Data.Graph.Wrapper as G
 import           System.Directory
 import           System.FilePath
+import           System.IO.Temp
 
 import           Tinc.Cache
 import           Tinc.Types
-import           Tinc.PackageGraph
 
 spec :: Spec
 spec = do
@@ -40,4 +39,4 @@ spec = do
         --
         -- This test case makes sure that we properly handle this.
         packageDb <- findPackageDb hspecDiscoverSandbox
-        readPackageGraph [packageDb] `shouldReturn` toGraph [(hspecDiscover, [])]
+        readPackageGraph [(hspecDiscover, ())] [packageDb] `shouldReturn` G.fromList [(hspecDiscover, (), [])]

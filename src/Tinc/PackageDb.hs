@@ -3,7 +3,6 @@ module Tinc.PackageDb (
   PackageDb(..)
 , PackageConfig
 , readPackageDb
-, lookupPackageConfig
 , allPackageConfigs
 #ifdef TEST
 , packageFromPackageConfig
@@ -21,13 +20,11 @@ import           System.FilePath
 
 import           Package
 import           Tinc.Types
-import           Util
 
 data PackageConfig
 
 data PackageDb = PackageDb {
-  _packageDbPath :: Path PackageDb
-, packageDbPackageConfigs :: Map Package (Path PackageConfig)
+  packageDbPackageConfigs :: Map Package (Path PackageConfig)
 } deriving (Eq, Show)
 
 readPackageDb :: Path PackageDb -> IO PackageDb
@@ -35,12 +32,7 @@ readPackageDb p = do
   packageConfigs <- filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path p)
   let packages = map packageFromPackageConfig packageConfigs
       absolutePackageConfigs = map (Path . (path p </>)) packageConfigs
-  return $ PackageDb p (Map.fromList $ zip packages absolutePackageConfigs)
-
-lookupPackageConfig :: PackageDb -> Package -> IO (Path PackageConfig)
-lookupPackageConfig (PackageDb (Path p) packageConfigs) package = case Map.lookup package packageConfigs of
-  Just packageConfig -> return packageConfig
-  Nothing -> die __FILE__ ("No package config found for " ++ showPackage package ++ " in " ++ p)
+  return $ PackageDb (Map.fromList $ zip packages absolutePackageConfigs)
 
 allPackageConfigs :: PackageDb -> [Path PackageConfig]
 allPackageConfigs = Map.elems . packageDbPackageConfigs
