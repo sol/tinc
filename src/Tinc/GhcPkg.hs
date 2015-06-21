@@ -3,17 +3,14 @@ module Tinc.GhcPkg (
   readGhcPkg
 , listPackages
 , listGlobalPackages
-, readPackageGraph
 ) where
 
 import           Prelude ()
 import           Prelude.Compat
 
-import           System.Exit.Compat
 import           System.Process
 
 import           Package
-import           PackageGraph
 import           Tinc.PackageDb
 import           Tinc.Types
 
@@ -25,14 +22,6 @@ listPackages packageDbs = parsePackages <$> readGhcPkg packageDbs ["list"]
 
 listGlobalPackages :: IO [Package]
 listGlobalPackages = listPackages []
-
-readPackageGraph :: [Path PackageDb] -> IO PackageGraph
-readPackageGraph packageDbs = do
-  dot <- readGhcPkg packageDbs ["dot"]
-  packages <- listPackages packageDbs
-  case fromDot packages dot of
-    Right graph -> return graph
-    Left message -> die message
 
 readGhcPkg :: [Path PackageDb] -> [String] -> IO String
 readGhcPkg (packageDbsToArgs -> packageDbs) args = do

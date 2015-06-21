@@ -6,7 +6,6 @@ import           Helper
 import           Tinc.GhcPkg
 import           Tinc.Cache
 import           Package
-import           PackageGraph
 
 globalPackages :: [String]
 globalPackages = [
@@ -61,15 +60,3 @@ spec = do
         packageDbs <- mapM findPackageDb [getoptGenericsSandbox, setenvSandbox]
         packages <- listPackages packageDbs
         packages `shouldMatchList` (setenv : getoptGenericsPackages)
-
-    describe "readPackageGraph" $ do
-      context "when a package has no dependencies and no other packages depend on it" $ do
-        it "includes package" $ do
-          -- NOTE: `ghc-pkg dot` omits packages from the graph that both:
-          --
-          -- 1. have no dependencies
-          -- 2. no other packages depend on
-          --
-          -- This test case makes sure that we properly handle this.
-          packageDb <- findPackageDb hspecDiscoverSandbox
-          readPackageGraph [packageDb] `shouldReturn` toGraph [(hspecDiscover, [])]

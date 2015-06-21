@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Tinc.Cache (
   Sandbox
 , cabalSandboxDirectory
@@ -6,6 +7,10 @@ module Tinc.Cache (
 
 , Cache(..)
 , readCache
+
+#ifdef TEST
+, readPackageGraph
+#endif
 ) where
 
 import           Prelude ()
@@ -17,6 +22,7 @@ import           Data.Maybe
 import           System.Directory
 import           System.FilePath
 import           Control.Exception
+import           System.Exit.Compat
 
 import           Package
 import           PackageGraph
@@ -35,6 +41,14 @@ data Cache = Cache {
   _cacheGlobalPackages :: [Package]
 , _cachePackageGraphs :: [(Path PackageDb, PackageGraph)]
 }
+
+readPackageGraph :: [Path PackageDb] -> IO PackageGraph
+readPackageGraph packageDbs = do
+  dot <- readGhcPkg packageDbs ["dot"]
+  packages <- listPackages packageDbs
+  case fromDot packages dot of
+    Right graph -> return graph
+    Left message -> die message
 
 readCache :: GhcInfo -> Path CacheDir -> IO Cache
 readCache ghcInfo cacheDir = do

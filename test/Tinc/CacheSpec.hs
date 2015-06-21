@@ -12,6 +12,7 @@ import           System.FilePath
 
 import           Tinc.Cache
 import           Tinc.Types
+import           PackageGraph
 
 spec :: Spec
 spec = do
@@ -28,3 +29,15 @@ spec = do
           let p = sandbox </> ".cabal-sandbox"
           createDirectory p
           findPackageDb (Path sandbox) `shouldThrow` errorCall ("No package database found in " ++ show p)
+
+  describe "readPackageGraph" $ beforeAll_ ensureCache $ do
+    context "when a package has no dependencies and no other packages depend on it" $ do
+      it "includes package" $ do
+        -- NOTE: `ghc-pkg dot` omits packages from the graph that both:
+        --
+        -- 1. have no dependencies
+        -- 2. no other packages depend on
+        --
+        -- This test case makes sure that we properly handle this.
+        packageDb <- findPackageDb hspecDiscoverSandbox
+        readPackageGraph [packageDb] `shouldReturn` toGraph [(hspecDiscover, [])]
