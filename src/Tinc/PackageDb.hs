@@ -13,7 +13,6 @@ module Tinc.PackageDb (
 import           Prelude ()
 import           Prelude.Compat
 
-import           Control.Exception
 import           Data.List.Compat
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -22,6 +21,7 @@ import           System.FilePath
 
 import           Package
 import           Tinc.Types
+import           Util
 
 data PackageConfig
 
@@ -40,7 +40,7 @@ readPackageDb p = do
 lookupPackageConfig :: PackageDb -> Package -> IO (Path PackageConfig)
 lookupPackageConfig (PackageDb (Path p) packageConfigs) package = case Map.lookup package packageConfigs of
   Just packageConfig -> return packageConfig
-  Nothing -> throwIO (ErrorCall $ "no package config found for " ++ showPackage package ++ " in " ++ p)
+  Nothing -> die __FILE__ ("No package config found for " ++ showPackage package ++ " in " ++ p)
 
 allPackageConfigs :: PackageDb -> [Path PackageConfig]
 allPackageConfigs = Map.elems . packageDbPackageConfigs

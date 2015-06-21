@@ -21,8 +21,6 @@ import           Data.List.Compat
 import           Data.Maybe
 import           System.Directory
 import           System.FilePath
-import           Control.Exception
-import           System.Exit.Compat
 
 import           Package
 import           PackageGraph
@@ -48,7 +46,7 @@ readPackageGraph packageDbs = do
   packages <- listPackages packageDbs
   case fromDot packages dot of
     Right graph -> return graph
-    Left message -> die message
+    Left message -> die __FILE__ message
 
 readCache :: GhcInfo -> Path CacheDir -> IO Cache
 readCache ghcInfo cacheDir = do
@@ -64,7 +62,7 @@ findPackageDb sandbox = do
   xs <- getDirectoryContents sandboxDir
   case listToMaybe (filter isPackageDb xs) of
     Just p -> Path <$> canonicalizePath (sandboxDir </> p)
-    Nothing -> throwIO (ErrorCall $ "No package database found in " ++ show sandboxDir)
+    Nothing -> die __FILE__ ("No package database found in " ++ show sandboxDir)
   where
     sandboxDir = path sandbox </> cabalSandboxDirectory
 

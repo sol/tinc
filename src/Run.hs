@@ -2,8 +2,8 @@
 module Run where
 
 import           System.Process
-import           System.Exit.Compat
 import           System.Environment.Compat
+import           Control.Exception
 
 import           Tinc.Setup
 import           Tinc.Install
@@ -22,4 +22,4 @@ tinc args = do
     [] -> installDependencies factsGhcInfo False factsCache
     ["--dry-run"] -> installDependencies factsGhcInfo True factsCache
     name : rest | Just plugin <- lookup name factsPlugins -> callProcess plugin rest
-    _ -> die ("unrecognized arguments: " ++ show args)
+    _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)

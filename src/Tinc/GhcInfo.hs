@@ -4,11 +4,11 @@ module Tinc.GhcInfo where
 import           Prelude ()
 import           Prelude.Compat
 
-import           Control.Exception
 import           System.Process
 
 import           Tinc.PackageDb
 import           Tinc.Types
+import           Util
 
 data GhcInfo = GhcInfo {
   ghcInfoPlatform :: String
@@ -22,11 +22,8 @@ getGhcInfo = do
   let lookupField :: String -> IO String
       lookupField name = do
         let err = "Output from `ghc --info` does not contain the field " ++ show name
-        maybe (throwError err) return (lookup name fields)
+        maybe (die __FILE__ err) return (lookup name fields)
   GhcInfo
     <$> lookupField "Target platform"
     <*> lookupField "Project version"
     <*> (Path <$> lookupField "Global Package DB")
-
-throwError :: String -> IO a
-throwError err = throwIO . ErrorCall $ __FILE__ ++ ": " ++ err

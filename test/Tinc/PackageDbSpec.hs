@@ -35,7 +35,7 @@ spec = do
     context "when package config is not found" $ do
       it "throws an exception" $ do
         let packageDb = PackageDb "/path/to/package-db" Map.empty
-        lookupPackageConfig packageDb package `shouldThrow` errorCall "no package config found for foo-0.1.0 in /path/to/package-db"
+        lookupPackageConfig packageDb package `shouldThrow` errorCall "src/Tinc/PackageDb.hs: No package config found for foo-0.1.0 in /path/to/package-db"
 
   describe "packageFromPackageConfig" $ do
     it "parses package from package config path" $ do
