@@ -23,7 +23,7 @@ import           System.IO.Temp
 import           System.Process
 
 import           Package
-import           PackageGraph
+import           Tinc.PackageGraph
 import           Tinc.Cache
 import           Tinc.GhcInfo
 import           Tinc.PackageDb

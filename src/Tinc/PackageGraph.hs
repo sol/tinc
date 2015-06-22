@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
-module PackageGraph (
+module Tinc.PackageGraph (
   SimpleGraph
 , PackageGraph
 , fromDot

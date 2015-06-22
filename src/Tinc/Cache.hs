@@ -23,7 +23,7 @@ import           System.Directory
 import           System.FilePath
 
 import           Package
-import           PackageGraph
+import           Tinc.PackageGraph
 import           Tinc.GhcInfo
 import           Tinc.GhcPkg
 import           Tinc.PackageDb

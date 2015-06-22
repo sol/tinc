@@ -24,12 +24,13 @@ executable tinc
   main-is: tinc.hs
   other-modules:
       Package
-      PackageGraph
       Run
+      Tinc.Cache
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
       Tinc.PackageDb
+      Tinc.PackageGraph
       Tinc.Setup
       Tinc.Types
       Util
@@ -53,23 +54,25 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Package
-      PackageGraph
       Run
+      Tinc.Cache
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
       Tinc.PackageDb
+      Tinc.PackageGraph
       Tinc.Setup
       Tinc.Types
       Util
       All
       Helper
-      PackageGraphSpec
       PackageSpec
+      Tinc.CacheSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
       Tinc.InstallSpec
       Tinc.PackageDbSpec
+      Tinc.PackageGraphSpec
       Tinc.SetupSpec
       UtilSpec
   build-depends:

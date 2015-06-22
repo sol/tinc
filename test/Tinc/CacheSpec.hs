@@ -12,7 +12,7 @@ import           System.FilePath
 
 import           Tinc.Cache
 import           Tinc.Types
-import           PackageGraph
+import           Tinc.PackageGraph
 
 spec :: Spec
 spec = do

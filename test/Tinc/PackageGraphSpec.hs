@@ -1,9 +1,8 @@
-
-module PackageGraphSpec where
+module Tinc.PackageGraphSpec where
 
 import           Test.Hspec
 
-import           PackageGraph
+import           Tinc.PackageGraph
 import           Package
 
 spec :: Spec
