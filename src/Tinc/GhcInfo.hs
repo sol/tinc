@@ -6,7 +6,7 @@ import           Prelude.Compat
 
 import           System.Process
 
-import           Tinc.PackageDb
+import           Tinc.GhcPkg
 import           Tinc.Types
 import           Util
 

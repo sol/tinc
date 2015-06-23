@@ -28,8 +28,8 @@ import           Package
 import           Tinc.PackageGraph
 import           Tinc.Cache
 import           Tinc.GhcInfo
-import           Tinc.PackageDb
 import           Tinc.Types
+import           Tinc.GhcPkg
 import           Util
 
 currentDirectory :: Path Sandbox
@@ -100,12 +100,8 @@ findReusablePackages (Cache globalPackages packageGraphs) installPlan = (missing
 cloneSandbox :: Path Sandbox -> IO ()
 cloneSandbox source = do
   sourcePackageDb <- findPackageDb source
-  packages <- extractPackageConfigs sourcePackageDb
-  initSandbox packages
-
-extractPackageConfigs :: Path PackageDb -> IO [Path PackageConfig]
-extractPackageConfigs packageDb = do
-  allPackageConfigs <$> readPackageDb packageDb
+  packageConfigs <- map snd <$> listPackageConfigs sourcePackageDb
+  initSandbox packageConfigs
 
 registerPackageConfigs :: Path PackageDb -> [Path PackageConfig] -> IO ()
 registerPackageConfigs packageDb packages = do

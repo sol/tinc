@@ -6,19 +6,22 @@ module Tinc.Cache (
 
 , findPackageDb
 
+, PackageConfig
+, listPackageConfigs
+
 , Cache(..)
 , PackageLocation(..)
 , readCache
 
 #ifdef TEST
 , readPackageGraph
+, packageFromPackageConfig
 #endif
 ) where
 
 import           Prelude ()
 import           Prelude.Compat
 
-import qualified Data.Map as Map
 import           Control.Monad.Compat
 import           Data.List.Compat
 import           Data.Maybe
@@ -29,7 +32,6 @@ import           Package
 import           Tinc.PackageGraph
 import           Tinc.GhcInfo
 import           Tinc.GhcPkg
-import           Tinc.PackageDb
 import           Tinc.Types
 import           Util
 
@@ -37,6 +39,20 @@ data Sandbox
 
 cabalSandboxDirectory :: FilePath
 cabalSandboxDirectory = ".cabal-sandbox"
+
+data PackageConfig
+
+listPackageConfigs :: Path PackageDb -> IO [(Package, Path PackageConfig)]
+listPackageConfigs p = do
+  packageConfigs <- filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path p)
+  let packages = map packageFromPackageConfig packageConfigs
+      absolutePackageConfigs = map (Path . (path p </>)) packageConfigs
+  return (zip packages absolutePackageConfigs)
+
+packageFromPackageConfig :: FilePath -> Package
+packageFromPackageConfig packageConfig =
+  case break (== '-') . drop 1 . dropWhile (/= '-') . reverse $ packageConfig of
+    (version, name) -> Package (reverse $ drop 1 name) (reverse version)
 
 data Cache = Cache {
   _cacheGlobalPackages :: [Package]
@@ -60,8 +76,8 @@ readCache ghcInfo cacheDir = do
   sandboxes <- lookupSandboxes cacheDir
   cache <- forM sandboxes $ \ sandbox -> do
     packageDbPath <- findPackageDb sandbox
-    packageDb <- readPackageDb packageDbPath
-    let values = map (fmap PackageConfig) . Map.toList $ packageDbPackageConfigs packageDb
+    packageConfigs <- listPackageConfigs packageDbPath
+    let values = map (fmap PackageConfig) packageConfigs
     readPackageGraph (globalValues ++ values) [ghcInfoGlobalPackageDb ghcInfo, packageDbPath]
   return (Cache globalPackages cache)
 

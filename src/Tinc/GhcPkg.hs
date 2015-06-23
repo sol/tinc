@@ -1,6 +1,7 @@
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.GhcPkg (
-  readGhcPkg
+  PackageDb
+, readGhcPkg
 , listGlobalPackages
 ) where
 
@@ -10,8 +11,9 @@ import           Prelude.Compat
 import           System.Process
 
 import           Package
-import           Tinc.PackageDb
 import           Tinc.Types
+
+data PackageDb
 
 listPackages :: [Path PackageDb] -> IO [Package]
 listPackages packageDbs = parsePackages <$> readGhcPkg packageDbs ["list"]

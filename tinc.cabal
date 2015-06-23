@@ -29,7 +29,6 @@ executable tinc
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
-      Tinc.PackageDb
       Tinc.PackageGraph
       Tinc.Setup
       Tinc.Types
@@ -59,7 +58,6 @@ test-suite spec
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
-      Tinc.PackageDb
       Tinc.PackageGraph
       Tinc.Setup
       Tinc.Types
@@ -71,7 +69,6 @@ test-suite spec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
       Tinc.InstallSpec
-      Tinc.PackageDbSpec
       Tinc.PackageGraphSpec
       Tinc.SetupSpec
       UtilSpec
