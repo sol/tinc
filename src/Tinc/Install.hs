@@ -70,21 +70,28 @@ printInstallPlan reusable missing = do
   mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
 
 createProjectSandbox :: Path CacheDir -> [Package] -> [Package] -> [Path PackageConfig] -> IO ()
-createProjectSandbox cacheDir installPlan missing reusable
-  | null missing = initSandbox reusable
-  | otherwise = createCacheSandbox cacheDir installPlan reusable
+createProjectSandbox cacheDir installPlan missing reusable = packageConfigs >>= initSandbox
+  where
+    packageConfigs
+      | null missing = return reusable
+      | otherwise = populateCache cacheDir installPlan reusable
 
-createCacheSandbox :: Path CacheDir -> [Package] -> [Path PackageConfig] -> IO ()
-createCacheSandbox cacheDir installPlan reusable = do
+populateCache :: Path CacheDir -> [Package] -> [Path PackageConfig] -> IO [Path PackageConfig]
+populateCache cacheDir installPlan reusable = do
   basename <- takeBaseName <$> getCurrentDirectory
   sandbox <- createTempDirectory (path cacheDir) (basename ++ "-")
-  create sandbox reusable `onException` removeDirectoryRecursive sandbox
-  cloneSandbox (Path sandbox)
+  populate sandbox reusable `onException` removeDirectoryRecursive sandbox
+  list sandbox
   where
-    create sandbox cachedPackages = do
+    populate sandbox cachedPackages = do
       withCurrentDirectory sandbox $ do
         initSandbox cachedPackages
         callProcess "cabal" ("install" : map showPackage installPlan)
+
+    list :: FilePath -> IO [Path PackageConfig]
+    list sandbox = do
+      sourcePackageDb <- findPackageDb (Path sandbox)
+      map snd <$> listPackageConfigs sourcePackageDb
 
 findReusablePackages :: Cache -> [Package] -> ([Package], [(Package, Path PackageConfig)])
 findReusablePackages (Cache globalPackages packageGraphs) installPlan = (missingPackages, reusablePackages)
@@ -96,12 +103,6 @@ findReusablePackages (Cache globalPackages packageGraphs) installPlan = (missing
       [(p, c) | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
       where
         packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
-
-cloneSandbox :: Path Sandbox -> IO ()
-cloneSandbox source = do
-  sourcePackageDb <- findPackageDb source
-  packageConfigs <- map snd <$> listPackageConfigs sourcePackageDb
-  initSandbox packageConfigs
 
 registerPackageConfigs :: Path PackageDb -> [Path PackageConfig] -> IO ()
 registerPackageConfigs packageDb packages = do
