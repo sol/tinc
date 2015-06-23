@@ -34,8 +34,18 @@ tests:
     source-dirs: test
     dependencies:
       - hspec
-      - hspec-expectations
       - mockery >= 0.3.0
-      - silently
       - shelly
     cpp-options: -DTEST
+
+  acceptance:
+    main: "Spec.hs"
+    source-dirs:
+      - acceptance
+      - test
+    dependencies:
+      - hspec
+      - hspec-expectations
+      - mockery
+      - shelly
+      - stringbuilder

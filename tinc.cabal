@@ -47,6 +47,51 @@ executable tinc
   ghc-options: -Wall
   default-language: Haskell2010
 
+test-suite acceptance
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src, acceptance, test
+  main-is: Spec.hs
+  other-modules:
+      Package
+      Run
+      Tinc.Cache
+      Tinc.GhcInfo
+      Tinc.GhcPkg
+      Tinc.Install
+      Tinc.PackageGraph
+      Tinc.Setup
+      Tinc.Types
+      Util
+      InstallSpec
+      All
+      Helper
+      PackageSpec
+      Tinc.CacheSpec
+      Tinc.GhcInfoSpec
+      Tinc.GhcPkgSpec
+      Tinc.PackageGraphSpec
+      Tinc.SetupSpec
+      UtilSpec
+  build-depends:
+      base == 4.*
+    , base-compat
+    , graph-wrapper >= 0.2.5
+    , language-dot
+    , containers
+    , directory
+    , filepath
+    , process >= 1.2
+    , parsec
+    , temporary
+
+    , hspec
+    , hspec-expectations
+    , mockery
+    , shelly
+    , stringbuilder
+  ghc-options: -Wall
+  default-language: Haskell2010
+
 test-suite spec
   type: exitcode-stdio-1.0
   hs-source-dirs: src, test
@@ -68,7 +113,6 @@ test-suite spec
       Tinc.CacheSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
-      Tinc.InstallSpec
       Tinc.PackageGraphSpec
       Tinc.SetupSpec
       UtilSpec
@@ -85,9 +129,7 @@ test-suite spec
     , temporary
 
     , hspec
-    , hspec-expectations
     , mockery >= 0.3.0
-    , silently
     , shelly
   ghc-options: -Wall
   cpp-options: -DTEST
