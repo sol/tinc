@@ -38,7 +38,6 @@ import           Test.Mockery.Directory
 import           Package
 import           Tinc.Types
 import           Util
-import           Tinc.Install
 import           Tinc.Cache
 
 instance (Ord a, Ord v) => Eq (G.Graph a v) where

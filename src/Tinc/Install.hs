@@ -1,13 +1,8 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Tinc.Install (
-  Sandbox
-, PackageConfig
-, installDependencies
-
+  installDependencies
 #ifdef TEST
-, findReusablePackages
 , realizeInstallPlan
 #endif
 ) where
