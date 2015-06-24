@@ -1,9 +1,9 @@
-module PackageSpec where
+module Tinc.PackageSpec where
 
 import           Test.Hspec
 import           Data.Either.Compat
 
-import           Package
+import           Tinc.Package
 
 spec :: Spec
 spec = do

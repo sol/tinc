@@ -14,7 +14,7 @@ import           Test.Mockery.Directory
 import           Data.String.Builder
 
 import           Run
-import           Package
+import           Tinc.Package
 import           Tinc.Types
 import           Tinc.Install
 import           Tinc.GhcInfo

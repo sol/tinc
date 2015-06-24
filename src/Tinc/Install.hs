@@ -16,7 +16,7 @@ import           System.FilePath
 import           System.IO.Temp
 import           System.Process
 
-import           Package
+import           Tinc.Package
 import           Tinc.PackageGraph
 import           Tinc.Cache
 import           Tinc.GhcInfo

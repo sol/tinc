@@ -4,7 +4,7 @@ import qualified Data.Graph.Wrapper as G
 
 import           Helper
 
-import           Package
+import           Tinc.Package
 import           Tinc.PackageGraph
 
 spec :: Spec

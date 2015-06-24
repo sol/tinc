@@ -23,12 +23,12 @@ executable tinc
   hs-source-dirs: src, driver
   main-is: tinc.hs
   other-modules:
-      Package
       Run
       Tinc.Cache
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
+      Tinc.Package
       Tinc.PackageGraph
       Tinc.Setup
       Tinc.Types
@@ -52,12 +52,12 @@ test-suite acceptance
   hs-source-dirs: src, acceptance, test
   main-is: Spec.hs
   other-modules:
-      Package
       Run
       Tinc.Cache
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
+      Tinc.Package
       Tinc.PackageGraph
       Tinc.Setup
       Tinc.Types
@@ -65,11 +65,11 @@ test-suite acceptance
       InstallSpec
       All
       Helper
-      PackageSpec
       Tinc.CacheSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
       Tinc.PackageGraphSpec
+      Tinc.PackageSpec
       Tinc.SetupSpec
       UtilSpec
   build-depends:
@@ -97,23 +97,23 @@ test-suite spec
   hs-source-dirs: src, test
   main-is: Spec.hs
   other-modules:
-      Package
       Run
       Tinc.Cache
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
+      Tinc.Package
       Tinc.PackageGraph
       Tinc.Setup
       Tinc.Types
       Util
       All
       Helper
-      PackageSpec
       Tinc.CacheSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
       Tinc.PackageGraphSpec
+      Tinc.PackageSpec
       Tinc.SetupSpec
       UtilSpec
   build-depends:

@@ -28,7 +28,7 @@ import           Data.Maybe
 import           System.Directory
 import           System.FilePath
 
-import           Package
+import           Tinc.Package
 import           Tinc.PackageGraph
 import           Tinc.GhcInfo
 import           Tinc.GhcPkg

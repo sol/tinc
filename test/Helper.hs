@@ -35,7 +35,7 @@ import           System.FilePath
 import           System.Process
 import           Test.Mockery.Directory
 
-import           Package
+import           Tinc.Package
 import           Tinc.Types
 import           Util
 import           Tinc.Cache

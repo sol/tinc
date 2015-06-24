@@ -10,7 +10,7 @@ import           Prelude.Compat
 
 import           System.Process
 
-import           Package
+import           Tinc.Package
 import           Tinc.Types
 
 data PackageDb

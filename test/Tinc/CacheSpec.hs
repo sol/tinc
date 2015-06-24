@@ -11,7 +11,7 @@ import           System.FilePath
 import           System.IO.Temp
 import           Test.Mockery.Directory
 
-import           Package
+import           Tinc.Package
 import           Tinc.Cache
 import           Tinc.Types
 

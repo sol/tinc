@@ -17,7 +17,7 @@ import qualified Language.Dot.Syntax as Dot
 import           Language.Dot.Syntax hiding (Graph)
 import           Text.Parsec.Error
 
-import           Package
+import           Tinc.Package
 
 type PackageGraph a = Graph Package a
 

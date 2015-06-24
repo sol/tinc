@@ -4,7 +4,7 @@ module Tinc.GhcPkgSpec (spec) where
 import           Helper
 
 import           Tinc.GhcPkg
-import           Package
+import           Tinc.Package
 
 globalPackages :: [String]
 globalPackages = [

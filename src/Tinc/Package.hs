@@ -1,4 +1,4 @@
-module Package where
+module Tinc.Package where
 
 import           Data.List
 
