@@ -43,6 +43,9 @@ import           Tinc.Cache
 instance (Ord a, Ord v) => Eq (G.Graph a v) where
   a == b = sort (G.toList a) == sort (G.toList b)
 
+instance IsString Version where
+  fromString version = Version version Nothing
+
 ensureCache :: IO ()
 ensureCache = do
   mkCache

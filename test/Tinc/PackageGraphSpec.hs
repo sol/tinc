@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Tinc.PackageGraphSpec where
 
 import qualified Data.Graph.Wrapper as G

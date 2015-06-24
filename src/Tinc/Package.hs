@@ -1,5 +1,11 @@
 {-# LANGUAGE CPP #-}
-module Tinc.Package where
+module Tinc.Package (
+  Package(..)
+, Version(..)
+, showPackage
+, parsePackage
+, parseInstallPlan
+) where
 
 import           Data.List
 
@@ -8,17 +14,25 @@ import           Tinc.Fail
 data Package
   = Package {
     packageName :: String,
-    packageVersion :: String
+    packageVersion :: Version
   }
   deriving (Eq, Ord, Show)
 
+data Version = Version {
+  versionNumber :: String
+, versionGitRevision :: Maybe String
+} deriving (Eq, Ord, Show)
+
 showPackage :: Package -> String
-showPackage (Package name version) = name ++ "-" ++ version
+showPackage (Package name version) = name ++ "-" ++ showVersion version
+
+showVersion :: Version -> String
+showVersion (Version v _) = v
 
 parsePackage :: String -> Package
 parsePackage s = case break (== '-') (reverse s) of
-  (v, '-' : p) -> Package (reverse p) (reverse v)
-  _ -> Package s ""
+  (v, '-' : p) -> Package (reverse p) (Version (reverse v) Nothing)
+  _ -> Package s (Version "" Nothing)
 
 parseInstallPlan :: Fail m => String -> m [Package]
 parseInstallPlan input = case lines input of

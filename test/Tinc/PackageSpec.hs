@@ -1,11 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Tinc.PackageSpec where
 
-import           Test.Hspec
+import           Helper
 
 import           Tinc.Package
 
 spec :: Spec
 spec = do
+  describe "showPackage" $ do
+    it "ignores git revision" $ do
+      showPackage (Package "foo" "0.1.0" {versionGitRevision = Just "32509a18bb6ddc01014863d135a247bd65d16c38"})
+        `shouldBe` "foo-0.1.0"
+
   describe "parseInstallPlan" $ do
     it "parses output from `cabal install --dry-run`" $ do
       output <- readFile "test/resources/cabal-1.22.4.0-dry-run.txt"
