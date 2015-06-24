@@ -50,9 +50,7 @@ listPackageConfigs p = do
   return (zip packages absolutePackageConfigs)
 
 packageFromPackageConfig :: FilePath -> Package
-packageFromPackageConfig packageConfig =
-  case break (== '-') . drop 1 . dropWhile (/= '-') . reverse $ packageConfig of
-    (version, name) -> Package (reverse $ drop 1 name) (reverse version)
+packageFromPackageConfig = parsePackage . reverse . drop 1 . dropWhile (/= '-') . reverse
 
 data Cache = Cache {
   _cacheGlobalPackages :: [Package]
