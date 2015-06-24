@@ -58,7 +58,8 @@ createInstallPlan :: GhcInfo -> Path CacheDir -> IO InstallPlan
 createInstallPlan ghcInfo cacheDir = do
   installPlan <- cabalInstallPlan
   cache <- readCache ghcInfo cacheDir
-  let (missing, reusable) = findReusablePackages cache installPlan
+  let reusable = findReusablePackages cache installPlan
+      missing = installPlan \\ map fst reusable
   return (InstallPlan installPlan reusable missing)
 
 cabalInstallPlan :: IO [Package]
@@ -96,11 +97,10 @@ populateCache cacheDir installPlan reusable = do
       sourcePackageDb <- findPackageDb (Path sandbox)
       map snd <$> listPackageConfigs sourcePackageDb
 
-findReusablePackages :: Cache -> [Package] -> ([Package], [(Package, Path PackageConfig)])
-findReusablePackages (Cache globalPackages packageGraphs) installPlan = (missingPackages, reusablePackages)
+findReusablePackages :: Cache -> [Package] -> [(Package, Path PackageConfig)]
+findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusablePackages
   where
     reusablePackages = nubBy ((==) `on` fst) (concatMap findReusable packageGraphs)
-    missingPackages = installPlan \\ map fst reusablePackages
 
     findReusable cacheGraph =
       [(p, c) | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
