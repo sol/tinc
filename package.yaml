@@ -36,6 +36,8 @@ tests:
       - hspec
       - mockery >= 0.3.0
       - shelly
+      - HUnit
+      - transformers
     cpp-options: -DTEST
 
   acceptance:
