@@ -1,10 +1,7 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 module Tinc.Install (
   installDependencies
-#ifdef TEST
-, realizeInstallPlan
-#endif
 ) where
 
 import           Prelude ()
@@ -44,14 +41,25 @@ deleteSandbox = do
 
 installDependencies :: GhcInfo -> Bool -> Path CacheDir -> IO ()
 installDependencies ghcInfo dryRun cacheDir = do
-  cabalInstallPlan >>= realizeInstallPlan ghcInfo dryRun cacheDir
+      createInstallPlan ghcInfo cacheDir
+  >>= tee printInstallPlan
+  >>= unless dryRun . realizeInstallPlan cacheDir
+  where
+    tee :: Monad m => (a -> m ()) -> a -> m a
+    tee action a = action a >> return a
 
-realizeInstallPlan :: GhcInfo -> Bool -> Path CacheDir -> [Package] -> IO ()
-realizeInstallPlan ghcInfo dryRun cacheDir installPlan = do
+data InstallPlan = InstallPlan {
+  _installPlanAll :: [Package]
+, _installPlanReusable :: [(Package, Path PackageConfig)]
+, _installPlanMissing :: [Package]
+} deriving (Eq, Show)
+
+createInstallPlan :: GhcInfo -> Path CacheDir -> IO InstallPlan
+createInstallPlan ghcInfo cacheDir = do
+  installPlan <- cabalInstallPlan
   cache <- readCache ghcInfo cacheDir
   let (missing, reusable) = findReusablePackages cache installPlan
-  printInstallPlan reusable missing
-  unless dryRun (createProjectSandbox cacheDir installPlan missing (map snd reusable))
+  return (InstallPlan installPlan reusable missing)
 
 cabalInstallPlan :: IO [Package]
 cabalInstallPlan = parseInstallPlan <$> readProcess "cabal" command ""
@@ -59,13 +67,13 @@ cabalInstallPlan = parseInstallPlan <$> readProcess "cabal" command ""
     command :: [String]
     command = words "--ignore-sandbox --no-require-sandbox install --only-dependencies --enable-tests --dry-run --package-db=clear --package-db=global"
 
-printInstallPlan :: [(Package, Path PackageConfig)] -> [Package] -> IO ()
-printInstallPlan reusable missing = do
+printInstallPlan :: InstallPlan -> IO ()
+printInstallPlan (InstallPlan _ reusable missing) = do
   mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map fst reusable)
   mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
 
-createProjectSandbox :: Path CacheDir -> [Package] -> [Package] -> [Path PackageConfig] -> IO ()
-createProjectSandbox cacheDir installPlan missing reusable = packageConfigs >>= initSandbox
+realizeInstallPlan :: Path CacheDir -> InstallPlan -> IO ()
+realizeInstallPlan cacheDir (InstallPlan installPlan (map snd -> reusable) missing) = packageConfigs >>= initSandbox
   where
     packageConfigs
       | null missing = return reusable
