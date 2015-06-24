@@ -100,8 +100,10 @@ populateCache cacheDir installPlan reusable = do
 findReusablePackages :: Cache -> [Package] -> [(Package, Path PackageConfig)]
 findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusablePackages
   where
+    reusablePackages :: [(Package, Path PackageConfig)]
     reusablePackages = nubBy ((==) `on` fst) (concatMap findReusable packageGraphs)
 
+    findReusable :: PackageGraph PackageLocation -> [(Package, Path PackageConfig)]
     findReusable cacheGraph =
       [(p, c) | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
       where
