@@ -25,6 +25,7 @@ executable tinc
   other-modules:
       Run
       Tinc.Cache
+      Tinc.Fail
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
@@ -54,6 +55,7 @@ test-suite acceptance
   other-modules:
       Run
       Tinc.Cache
+      Tinc.Fail
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
@@ -99,6 +101,7 @@ test-suite spec
   other-modules:
       Run
       Tinc.Cache
+      Tinc.Fail
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Install
