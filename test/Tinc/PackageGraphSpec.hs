@@ -55,15 +55,14 @@ spec = do
           []
 
     it "parses dot graphs" $ do
-      let graph = fromDot values dot
-      graph `shouldBe` Right (G.fromList expected)
+      fromDot values dot `shouldReturn` G.fromList expected
 
     context "when it encounters an outgoing node with a missing value" $ do
       it "returns an error" $ do
-        let graph = fromDot (drop 1 values) dot
-        graph `shouldBe` Left ("No value for package: " ++ show (Package "a" ""))
+        fromDot (drop 1 values) dot `shouldThrow`
+          errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (Package "a" ""))
 
     context "when it encounters an ingoing node with a missing value" $ do
       it "returns an error" $ do
-        let graph = fromDot (init values) dot
-        graph `shouldBe` Left ("No value for package: " ++ show (Package "c" ""))
+        fromDot (init values) dot `shouldThrow`
+          errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (Package "c" ""))

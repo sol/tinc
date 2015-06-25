@@ -33,6 +33,7 @@ import           Tinc.PackageGraph
 import           Tinc.GhcInfo
 import           Tinc.GhcPkg
 import           Tinc.Types
+import           Tinc.Fail
 import           Util
 
 data Sandbox
@@ -61,11 +62,7 @@ data PackageLocation = GlobalPackage | PackageConfig (Path PackageConfig)
   deriving (Eq, Ord, Show)
 
 readPackageGraph :: [(Package, a)] -> [Path PackageDb] -> IO (PackageGraph a)
-readPackageGraph values packageDbs = do
-  dot <- readGhcPkg packageDbs ["dot"]
-  case fromDot values dot of
-    Right graph -> return graph
-    Left message -> die __FILE__ message
+readPackageGraph values packageDbs = readGhcPkg packageDbs ["dot"] >>= fromDot values
 
 readCache :: GhcInfo -> Path CacheDir -> IO Cache
 readCache ghcInfo cacheDir = do
@@ -84,7 +81,7 @@ findPackageDb sandbox = do
   xs <- getDirectoryContents sandboxDir
   case listToMaybe (filter isPackageDb xs) of
     Just p -> Path <$> canonicalizePath (sandboxDir </> p)
-    Nothing -> die __FILE__ ("No package database found in " ++ show sandboxDir)
+    Nothing -> dieLoc __FILE__ ("No package database found in " ++ show sandboxDir)
   where
     sandboxDir = path sandbox </> cabalSandboxDirectory
 

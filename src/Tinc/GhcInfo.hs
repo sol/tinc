@@ -8,7 +8,7 @@ import           System.Process
 
 import           Tinc.GhcPkg
 import           Tinc.Types
-import           Util
+import           Tinc.Fail
 
 data GhcInfo = GhcInfo {
   ghcInfoPlatform :: String
@@ -22,7 +22,7 @@ getGhcInfo = do
   let lookupField :: String -> IO String
       lookupField name = do
         let err = "Output from `ghc --info` does not contain the field " ++ show name
-        maybe (die __FILE__ err) return (lookup name fields)
+        maybe (dieLoc __FILE__ err) return (lookup name fields)
   GhcInfo
     <$> lookupField "Target platform"
     <*> lookupField "Project version"

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.PackageGraph (
@@ -18,6 +19,7 @@ import           Language.Dot.Syntax hiding (Graph)
 import           Text.Parsec.Error
 
 import           Tinc.Package
+import           Tinc.Fail
 
 type PackageGraph a = Graph Package a
 
@@ -37,26 +39,26 @@ calculateReusablePackages installPlan cache = filter p cachedPackages
 
 -- * dot
 
-fromDot :: [(Package, v)] -> String -> Either String (PackageGraph v)
+fromDot :: Fail m => [(Package, v)] -> String -> m (PackageGraph v)
 fromDot values dot = case parseDot "<input>" dot of
   Right (Dot.Graph _ _ _ statements) ->
     fmap fromMap $
     foldM collectStatements (Map.fromList $ map (fmap (,[])) values) statements
-  Left parseError -> Left $ unlines $ map messageString $ errorMessages parseError
+  Left parseError -> dieLoc __FILE__ $ unlines $ map messageString $ errorMessages parseError
 
 type PackageMap v = Map Package (v, [Package])
 
-collectStatements :: PackageMap v -> Statement -> Either String (PackageMap v)
+collectStatements :: Fail m => PackageMap v -> Statement -> m (PackageMap v)
 collectStatements packageMap s = case s of
   NodeStatement (toPackage -> a) _ -> addDependencies a [] packageMap
   EdgeStatement [ENodeId _ (toPackage -> a), ENodeId _ (toPackage -> b)] _ ->
     addDependencies b [] packageMap >>= addDependencies a [b]
-  x -> Left ("Unsupported dot statements: " ++ show x)
+  x -> dieLoc __FILE__ ("Unsupported dot statements: " ++ show x)
 
-addDependencies :: (Ord i, Show i) => i -> [dep] -> Map i (v, [dep]) -> Either String (Map i (v, [dep]))
+addDependencies :: Fail m => (Ord i, Show i) => i -> [dep] -> Map i (v, [dep]) -> m (Map i (v, [dep]))
 addDependencies package dependencies graph = case Map.lookup package graph of
-  Nothing -> Left ("No value for package: " ++ show package)
-  Just (v, xs) -> Right (Map.insert package (v, dependencies ++ xs) graph)
+  Nothing -> dieLoc __FILE__ ("No value for package: " ++ show package)
+  Just (v, xs) -> return (Map.insert package (v, dependencies ++ xs) graph)
 
 fromMap :: Ord i => Map i (v, [i]) -> Graph i v
 fromMap = fromList . map f . Map.toList

@@ -30,6 +30,3 @@ listDirectories dir = do
     filter (`notElem` [".", ".."]) <$>
     getDirectoryContents dir
   filterM doesDirectoryExist $ map (dir </>) files
-
-die :: String -> String -> IO a
-die file message = throwIO . ErrorCall $ file ++ ": " ++ message
