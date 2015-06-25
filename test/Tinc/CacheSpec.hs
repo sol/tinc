@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Tinc.CacheSpec (spec) where
 
 import           Prelude ()
@@ -5,15 +7,42 @@ import           Prelude.Compat
 
 import           Helper
 
+import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Reader
 import qualified Data.Graph.Wrapper as G
 import           System.Directory
 import           System.FilePath
 import           System.IO.Temp
 import           Test.Mockery.Directory
+import           Test.Mockery.Action
 
-import           Tinc.Package
 import           Tinc.Cache
+import           Tinc.Fail
+import           Tinc.GhcPkg
+import           Tinc.Package
 import           Tinc.Types
+
+type ReadGhcPkg = [Path PackageDb] -> [String] -> IO String
+
+data Env = Env {
+  envReadGhcPkg :: ReadGhcPkg
+}
+
+env :: Env
+env = Env readGhcPkg
+
+newtype WithEnv a = WithEnv (ReaderT Env IO a)
+  deriving (Functor, Applicative, Monad, MonadIO)
+
+instance Fail WithEnv where
+  die = WithEnv . lift . die
+
+instance GhcPkg WithEnv where
+  readGhcPkg packageDbs args = WithEnv $ asks envReadGhcPkg >>= liftIO . ($ args) . ($ packageDbs)
+
+withEnv :: Env -> WithEnv a -> IO a
+withEnv e (WithEnv action) = runReaderT action e
 
 spec :: Spec
 spec = do
@@ -45,7 +74,7 @@ spec = do
           createDirectory p
           findPackageDb (Path sandbox) `shouldThrow` errorCall ("src/Tinc/Cache.hs: No package database found in " ++ show p)
 
-  describe "readPackageGraph" $ beforeAll_ ensureCache $ do
+  describe "readPackageGraph" $ do
     context "when a package has no dependencies and no other packages depend on it" $ do
       it "includes package" $ do
         -- NOTE: `ghc-pkg dot` omits packages from the graph that both:
@@ -54,5 +83,12 @@ spec = do
         -- 2. no other packages depend on
         --
         -- This test case makes sure that we properly handle this.
-        packageDb <- findPackageDb hspecDiscoverSandbox
-        readPackageGraph [(hspecDiscover, ())] [packageDb] `shouldReturn` G.fromList [(hspecDiscover, (), [])]
+
+        let package = Package "foo" "0.1.0"
+            graph = "digraph g {}"
+            packageDbs = ["/path/to/package.conf.d"]
+
+            mockedEnv = env {envReadGhcPkg = mock (packageDbs, ["dot"], return graph)}
+
+        withEnv mockedEnv (readPackageGraph [(package, ())] packageDbs)
+          `shouldReturn` G.fromList [(package, (), [])]

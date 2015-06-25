@@ -61,7 +61,7 @@ data Cache = Cache {
 data PackageLocation = GlobalPackage | PackageConfig (Path PackageConfig)
   deriving (Eq, Ord, Show)
 
-readPackageGraph :: [(Package, a)] -> [Path PackageDb] -> IO (PackageGraph a)
+readPackageGraph :: (Fail m, GhcPkg m) => [(Package, a)] -> [Path PackageDb] -> m (PackageGraph a)
 readPackageGraph values packageDbs = readGhcPkg packageDbs ["dot"] >>= fromDot values
 
 readCache :: GhcInfo -> Path CacheDir -> IO Cache
