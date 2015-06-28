@@ -29,6 +29,7 @@ executable tinc
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Git
+      Tinc.Hpack
       Tinc.Install
       Tinc.Package
       Tinc.PackageGraph
@@ -48,6 +49,7 @@ executable tinc
     , temporary
     , exceptions
     , transformers
+    , hpack
   ghc-options: -Wall
   default-language: Haskell2010
 
@@ -62,6 +64,7 @@ test-suite acceptance
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Git
+      Tinc.Hpack
       Tinc.Install
       Tinc.Package
       Tinc.PackageGraph
@@ -78,6 +81,7 @@ test-suite acceptance
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
       Tinc.GitSpec
+      Tinc.HpackSpec
       Tinc.PackageGraphSpec
       Tinc.PackageSpec
       Tinc.SetupSpec
@@ -95,6 +99,7 @@ test-suite acceptance
     , temporary
     , exceptions
     , transformers
+    , hpack
 
     , hspec >= 2.1.8
     , hspec-expectations
@@ -115,6 +120,7 @@ test-suite spec
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Git
+      Tinc.Hpack
       Tinc.Install
       Tinc.Package
       Tinc.PackageGraph
@@ -130,6 +136,7 @@ test-suite spec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
       Tinc.GitSpec
+      Tinc.HpackSpec
       Tinc.PackageGraphSpec
       Tinc.PackageSpec
       Tinc.SetupSpec
@@ -147,6 +154,7 @@ test-suite spec
     , temporary
     , exceptions
     , transformers
+    , hpack
 
     , hspec
     , mockery >= 0.3.0
