@@ -1,48 +1,36 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Tinc.CacheSpec (spec) where
 
 import           Prelude ()
 import           Prelude.Compat
 
 import           Helper
+import           MockedEnv
+import           Test.Mockery.Action
 
 import           Control.Monad.IO.Class
-import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Reader
 import qualified Data.Graph.Wrapper as G
 import           System.Directory
 import           System.FilePath
 import           System.IO.Temp
 import           Test.Mockery.Directory
-import           Test.Mockery.Action
 
 import           Tinc.Cache
-import           Tinc.Fail
 import           Tinc.GhcPkg
 import           Tinc.Package
 import           Tinc.Types
 
-type ReadGhcPkg = [Path PackageDb] -> [String] -> IO String
-
 data Env = Env {
-  envReadGhcPkg :: ReadGhcPkg
+  envReadGhcPkg :: [Path PackageDb] -> [String] -> IO String
 }
 
 env :: Env
 env = Env readGhcPkg
 
-newtype WithEnv a = WithEnv (ReaderT Env IO a)
-  deriving (Functor, Applicative, Monad, MonadIO)
-
-instance Fail WithEnv where
-  die = WithEnv . lift . die
-
-instance GhcPkg WithEnv where
+instance GhcPkg (WithEnv Env) where
   readGhcPkg packageDbs args = WithEnv $ asks envReadGhcPkg >>= liftIO . ($ args) . ($ packageDbs)
-
-withEnv :: Env -> WithEnv a -> IO a
-withEnv e (WithEnv action) = runReaderT action e
 
 spec :: Spec
 spec = do

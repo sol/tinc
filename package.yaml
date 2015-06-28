@@ -20,6 +20,8 @@ dependencies:
   - process >= 1.2
   - parsec
   - temporary
+  - exceptions
+  - transformers
 
 source-dirs: src
 
@@ -37,7 +39,7 @@ tests:
       - mockery >= 0.3.0
       - shelly
       - HUnit
-      - transformers
+      - safe
     cpp-options: -DTEST
 
   acceptance:

@@ -28,6 +28,7 @@ executable tinc
       Tinc.Fail
       Tinc.GhcInfo
       Tinc.GhcPkg
+      Tinc.Git
       Tinc.Install
       Tinc.Package
       Tinc.PackageGraph
@@ -45,6 +46,8 @@ executable tinc
     , process >= 1.2
     , parsec
     , temporary
+    , exceptions
+    , transformers
   ghc-options: -Wall
   default-language: Haskell2010
 
@@ -58,6 +61,7 @@ test-suite acceptance
       Tinc.Fail
       Tinc.GhcInfo
       Tinc.GhcPkg
+      Tinc.Git
       Tinc.Install
       Tinc.Package
       Tinc.PackageGraph
@@ -67,11 +71,13 @@ test-suite acceptance
       InstallSpec
       All
       Helper
+      MockedEnv
       Test.Mockery.Action
       Test.Mockery.ActionSpec
       Tinc.CacheSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
+      Tinc.GitSpec
       Tinc.PackageGraphSpec
       Tinc.PackageSpec
       Tinc.SetupSpec
@@ -87,6 +93,8 @@ test-suite acceptance
     , process >= 1.2
     , parsec
     , temporary
+    , exceptions
+    , transformers
 
     , hspec >= 2.1.8
     , hspec-expectations
@@ -106,6 +114,7 @@ test-suite spec
       Tinc.Fail
       Tinc.GhcInfo
       Tinc.GhcPkg
+      Tinc.Git
       Tinc.Install
       Tinc.Package
       Tinc.PackageGraph
@@ -114,11 +123,13 @@ test-suite spec
       Util
       All
       Helper
+      MockedEnv
       Test.Mockery.Action
       Test.Mockery.ActionSpec
       Tinc.CacheSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
+      Tinc.GitSpec
       Tinc.PackageGraphSpec
       Tinc.PackageSpec
       Tinc.SetupSpec
@@ -134,12 +145,14 @@ test-suite spec
     , process >= 1.2
     , parsec
     , temporary
+    , exceptions
+    , transformers
 
     , hspec
     , mockery >= 0.3.0
     , shelly
     , HUnit
-    , transformers
+    , safe
   ghc-options: -Wall
   cpp-options: -DTEST
   default-language: Haskell2010
