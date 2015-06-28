@@ -33,6 +33,7 @@ executable tinc
       Tinc.Install
       Tinc.Package
       Tinc.PackageGraph
+      Tinc.Process
       Tinc.Setup
       Tinc.Types
       Util
@@ -68,6 +69,7 @@ test-suite acceptance
       Tinc.Install
       Tinc.Package
       Tinc.PackageGraph
+      Tinc.Process
       Tinc.Setup
       Tinc.Types
       Util
@@ -124,6 +126,7 @@ test-suite spec
       Tinc.Install
       Tinc.Package
       Tinc.PackageGraph
+      Tinc.Process
       Tinc.Setup
       Tinc.Types
       Util

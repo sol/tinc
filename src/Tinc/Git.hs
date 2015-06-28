@@ -4,7 +4,6 @@ import           Prelude ()
 import           Prelude.Compat
 
 import           Data.String
-import qualified System.Process
 import           System.IO.Temp
 import           System.FilePath
 import           System.Directory
@@ -14,20 +13,13 @@ import           Control.Monad.Compat
 
 import           Util
 import           Tinc.Types
+import           Tinc.Process
 
 data GitDependency = GitDependency {
   gitDependencyName :: String
 , gitDependencyUrl :: String
 , gitDependencyRef :: String
 } deriving (Eq, Show)
-
-class (Functor m, Applicative m, Monad m) => Process m where
-  readProcess :: FilePath -> [String] -> String -> m String
-  callProcess :: FilePath -> [String] -> m ()
-
-instance Process IO where
-  readProcess = System.Process.readProcess
-  callProcess = System.Process.callProcess
 
 data GitCache
 

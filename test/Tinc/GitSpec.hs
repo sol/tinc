@@ -14,9 +14,9 @@ import           Control.Monad.Trans.Reader
 import           Safe
 import           System.Directory
 import           System.FilePath
-import qualified System.Process
 import           Test.Mockery.Directory
 
+import           Tinc.Process
 import           Tinc.Git
 
 data Env = Env {
@@ -25,7 +25,7 @@ data Env = Env {
 }
 
 env :: Env
-env = Env System.Process.readProcess System.Process.callProcess
+env = Env readProcess callProcess
 
 instance Process (WithEnv Env) where
   readProcess command args input = WithEnv $ asks envReadProcess >>= liftIO . ($ input) . ($ args) . ($ command)
