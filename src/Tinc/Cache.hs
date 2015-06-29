@@ -23,6 +23,7 @@ import           Prelude ()
 import           Prelude.Compat
 
 import           Control.Monad.Compat
+import           Control.Monad.IO.Class
 import           Data.List.Compat
 import           Data.Maybe
 import           System.Directory
@@ -61,19 +62,20 @@ data Cache = Cache {
 data PackageLocation = GlobalPackage | PackageConfig (Path PackageConfig)
   deriving (Eq, Ord, Show)
 
-readPackageGraph :: (Fail m, GhcPkg m) => [(Package, a)] -> [Path PackageDb] -> m (PackageGraph a)
-readPackageGraph values packageDbs = readGhcPkg packageDbs ["dot"] >>= fromDot values
+readPackageGraph :: (MonadIO m, Fail m, GhcPkg m) => [Package] -> Path PackageDb -> Path PackageDb -> m (PackageGraph PackageLocation)
+readPackageGraph globalPackages globalPackageDb packageDb = do
+  packageConfigs <- liftIO $ listPackageConfigs packageDb
+  let globalValues = map (, GlobalPackage) globalPackages
+  let values = map (fmap PackageConfig) packageConfigs
+  readGhcPkg [globalPackageDb, packageDb] ["dot"] >>= fromDot (globalValues ++ values)
 
 readCache :: GhcInfo -> Path CacheDir -> IO Cache
 readCache ghcInfo cacheDir = do
   globalPackages <- listGlobalPackages
-  let globalValues = map (, GlobalPackage) globalPackages
   sandboxes <- lookupSandboxes cacheDir
   cache <- forM sandboxes $ \ sandbox -> do
     packageDbPath <- findPackageDb sandbox
-    packageConfigs <- listPackageConfigs packageDbPath
-    let values = map (fmap PackageConfig) packageConfigs
-    readPackageGraph (globalValues ++ values) [ghcInfoGlobalPackageDb ghcInfo, packageDbPath]
+    readPackageGraph globalPackages (ghcInfoGlobalPackageDb ghcInfo) packageDbPath
   return (Cache globalPackages cache)
 
 findPackageDb :: Path Sandbox -> IO (Path PackageDb)

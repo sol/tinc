@@ -1,5 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 module Tinc.CacheSpec (spec) where
 
 import           Prelude ()
@@ -72,11 +73,15 @@ spec = do
         --
         -- This test case makes sure that we properly handle this.
 
-        let package = Package "foo" "0.1.0"
-            graph = "digraph g {}"
-            packageDbs = ["/path/to/package.conf.d"]
+        withSystemTempDirectory "tinc" $ \ (Path -> packageDb) -> do
+          let package = Package "foo" "0.1.0"
+              packageConfig = Path $ path packageDb </> "foo-0.1.0-8b77e2706d2c2c9243c5d86e44c11aa6.conf"
+              graph = "digraph g {}"
+              globalPackageDb = "/path/to/global/package.conf.d"
+              packageDbs = [globalPackageDb, packageDb]
 
-            mockedEnv = env {envReadGhcPkg = mock (packageDbs, ["dot"], return graph)}
+              mockedEnv = env {envReadGhcPkg = mock (packageDbs, ["dot"], return graph)}
+          touch $ path packageConfig
 
-        withEnv mockedEnv (readPackageGraph [(package, ())] packageDbs)
-          `shouldReturn` G.fromList [(package, (), [])]
+          withEnv mockedEnv (readPackageGraph [] globalPackageDb packageDb)
+            `shouldReturn` G.fromList [(package, PackageConfig packageConfig, [])]
