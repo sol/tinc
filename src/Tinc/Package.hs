@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 module Tinc.Package (
   Package(..)
+, setGitRevision
 , Version(..)
 , showPackage
 , parsePackage
@@ -17,6 +18,10 @@ data Package
     packageVersion :: Version
   }
   deriving (Eq, Ord, Show)
+
+setGitRevision :: String -> Package -> Package
+setGitRevision revision (Package name (Version number _)) =
+  Package name (Version number (Just revision))
 
 data Version = Version {
   versionNumber :: String

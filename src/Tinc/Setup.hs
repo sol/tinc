@@ -10,12 +10,14 @@ import           System.FilePath
 
 import           Tinc.Types
 import           Tinc.GhcInfo
+import           Tinc.Git
 
 type Plugins = [(String, Plugin)]
 type Plugin = FilePath
 
 data Facts = Facts {
   factsCache :: Path CacheDir
+, factsGitCache :: Path GitCache
 , factsPlugins :: Plugins
 , factsGhcInfo :: GhcInfo
 } deriving (Eq, Show)
@@ -33,11 +35,15 @@ setup = do
       cacheDir :: Path CacheDir
       cacheDir = Path (home </> ".tinc" </> "cache" </> ghcFlavor)
 
+      gitCache :: Path GitCache
+      gitCache = Path (home </> ".tinc" </> "cache" </> "git")
+
   createDirectoryIfMissing True (path cacheDir)
   createDirectoryIfMissing True pluginsDir
   plugins <- listPlugins pluginsDir
   return Facts {
     factsCache = cacheDir
+  , factsGitCache = gitCache
   , factsPlugins = plugins
   , factsGhcInfo = ghcInfo
   }

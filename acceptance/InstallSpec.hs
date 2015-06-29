@@ -1,5 +1,6 @@
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 module InstallSpec (spec) where
 
 import           Prelude ()
@@ -7,17 +8,17 @@ import           Prelude.Compat
 
 import           Helper
 
+import           Data.String.Builder
 import           System.Directory hiding (removeDirectory)
 import           System.Process
 import           Test.Mockery.Directory
-import           Data.String.Builder
 
 import           Run
+import           Tinc.Cache
+import           Tinc.GhcInfo
+import           Tinc.Install
 import           Tinc.Package
 import           Tinc.Types
-import           Tinc.Install
-import           Tinc.GhcInfo
-import           Tinc.Cache
 
 spec :: Spec
 spec = do
@@ -38,7 +39,8 @@ spec = do
 
         putStrLn "X populates cache"
         removeDirectory setenvSandbox
-        installDependencies ghcInfo False cacheDir
+        let action = installDependencies ghcInfo False cacheDir (error (__FILE__ ++ ": git cache"))
+        action
         ghcPkgCheck
         packageImportDirs "setenv" >>= (`shouldContain` path cacheDir)
 
@@ -51,7 +53,7 @@ spec = do
 
         putStrLn "X is idempotent"
         xs <- getDirectoryContents (path cacheDir)
-        installDependencies ghcInfo False cacheDir
+        action
         ys <- getDirectoryContents (path cacheDir)
         ys `shouldMatchList` xs
   where

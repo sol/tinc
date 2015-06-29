@@ -19,7 +19,7 @@ tinc args = do
   unsetEnvVars
   Facts{..} <- setup
   case args of
-    [] -> installDependencies factsGhcInfo False factsCache
-    ["--dry-run"] -> installDependencies factsGhcInfo True factsCache
+    [] -> installDependencies factsGhcInfo False factsCache factsGitCache
+    ["--dry-run"] -> installDependencies factsGhcInfo True factsCache factsGitCache
     name : rest | Just plugin <- lookup name factsPlugins -> callProcess plugin rest
     _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)

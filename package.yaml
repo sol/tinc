@@ -22,7 +22,11 @@ dependencies:
   - temporary
   - exceptions
   - transformers
-  - hpack
+  - hpack >= 0.4
+  - aeson
+  - bytestring
+  - yaml
+  - Cabal == 1.22.*
 
 source-dirs: src
 

@@ -4,11 +4,21 @@ module Tinc.Hpack (
 ) where
 
 import           Hpack.Config
+import           System.Directory
 
 import           Tinc.Fail
-import           Tinc.Git
+
+data GitDependency = GitDependency {
+  gitDependencyName :: String
+, gitDependencyUrl :: String
+, gitDependencyRef :: String
+} deriving (Eq, Show)
 
 extractGitDependencies :: IO [GitDependency]
 extractGitDependencies = do
-  (_, package) <- readPackageConfig packageConfig >>= either die return
-  return [GitDependency name url ref | Dependency name (Just (GitRef url ref)) <- packageDependencies package]
+  exists <- doesFileExist packageConfig
+  if exists
+    then do
+      (_, package) <- readPackageConfig packageConfig >>= either die return
+      return [GitDependency name url ref | Dependency name (Just (GitRef url ref)) <- packageDependencies package]
+    else return []

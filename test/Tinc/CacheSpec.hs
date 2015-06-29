@@ -85,3 +85,25 @@ spec = do
 
           withEnv mockedEnv (readPackageGraph [] globalPackageDb packageDb)
             `shouldReturn` G.fromList [(package, PackageConfig packageConfig, [])]
+
+  describe "addRevisions" $ do
+    let gitRevision = "8cd0e753e18b1576cbe3eb2e61977a3b0debf430"
+        foo = Package "foo" "0.1.0"
+        writeGitRevisions packageDb =
+          writeFile (path packageDb </> "git-revisions.yaml") "- {name: foo, revision: 8cd0e753e18b1576cbe3eb2e61977a3b0debf430}"
+
+    it "adds git revisions to a package graph" $ do
+      withSystemTempDirectory "tinc" $ \ (Path -> packageDb) -> do
+        let fooConfig = PackageConfig ""
+            graph = G.fromList [(foo, fooConfig, [])]
+        writeGitRevisions packageDb
+        addRevisions packageDb graph `shouldReturn`
+          G.fromList [(setGitRevision gitRevision foo, fooConfig, [])]
+
+    it "doesn't attach git revisions to global packages" $ do
+      withSystemTempDirectory "tinc" $ \ (Path -> packageDb) -> do
+        let fooConfig = GlobalPackage
+            graph = G.fromList [(foo, fooConfig, [])]
+        writeGitRevisions packageDb
+        addRevisions packageDb graph `shouldReturn`
+          G.fromList [(foo, fooConfig, [])]

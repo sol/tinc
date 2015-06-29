@@ -5,6 +5,7 @@ module Tinc.PackageGraph (
   PackageGraph
 , fromDot
 , calculateReusablePackages
+, mapIndex
 ) where
 
 import           Control.Monad
@@ -20,6 +21,12 @@ import           Text.Parsec.Error
 
 import           Tinc.Package
 import           Tinc.Fail
+
+mapIndex :: (Ord i, Ord j) => (i -> v -> j) -> Graph i v -> Graph j v
+mapIndex f g = fromList $ map convert $ toList g
+  where
+    convert (i, v, depedencies) = (convertNode i, v, map convertNode depedencies)
+    convertNode node = f node (vertex g node)
 
 type PackageGraph a = Graph Package a
 

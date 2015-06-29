@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.3.2.
+-- This file has been generated from package.yaml by hpack version 0.4.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -50,7 +50,11 @@ executable tinc
     , temporary
     , exceptions
     , transformers
-    , hpack
+    , hpack >= 0.4
+    , aeson
+    , bytestring
+    , yaml
+    , Cabal == 1.22.*
   ghc-options: -Wall
   default-language: Haskell2010
 
@@ -84,6 +88,7 @@ test-suite acceptance
       Tinc.GhcPkgSpec
       Tinc.GitSpec
       Tinc.HpackSpec
+      Tinc.InstallSpec
       Tinc.PackageGraphSpec
       Tinc.PackageSpec
       Tinc.SetupSpec
@@ -101,7 +106,11 @@ test-suite acceptance
     , temporary
     , exceptions
     , transformers
-    , hpack
+    , hpack >= 0.4
+    , aeson
+    , bytestring
+    , yaml
+    , Cabal == 1.22.*
 
     , hspec >= 2.1.8
     , hspec-expectations
@@ -140,6 +149,7 @@ test-suite spec
       Tinc.GhcPkgSpec
       Tinc.GitSpec
       Tinc.HpackSpec
+      Tinc.InstallSpec
       Tinc.PackageGraphSpec
       Tinc.PackageSpec
       Tinc.SetupSpec
@@ -157,7 +167,11 @@ test-suite spec
     , temporary
     , exceptions
     , transformers
-    , hpack
+    , hpack >= 0.4
+    , aeson
+    , bytestring
+    , yaml
+    , Cabal == 1.22.*
 
     , hspec
     , mockery >= 0.3.0

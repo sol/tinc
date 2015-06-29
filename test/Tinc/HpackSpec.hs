@@ -13,9 +13,8 @@ spec = do
         writeFile "package.yaml" $ unlines [
             "dependencies:"
           , "  - name: foo"
-          , "    git:"
-          , "      url: https://github.com/sol/hpack"
-          , "      ref: master"
+          , "    git: https://github.com/sol/hpack"
+          , "    ref: master"
           , "  - bar"
           , "library: {}"
           ]
@@ -29,3 +28,8 @@ spec = do
             , "library: {}"
             ]
           extractGitDependencies `shouldThrow` errorCall "package.yaml: when expecting a String, encountered Number instead"
+
+    context "when package.yaml does not exist" $ do
+      it "returns an empty list" $ do
+        inTempDirectory $ do
+          extractGitDependencies `shouldReturn` []
