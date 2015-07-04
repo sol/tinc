@@ -18,10 +18,10 @@ spec = do
         , Package "getopt-generics" "0.6.3"
         ]
 
-  describe "parseEmptyInstallPlan" $ do
-    it "parses output from `cabal install --dry-run`, but there's nothing to install" $ do
-      output <- readFile "test/resources/cabal-1.22.4.0-dry-run-all-already-installed.txt"
-      parseInstallPlan output `shouldBe` []
+    context "when there is nothing to install" $ do
+      it "returns an empty list" $ do
+        output <- readFile "test/resources/cabal-1.22.4.0-dry-run-all-already-installed.txt"
+        parseInstallPlan output `shouldBe` []
 
   describe "parsePackage" $ do
     it "parses packages" $ do
