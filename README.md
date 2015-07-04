@@ -1,4 +1,4 @@
-# tinc: A package manager for Haskell
+# tinc: A dependency manager for Haskell
 
 **Very experimental!!!**
 
