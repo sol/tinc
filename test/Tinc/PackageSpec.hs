@@ -9,8 +9,8 @@ spec = do
   describe "parseInstallPlan" $ do
     it "parses output from `cabal install --dry-run`" $ do
       output <- readFile "test/resources/cabal-1.22.4.0-dry-run.txt"
-      parseInstallPlan output `shouldBe`
-        [ Package "base-compat" "0.8.2"
+      parseInstallPlan output `shouldReturn` [
+          Package "base-compat" "0.8.2"
         , Package "base-orphans" "0.3.2"
         , Package "tagged" "0.7.3"
         , Package "generics-sop" "0.1.1.2"
@@ -20,7 +20,19 @@ spec = do
     context "when there is nothing to install" $ do
       it "returns an empty list" $ do
         output <- readFile "test/resources/cabal-1.22.4.0-dry-run-all-already-installed.txt"
-        parseInstallPlan output `shouldBe` []
+        parseInstallPlan output `shouldReturn` []
+
+    context "on unexpected input" $ do
+      it "throws an exception" $ do
+        parseInstallPlan "foo" `shouldThrow` (errorCall . unlines) [
+            "src/Tinc/Package.hs: unexpected output from `cabal install --dry-run':"
+          , ""
+          , "  \"foo\""
+          , ""
+          , "This is most likely a bug.  Please report an issue at:"
+          , ""
+          , "  https://github.com/zalora/tinc/issues"
+          ]
 
   describe "parsePackage" $ do
     it "parses packages" $ do

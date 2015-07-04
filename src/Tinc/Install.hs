@@ -63,7 +63,7 @@ createInstallPlan ghcInfo cacheDir = do
   return (InstallPlan installPlan reusable missing)
 
 cabalInstallPlan :: IO [Package]
-cabalInstallPlan = parseInstallPlan <$> readProcess "cabal" command ""
+cabalInstallPlan = readProcess "cabal" command "" >>= parseInstallPlan
   where
     command :: [String]
     command = words "--ignore-sandbox --no-require-sandbox install --only-dependencies --enable-tests --dry-run --package-db=clear --package-db=global"
