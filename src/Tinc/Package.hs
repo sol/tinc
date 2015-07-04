@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 module Tinc.Package where
 
 import           Data.List
@@ -18,7 +19,13 @@ parsePackage s = case break (== '-') (reverse s) of
   _ -> Package s ""
 
 parseInstallPlan :: String -> [Package]
-parseInstallPlan = map parsePackage . concatMap (take 1 . words) . drop 2 . lines
+parseInstallPlan (lines -> ("Resolving dependencies..."
+                            : what
+                            : maybePackages))
+    | "the following would be installed" `isInfixOf` what
+        = map parsePackage . concatMap (take 1 . words) $ maybePackages
+parseInstallPlan _ = []
+
 
 lookupPackage :: Package -> [FilePath] -> Either String (Maybe FilePath)
 lookupPackage targetPackage packageFiles =
