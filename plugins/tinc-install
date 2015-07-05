@@ -1,2 +1,24 @@
 #!/bin/sh
+
+set -o nounset
+set -o errexit
+
+SANDBOX=$(mktemp -d "${TMPDIR:-/tmp}"/tinc-XXXX)
+trap "rm -rf $SANDBOX" EXIT
+
+if [ $# -eq 0 ]; then
+  tarball=$(cabal sdist | grep -o "\S*\.tar\.gz")
+  cp $tarball  $SANDBOX
+  cd $SANDBOX
+  tar xvf *.tar.gz
+elif [ $# -eq 1 ]; then
+  cd $SANDBOX
+  cabal unpack $1
+else
+  >&2 echo "usage: tinc install [PACKAGE]"
+  exit 1
+fi
+
+cd *
+tinc
 cabal install --prefix ~/.tinc
