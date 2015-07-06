@@ -9,7 +9,6 @@ import           Helper
 
 import           System.Directory hiding (removeDirectory)
 import           System.Process
-import           Test.Hspec.Expectations.Contrib
 import           Test.Mockery.Directory
 import           Data.String.Builder
 

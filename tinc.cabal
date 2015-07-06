@@ -86,7 +86,7 @@ test-suite acceptance
     , parsec
     , temporary
 
-    , hspec
+    , hspec >= 2.1.8
     , hspec-expectations
     , mockery
     , shelly
