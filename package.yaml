@@ -7,6 +7,9 @@ copyright: "Sönke Hahn"
 maintainer: "soenke.hahn@zalora.com"
 github: haskell-tinc/tinc
 
+extra-source-files:
+  - test/resources/*
+
 ghc-options: -Wall
 
 dependencies:

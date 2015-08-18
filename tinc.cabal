@@ -15,6 +15,10 @@ license-file:   LICENSE
 build-type:     Simple
 cabal-version:  >= 1.10
 
+extra-source-files:
+    test/resources/cabal-1.22.4.0-dry-run-all-already-installed.txt
+    test/resources/cabal-1.22.4.0-dry-run.txt
+
 source-repository head
   type: git
   location: https://github.com/haskell-tinc/tinc
