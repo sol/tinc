@@ -113,13 +113,17 @@ populateCache :: forall m . (MonadIO m, MonadMask m, Fail m, Process m) =>
 populateCache cacheDir gitCache installPlan reusable = do
   basename <- takeBaseName <$> liftIO getCurrentDirectory
   sandbox <- liftIO $ createTempDirectory (path cacheDir) (basename ++ "-")
-  populate sandbox reusable `onException` liftIO (removeDirectoryRecursive sandbox)
+  populate sandbox reusable
   list sandbox
   where
-    populate sandbox cachedPackages = do
+    initSandbox_ sandbox cachedPackages = do
       withCurrentDirectory sandbox $ do
         packageDb <- initSandbox (map gitRevisionToPath gitRevisions) cachedPackages
         writeGitRevisions packageDb
+
+    populate sandbox cachedPackages = do
+      initSandbox_ sandbox cachedPackages `onException` liftIO (removeDirectoryRecursive sandbox)
+      withCurrentDirectory sandbox $ do
         callProcess "cabal" ("install" : map showPackage installPlan)
 
     gitRevisionToPath :: GitRevision -> Path CachedGitDependency
