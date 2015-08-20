@@ -16,7 +16,7 @@ module Tinc.Cache (
 , packageFromPackageConfig
 , readGitRevisions
 , addRevisions
-, lookupSandboxes
+, listSandboxes
 #endif
 ) where
 
@@ -110,14 +110,23 @@ addRevisions packageDb graph = do
 readCache :: GhcInfo -> Path CacheDir -> IO Cache
 readCache ghcInfo cacheDir = do
   globalPackages <- listGlobalPackages
-  sandboxes <- lookupSandboxes cacheDir
+  sandboxes <- listSandboxes cacheDir
   cache <- forM sandboxes $ \ sandbox -> do
     packageDbPath <- findPackageDb sandbox
     readPackageGraph globalPackages (ghcInfoGlobalPackageDb ghcInfo) packageDbPath
   return (Cache globalPackages cache)
 
-lookupSandboxes :: Path CacheDir -> IO [Path Sandbox]
-lookupSandboxes (Path cacheDir) = map Path <$> listDirectories cacheDir
+validMarker :: FilePath
+validMarker = "tinc.valid"
+
+listSandboxes :: Path CacheDir -> IO [Path Sandbox]
+listSandboxes (Path cacheDir) = map Path <$> listEntries
+  where
+    isValidCacheEntry :: FilePath -> IO Bool
+    isValidCacheEntry p = doesFileExist (p </> validMarker)
+
+    listEntries :: IO [FilePath]
+    listEntries = listDirectories cacheDir >>= filterM isValidCacheEntry
 
 populateCache :: forall m . (MonadIO m, MonadMask m, Fail m, Process m) =>
   Path CacheDir -> Path GitCache -> [Package] -> [Path PackageConfig] -> m [Path PackageConfig]
@@ -127,14 +136,11 @@ populateCache cacheDir gitCache installPlan reusable = do
   populate sandbox reusable
   list sandbox
   where
-    initSandbox_ sandbox cachedPackages = do
+    populate sandbox cachedPackages = do
       withCurrentDirectory sandbox $ do
         packageDb <- initSandbox (map gitRevisionToPath gitRevisions) cachedPackages
         writeGitRevisions packageDb
-
-    populate sandbox cachedPackages = do
-      initSandbox_ sandbox cachedPackages `onException` liftIO (removeDirectoryRecursive sandbox)
-      withCurrentDirectory sandbox $ do
+        liftIO $ writeFile validMarker ""
         callProcess "cabal" ("install" : map showPackage installPlan)
 
     gitRevisionToPath :: GitRevision -> Path CachedGitDependency

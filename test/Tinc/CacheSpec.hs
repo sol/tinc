@@ -114,7 +114,7 @@ spec = do
                 mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
             _ <- withEnv mockedEnv $
               populateCache cache gitCache [Package "foo" "0.1.0"{versionGitRevision = Just "abc"}] []
-            [sandbox] <- lookupSandboxes cache
+            [sandbox] <- listSandboxes cache
             readFile (path sandbox </> "install") `shouldReturn` "bar"
 
     it "stores revisions of git dependencies in the cache" $
@@ -131,6 +131,21 @@ spec = do
                 mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
             _ <- withEnv mockedEnv $
               populateCache cache gitCache [Package "foo" "0.1.0"{versionGitRevision = Just "abc"}] []
-            [sandbox] <- lookupSandboxes cache
+            [sandbox] <- listSandboxes cache
             packageDb <- findPackageDb sandbox
             readGitRevisions packageDb `shouldReturn` [GitRevision "foo" "abc"]
+
+  describe "listSandboxes" $ do
+    it "lists sandboxes" $ do
+      inTempDirectory $ do
+        touch "foo/tinc.valid"
+        touch "bar/tinc.valid"
+        sandboxes <- listSandboxes "."
+        sandboxes `shouldMatchList` ["./foo", "./bar"]
+
+    it "rejects invalid sandboxes" $ do
+      inTempDirectory $ do
+        touch "foo/tinc.valid"
+        touch "bar/something"
+        sandboxes <- listSandboxes "."
+        sandboxes `shouldMatchList` ["./foo"]

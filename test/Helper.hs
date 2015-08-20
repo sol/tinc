@@ -87,6 +87,7 @@ mkTestSandbox pattern packages = do
       callCommand "cabal sandbox init"
       callCommand ("cabal install --disable-library-profiling --disable-optimization --disable-documentation " ++
                    unwords (map showPackage packages))
+      touch "tinc.valid"
 
 mkCache :: IO ()
 mkCache = do
