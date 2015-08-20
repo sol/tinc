@@ -60,6 +60,7 @@ executable tinc
       Tinc.Package
       Tinc.PackageGraph
       Tinc.Process
+      Tinc.Sandbox
       Tinc.Setup
       Tinc.Types
       Util
@@ -109,6 +110,7 @@ test-suite acceptance
       Tinc.Package
       Tinc.PackageGraph
       Tinc.Process
+      Tinc.Sandbox
       Tinc.Setup
       Tinc.Types
       Util
@@ -116,6 +118,7 @@ test-suite acceptance
       All
       Helper
       MockedEnv
+      MockedProcess
       Test.Mockery.Action
       Test.Mockery.ActionSpec
       Tinc.CacheSpec
@@ -126,6 +129,7 @@ test-suite acceptance
       Tinc.InstallSpec
       Tinc.PackageGraphSpec
       Tinc.PackageSpec
+      Tinc.SandboxSpec
       Tinc.SetupSpec
       UtilSpec
   default-language: Haskell2010
@@ -174,12 +178,14 @@ test-suite spec
       Tinc.Package
       Tinc.PackageGraph
       Tinc.Process
+      Tinc.Sandbox
       Tinc.Setup
       Tinc.Types
       Util
       All
       Helper
       MockedEnv
+      MockedProcess
       Test.Mockery.Action
       Test.Mockery.ActionSpec
       Tinc.CacheSpec
@@ -190,6 +196,7 @@ test-suite spec
       Tinc.InstallSpec
       Tinc.PackageGraphSpec
       Tinc.PackageSpec
+      Tinc.SandboxSpec
       Tinc.SetupSpec
       UtilSpec
   default-language: Haskell2010
