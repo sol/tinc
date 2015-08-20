@@ -37,6 +37,7 @@ executable tinc
     , containers
     , directory
     , filepath
+    , filelock
     , process >= 1.2
     , parsec
     , temporary
@@ -80,6 +81,7 @@ test-suite acceptance
     , containers
     , directory
     , filepath
+    , filelock
     , process >= 1.2
     , parsec
     , temporary
@@ -144,6 +146,7 @@ test-suite spec
     , containers
     , directory
     , filepath
+    , filelock
     , process >= 1.2
     , parsec
     , temporary

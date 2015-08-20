@@ -20,6 +20,7 @@ dependencies:
   - containers
   - directory
   - filepath
+  - filelock
   - process >= 1.2
   - parsec
   - temporary
