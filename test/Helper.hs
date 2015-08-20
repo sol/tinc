@@ -36,9 +36,9 @@ import           System.Process
 import           Test.Mockery.Directory
 
 import           Tinc.Package
+import           Tinc.Sandbox
 import           Tinc.Types
 import           Util
-import           Tinc.Cache
 
 instance (Ord a, Ord v) => Eq (G.Graph a v) where
   a == b = sort (G.toList a) == sort (G.toList b)

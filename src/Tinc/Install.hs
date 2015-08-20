@@ -7,7 +7,6 @@ module Tinc.Install (
   installDependencies
 #ifdef TEST
 , cabalInstallPlan
-, populateCache
 #endif
 ) where
 
@@ -19,39 +18,20 @@ import           Control.Monad.Compat
 import           Control.Monad.IO.Class
 import           Data.Function
 import           Data.List.Compat
-import           Data.Yaml
 import           System.Directory
-import           System.FilePath
 import           System.IO.Temp
 
 import           Tinc.Cache
 import           Tinc.Fail
 import           Tinc.GhcInfo
-import           Tinc.GhcPkg
 import           Tinc.Git
 import           Tinc.Hpack
 import           Tinc.Package
 import           Tinc.PackageGraph
 import           Tinc.Process
+import           Tinc.Sandbox
 import           Tinc.Types
 import           Util
-
-currentDirectory :: Path Sandbox
-currentDirectory = "."
-
-initSandbox :: (MonadIO m, Fail m, Process m) => [Path CachedGitDependency] -> [Path PackageConfig] -> m (Path PackageDb)
-initSandbox gitDependencies packageConfigs = do
-  deleteSandbox
-  callProcess "cabal" ["sandbox", "init"]
-  packageDb <- findPackageDb currentDirectory
-  registerPackageConfigs packageDb packageConfigs
-  mapM_ (\ dep -> callProcess "cabal" ["sandbox", "add-source", path dep]) gitDependencies
-  return packageDb
-
-deleteSandbox :: (MonadIO m, Process m) => m ()
-deleteSandbox = do
-  exists <- liftIO $ doesDirectoryExist cabalSandboxDirectory
-  when exists (callProcess "cabal" ["sandbox", "delete"])
 
 installDependencies :: GhcInfo -> Bool -> Path CacheDir -> Path GitCache -> IO ()
 installDependencies ghcInfo dryRun cacheDir gitCache = do
@@ -108,40 +88,6 @@ realizeInstallPlan cacheDir gitCache (InstallPlan installPlan (map snd -> reusab
       | null missing = return reusable
       | otherwise = populateCache cacheDir gitCache installPlan reusable
 
-populateCache :: forall m . (MonadIO m, MonadMask m, Fail m, Process m) =>
-  Path CacheDir -> Path GitCache -> [Package] -> [Path PackageConfig] -> m [Path PackageConfig]
-populateCache cacheDir gitCache installPlan reusable = do
-  basename <- takeBaseName <$> liftIO getCurrentDirectory
-  sandbox <- liftIO $ createTempDirectory (path cacheDir) (basename ++ "-")
-  populate sandbox reusable
-  list sandbox
-  where
-    initSandbox_ sandbox cachedPackages = do
-      withCurrentDirectory sandbox $ do
-        packageDb <- initSandbox (map gitRevisionToPath gitRevisions) cachedPackages
-        writeGitRevisions packageDb
-
-    populate sandbox cachedPackages = do
-      initSandbox_ sandbox cachedPackages `onException` liftIO (removeDirectoryRecursive sandbox)
-      withCurrentDirectory sandbox $ do
-        callProcess "cabal" ("install" : map showPackage installPlan)
-
-    gitRevisionToPath :: GitRevision -> Path CachedGitDependency
-    gitRevisionToPath GitRevision{..} = revisionToPath gitCache gitRevisionName gitRevisionRevision
-
-    list :: FilePath -> m [Path PackageConfig]
-    list sandbox = do
-      sourcePackageDb <- findPackageDb (Path sandbox)
-      map snd <$> listPackageConfigs sourcePackageDb
-
-    writeGitRevisions packageDb
-      | null gitRevisions = return ()
-      | otherwise = do
-          liftIO $ encodeFile (path packageDb </> "git-revisions.yaml") gitRevisions
-          recache packageDb
-
-    gitRevisions = [GitRevision name revision | Package name (Version _ (Just revision)) <- installPlan]
-
 findReusablePackages :: Cache -> [Package] -> [(Package, Path PackageConfig)]
 findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusablePackages
   where
@@ -153,13 +99,3 @@ findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusable
       [(p, c) | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
       where
         packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
-
-registerPackageConfigs :: (MonadIO m, Process m) => Path PackageDb -> [Path PackageConfig] -> m ()
-registerPackageConfigs _packageDb [] = return ()
-registerPackageConfigs packageDb packages = do
-  forM_ packages $ \ package ->
-    liftIO $ copyFile (path package) (path packageDb </> takeFileName (path package))
-  recache packageDb
-
-recache :: Process m => Path PackageDb -> m ()
-recache packageDb = callProcess "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDb]

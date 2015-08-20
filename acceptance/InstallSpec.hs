@@ -14,7 +14,6 @@ import           System.Process
 import           Test.Mockery.Directory
 
 import           Run
-import           Tinc.Cache
 import           Tinc.GhcInfo
 import           Tinc.Install
 import           Tinc.Package
@@ -45,7 +44,7 @@ spec = do
         packageImportDirs "setenv" >>= (`shouldContain` path cacheDir)
 
         putStrLn "X reuses packages"
-        doesDirectoryExist cabalSandboxDirectory `shouldReturn` True
+        doesDirectoryExist ".cabal-sandbox" `shouldReturn` True
         packageImportDirs "generics-sop" >>= (`shouldContain` path getoptGenericsSandbox)
 
         putStrLn "X skips redundant packages"

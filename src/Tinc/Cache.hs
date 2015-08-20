@@ -1,22 +1,17 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 module Tinc.Cache (
-  Sandbox
-, cabalSandboxDirectory
-
-, findPackageDb
-
-, PackageConfig
-, listPackageConfigs
-
-, Cache(..)
+  Cache(..)
 , PackageLocation(..)
 , readCache
-
-, GitRevision(..)
+, populateCache
 
 #ifdef TEST
+, GitRevision(..)
+, listPackageConfigs
 , readPackageGraph
 , packageFromPackageConfig
 , readGitRevisions
@@ -28,32 +23,29 @@ module Tinc.Cache (
 import           Prelude ()
 import           Prelude.Compat
 
+import           Control.Monad.Catch
 import           Control.Monad.Compat
 import           Control.Monad.IO.Class
 import           Data.Aeson.Types
 import qualified Data.ByteString as B
 import           Data.List.Compat
 import qualified Data.Map as Map
-import           Data.Maybe
 import           Data.Yaml
 import           GHC.Generics
 import           System.Directory
 import           System.FilePath
+import           System.IO.Temp
 
 import           Tinc.Fail
 import           Tinc.GhcInfo
 import           Tinc.GhcPkg
+import           Tinc.Git
 import           Tinc.Package
 import           Tinc.PackageGraph
+import           Tinc.Process
+import           Tinc.Sandbox
 import           Tinc.Types
 import           Util
-
-data Sandbox
-
-cabalSandboxDirectory :: FilePath
-cabalSandboxDirectory = ".cabal-sandbox"
-
-data PackageConfig
 
 listPackageConfigs :: MonadIO m => Path PackageDb -> m [(Package, Path PackageConfig)]
 listPackageConfigs p = do
@@ -124,17 +116,40 @@ readCache ghcInfo cacheDir = do
     readPackageGraph globalPackages (ghcInfoGlobalPackageDb ghcInfo) packageDbPath
   return (Cache globalPackages cache)
 
-findPackageDb :: (MonadIO m, Fail m) => Path Sandbox -> m (Path PackageDb)
-findPackageDb sandbox = do
-  xs <- liftIO $ getDirectoryContents sandboxDir
-  case listToMaybe (filter isPackageDb xs) of
-    Just p -> liftIO $ Path <$> canonicalizePath (sandboxDir </> p)
-    Nothing -> dieLoc __FILE__ ("No package database found in " ++ show sandboxDir)
-  where
-    sandboxDir = path sandbox </> cabalSandboxDirectory
-
-isPackageDb :: FilePath -> Bool
-isPackageDb = ("-packages.conf.d" `isSuffixOf`)
-
 lookupSandboxes :: Path CacheDir -> IO [Path Sandbox]
 lookupSandboxes (Path cacheDir) = map Path <$> listDirectories cacheDir
+
+populateCache :: forall m . (MonadIO m, MonadMask m, Fail m, Process m) =>
+  Path CacheDir -> Path GitCache -> [Package] -> [Path PackageConfig] -> m [Path PackageConfig]
+populateCache cacheDir gitCache installPlan reusable = do
+  basename <- takeBaseName <$> liftIO getCurrentDirectory
+  sandbox <- liftIO $ createTempDirectory (path cacheDir) (basename ++ "-")
+  populate sandbox reusable
+  list sandbox
+  where
+    initSandbox_ sandbox cachedPackages = do
+      withCurrentDirectory sandbox $ do
+        packageDb <- initSandbox (map gitRevisionToPath gitRevisions) cachedPackages
+        writeGitRevisions packageDb
+
+    populate sandbox cachedPackages = do
+      initSandbox_ sandbox cachedPackages `onException` liftIO (removeDirectoryRecursive sandbox)
+      withCurrentDirectory sandbox $ do
+        callProcess "cabal" ("install" : map showPackage installPlan)
+
+    gitRevisionToPath :: GitRevision -> Path CachedGitDependency
+    gitRevisionToPath GitRevision{..} = revisionToPath gitCache gitRevisionName gitRevisionRevision
+
+    list :: FilePath -> m [Path PackageConfig]
+    list sandbox = do
+      sourcePackageDb <- findPackageDb (Path sandbox)
+      map snd <$> listPackageConfigs sourcePackageDb
+
+    writeGitRevisions packageDb
+      | null gitRevisions = return ()
+      | otherwise = do
+          liftIO $ encodeFile (path packageDb </> "git-revisions.yaml") gitRevisions
+          recache packageDb
+
+    gitRevisions = [GitRevision name revision | Package name (Version _ (Just revision)) <- installPlan]
+

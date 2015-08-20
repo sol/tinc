@@ -8,12 +8,13 @@ import           Prelude.Compat
 
 import           Helper
 import           MockedEnv
+import           MockedProcess
 import           Test.Mockery.Action
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Reader
 import qualified Data.Graph.Wrapper as G
-import           System.Directory
+import           Safe
 import           System.FilePath
 import           System.IO.Temp
 import           Test.Mockery.Directory
@@ -21,16 +22,17 @@ import           Test.Mockery.Directory
 import           Tinc.Cache
 import           Tinc.GhcPkg
 import           Tinc.Package
+import           Tinc.Sandbox hiding (recache)
 import           Tinc.Types
 
-data Env = Env {
+data ReadGhcPkgEnv = ReadGhcPkgEnv {
   envReadGhcPkg :: [Path PackageDb] -> [String] -> IO String
 }
 
-env :: Env
-env = Env readGhcPkg
+ghcPkgEnv :: ReadGhcPkgEnv
+ghcPkgEnv = ReadGhcPkgEnv readGhcPkg
 
-instance GhcPkg (WithEnv Env) where
+instance GhcPkg (WithEnv ReadGhcPkgEnv) where
   readGhcPkg packageDbs args = WithEnv $ asks envReadGhcPkg >>= liftIO . ($ args) . ($ packageDbs)
 
 spec :: Spec
@@ -49,20 +51,6 @@ spec = do
     it "parses package from package config path" $ do
       packageFromPackageConfig "hspec-core-2.1.7-8b77e2706d2c2c9243c5d86e44c11aa6.conf" `shouldBe` Package "hspec-core" "2.1.7"
 
-  describe "findPackageDb" $ do
-    it "finds the sandbox package db" $ do
-      withSystemTempDirectory "tinc" $ \ sandbox -> do
-        let packageDb = sandbox </> ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d"
-        createDirectoryIfMissing True packageDb
-        findPackageDb (Path sandbox) `shouldReturn` (Path packageDb)
-
-    context "when sandbox does not contain a package db" $ do
-      it "throws an exception" $ do
-        withSystemTempDirectory "tinc" $ \ sandbox -> do
-          let p = sandbox </> ".cabal-sandbox"
-          createDirectory p
-          findPackageDb (Path sandbox) `shouldThrow` errorCall ("src/Tinc/Cache.hs: No package database found in " ++ show p)
-
   describe "readPackageGraph" $ do
     context "when a package has no dependencies and no other packages depend on it" $ do
       it "includes package" $ do
@@ -80,7 +68,7 @@ spec = do
               globalPackageDb = "/path/to/global/package.conf.d"
               packageDbs = [globalPackageDb, packageDb]
 
-              mockedEnv = env {envReadGhcPkg = mock (packageDbs, ["dot"], return graph)}
+              mockedEnv = ghcPkgEnv {envReadGhcPkg = mock (packageDbs, ["dot"], return graph)}
           touch $ path packageConfig
 
           withEnv mockedEnv (readPackageGraph [] globalPackageDb packageDb)
@@ -107,3 +95,42 @@ spec = do
         writeGitRevisions packageDb
         addRevisions packageDb graph `shouldReturn`
           G.fromList [(foo, fooConfig, [])]
+
+  describe "populateCache" $ do
+    let mockedReadProcess = mockMany ([] :: [(String, [String], String, IO String)])
+        cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
+
+    it "uses git dependencies" $
+      inTempDirectory $ do
+        withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
+          withSystemTempDirectory "tinc" $ \ (Path -> gitCache) -> do
+            let mockedCallProcess command args = mockMany [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
+                  where
+                    packageDb = atDef "/path/to/some/tmp/dir" args 3
+                    cabalAddSource = ("cabal", ["sandbox", "add-source", path gitCache </> "foo" </> "abc"], writeFile "add-source" "foo")
+                    cabalInstall = ("cabal", ["install", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
+                    recache = ("ghc-pkg",["--no-user-package-db", "recache", "--package-db", packageDb], return ())
+
+                mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
+            _ <- withEnv mockedEnv $
+              populateCache cache gitCache [Package "foo" "0.1.0"{versionGitRevision = Just "abc"}] []
+            [sandbox] <- lookupSandboxes cache
+            readFile (path sandbox </> "install") `shouldReturn` "bar"
+
+    it "stores revisions of git dependencies in the cache" $
+      inTempDirectory $ do
+        withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
+          withSystemTempDirectory "tinc" $ \ (Path -> gitCache) -> do
+            let mockedCallProcess command args = mockMany [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
+                  where
+                    packageDb = atDef "/path/to/some/tmp/dir" args 3
+                    cabalAddSource = ("cabal", ["sandbox", "add-source", path gitCache </> "foo" </> "abc"], return ())
+                    cabalInstall = ("cabal", ["install", "foo-0.1.0"], return ())
+                    recache = ("ghc-pkg",["--no-user-package-db", "recache", "--package-db", packageDb], return ())
+
+                mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
+            _ <- withEnv mockedEnv $
+              populateCache cache gitCache [Package "foo" "0.1.0"{versionGitRevision = Just "abc"}] []
+            [sandbox] <- lookupSandboxes cache
+            packageDb <- findPackageDb sandbox
+            readGitRevisions packageDb `shouldReturn` [GitRevision "foo" "abc"]

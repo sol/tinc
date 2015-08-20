@@ -8,10 +8,9 @@ import           Prelude.Compat
 
 import           Helper
 import           MockedEnv
+import           MockedProcess
 import           Test.Mockery.Action
 
-import           Control.Monad.IO.Class
-import           Control.Monad.Trans.Reader
 import           Safe
 import           System.Directory
 import           System.FilePath
@@ -21,19 +20,6 @@ import           Test.Mockery.Directory
 
 import           Tinc.Git
 import           Tinc.Hpack
-import           Tinc.Process
-
-data Env = Env {
-  envReadProcess :: FilePath -> [String] -> String -> IO String
-, envCallProcess :: FilePath -> [String] -> IO ()
-}
-
-env :: Env
-env = Env readProcess callProcess
-
-instance Process (WithEnv Env) where
-  readProcess command args input = WithEnv $ asks envReadProcess >>= liftIO . ($ input) . ($ args) . ($ command)
-  callProcess command args = WithEnv $ asks envCallProcess >>= liftIO . ($ args) . ($ command)
 
 spec :: Spec
 spec = do
