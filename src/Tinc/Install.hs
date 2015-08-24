@@ -44,8 +44,7 @@ installDependencies ghcInfo dryRun cacheDir gitCache = do
     tee action a = action a >> return a
 
 data InstallPlan = InstallPlan {
-  _installPlanAll :: [Package]
-, _installPlanReusable :: [(Package, Path PackageConfig)]
+  _installPlanReusable :: [(Package, Path PackageConfig)]
 , _installPlanMissing :: [Package]
 } deriving (Eq, Show)
 
@@ -54,7 +53,7 @@ createInstallPlan ghcInfo cacheDir installPlan = do
   cache <- readCache ghcInfo cacheDir
   let reusable = findReusablePackages cache installPlan
       missing = installPlan \\ map fst reusable
-  return (InstallPlan installPlan reusable missing)
+  return (InstallPlan reusable missing)
 
 solveDependencies :: Path GitCache -> IO [Package]
 solveDependencies gitCache = extractGitDependencies >>= mapM (clone gitCache) >>= cabalInstallPlan gitCache
@@ -76,17 +75,17 @@ cabalInstallPlan gitCache gitDependencies = withSystemTempDirectory "tinc" $ \di
     revisions = [(name, rev) | CachedGitDependency name rev <- gitDependencies]
 
 printInstallPlan :: InstallPlan -> IO ()
-printInstallPlan (InstallPlan _ reusable missing) = do
+printInstallPlan (InstallPlan reusable missing) = do
   mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map fst reusable)
   mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
 
 realizeInstallPlan :: Path CacheDir -> Path GitCache -> InstallPlan -> IO ()
-realizeInstallPlan cacheDir gitCache (InstallPlan installPlan (map snd -> reusable) missing) =
+realizeInstallPlan cacheDir gitCache (InstallPlan reusable missing) =
   packageConfigs >>= void . initSandbox []
   where
     packageConfigs
-      | null missing = return reusable
-      | otherwise = populateCache cacheDir gitCache installPlan reusable
+      | null missing = return (map snd reusable)
+      | otherwise = populateCache cacheDir gitCache missing reusable
 
 findReusablePackages :: Cache -> [Package] -> [(Package, Path PackageConfig)]
 findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusablePackages

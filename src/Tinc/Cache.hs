@@ -129,16 +129,19 @@ listSandboxes (Path cacheDir) = map Path <$> listEntries
     listEntries = listDirectories cacheDir >>= filterM isValidCacheEntry
 
 populateCache :: forall m . (MonadIO m, MonadMask m, Fail m, Process m) =>
-  Path CacheDir -> Path GitCache -> [Package] -> [Path PackageConfig] -> m [Path PackageConfig]
-populateCache cacheDir gitCache installPlan reusable = do
+  Path CacheDir -> Path GitCache -> [Package] -> [(Package, Path PackageConfig)] -> m [Path PackageConfig]
+populateCache cacheDir gitCache missing reusable = do
   basename <- takeBaseName <$> liftIO getCurrentDirectory
   sandbox <- liftIO $ createTempDirectory (path cacheDir) (basename ++ "-")
-  populate sandbox reusable
+  populate sandbox
   list sandbox
   where
-    populate sandbox cachedPackages = do
+    installPlan :: [Package]
+    installPlan = missing ++ map fst reusable
+
+    populate sandbox = do
       withCurrentDirectory sandbox $ do
-        packageDb <- initSandbox (map gitRevisionToPath gitRevisions) cachedPackages
+        packageDb <- initSandbox (map gitRevisionToPath gitRevisions) (map snd reusable)
         writeGitRevisions packageDb
         liftIO $ writeFile validMarker ""
         callProcess "cabal" ("install" : map showPackage installPlan)
@@ -157,5 +160,4 @@ populateCache cacheDir gitCache installPlan reusable = do
           liftIO $ encodeFile (path packageDb </> "git-revisions.yaml") gitRevisions
           recache packageDb
 
-    gitRevisions = [GitRevision name revision | Package name (Version _ (Just revision)) <- installPlan]
-
+    gitRevisions = [GitRevision name revision | Package name (Version _ (Just revision)) <- missing]
