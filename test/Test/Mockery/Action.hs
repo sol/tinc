@@ -39,7 +39,7 @@ instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Mockable (a, b
       expected = map (\(a, b, c, r) -> ((a, b, c), r)) options
 
 unexpectedParameters :: (MonadIO m, Show a) => Bool -> [a] -> a -> m r
-unexpectedParameters pluralize expected actual = liftIO . throwIO . HUnitFailure . unlines $ [
+unexpectedParameters pluralize expected actual = liftIO . throwIO . HUnitFailure Nothing . unlines $ [
     message
   , expectedMessage
   , actualMessage

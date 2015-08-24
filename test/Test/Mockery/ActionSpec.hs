@@ -6,7 +6,7 @@ import           Test.HUnit.Lang
 import           Test.Mockery.Action
 
 hUnitFailure :: String -> HUnitFailure -> Bool
-hUnitFailure actual (HUnitFailure expected) = actual == expected
+hUnitFailure actual (HUnitFailure _ expected) = actual == expected
 
 spec :: Spec
 spec = do

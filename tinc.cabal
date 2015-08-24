@@ -164,7 +164,7 @@ test-suite spec
     , hspec
     , mockery >= 0.3.0
     , shelly
-    , HUnit
+    , HUnit >= 1.3
     , safe
   other-modules:
       Run
