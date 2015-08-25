@@ -48,6 +48,7 @@ executable tinc
     , bytestring
     , yaml
     , Cabal == 1.22.*
+    , gitrev
   other-modules:
       Run
       Tinc.Cache
@@ -93,6 +94,7 @@ test-suite acceptance
     , bytestring
     , yaml
     , Cabal == 1.22.*
+    , gitrev
     , hspec
     , hspec-expectations
     , mockery
@@ -161,6 +163,7 @@ test-suite spec
     , bytestring
     , yaml
     , Cabal == 1.22.*
+    , gitrev
     , hspec
     , mockery >= 0.3.0
     , shelly

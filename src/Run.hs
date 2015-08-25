@@ -1,14 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Run where
 
+import           Control.Exception
+import           Development.GitRev
+import           System.Environment.Compat
 import           System.FileLock
 import           System.FilePath
 import           System.Process
-import           System.Environment.Compat
-import           Control.Exception
 
-import           Tinc.Setup
 import           Tinc.Install
+import           Tinc.Setup
 import           Tinc.Types
 
 unsetEnvVars :: IO ()
@@ -26,6 +28,7 @@ tinc args = do
       installDependencies factsGhcInfo False factsCache factsGitCache
     ["--dry-run"] -> withCacheLock factsCache $
       installDependencies factsGhcInfo True factsCache factsGitCache
+    ["--version"] -> putStrLn $(gitHash)
     name : rest | Just plugin <- lookup name factsPlugins -> callProcess plugin rest
     _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)
 
