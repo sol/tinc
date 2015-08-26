@@ -108,3 +108,12 @@ spec = do
       it "fails" $ do
         inTempDirectory $ do
           generateCabalFile `shouldThrow` errorCall "No cabal file found."
+
+    context "when there is a package.yaml" $ do
+      it "generates a cabal file" $ do
+        inTempDirectory $ do
+          writeFile "package.yaml" $ unlines [
+              "name: foo"
+            , "library: {}"
+            ]
+          fst <$> generateCabalFile `shouldReturn` "foo.cabal"

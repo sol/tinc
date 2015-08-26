@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.Install (
@@ -19,6 +19,8 @@ import           Control.Monad.Compat
 import           Control.Monad.IO.Class
 import           Data.Function
 import           Data.List.Compat
+import qualified Hpack.Run as Hpack
+import qualified Hpack.Config as Hpack
 import           System.Directory
 import           System.IO.Temp
 
@@ -78,11 +80,19 @@ cabalInstallPlan gitCache gitDependencies = withSystemTempDirectory "tinc" $ \di
 
 generateCabalFile :: IO (FilePath, String)
 generateCabalFile = do
-  files <- filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
-  case files of
-    [file] -> (,) file <$> readFile file
-    [] -> die "No cabal file found."
-    _ -> die "Multiple cabal files found."
+  exists <- doesFileExist Hpack.packageConfig
+  if exists then hpack else copyCabalFile
+  where
+    hpack = do
+      (_, file, contents) <- Hpack.run
+      return (file, contents)
+
+    copyCabalFile = do
+      files <- filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
+      case files of
+        [file] -> (,) file <$> readFile file
+        [] -> die "No cabal file found."
+        _ -> die "Multiple cabal files found."
 
 printInstallPlan :: InstallPlan -> IO ()
 printInstallPlan (InstallPlan reusable missing) = do
