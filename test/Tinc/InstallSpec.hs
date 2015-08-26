@@ -1,8 +1,11 @@
+{-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE ImplicitParams #-}
 module Tinc.InstallSpec (spec) where
+
+import           Prelude ()
+import           Prelude.Compat
 
 import           Helper
 import           MockedEnv
@@ -14,11 +17,11 @@ import           System.Directory
 import           System.FilePath
 import           Test.Mockery.Directory
 
-import           Util
 import           Tinc.Git
 import           Tinc.Install
 import           Tinc.Package
 import           Tinc.Types
+import           Util
 
 writeCabalFile :: String -> String -> [String] -> IO ()
 writeCabalFile name version dependencies = do
@@ -55,18 +58,17 @@ spec = do
           , "In order, the following would be installed (use -v for more details):"
           ] ++ dependencies
 
-        mockedEnv :: (?target :: FilePath, ?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => Env
+        mockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => Env
         mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = ?mockedCallProcess}
           where
-            mockedReadProcess = mock ("cabal", ["install", "--only-dependencies", "--enable-tests", "--dry-run", ?target], "", ?cabalInstallResult)
+            mockedReadProcess = mock ("cabal", ["install", "--only-dependencies", "--enable-tests", "--dry-run"], "", ?cabalInstallResult)
 
-        withMockedEnv :: (?target :: FilePath, ?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => WithEnv Env a -> IO a
+        withMockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => WithEnv Env a -> IO a
         withMockedEnv = withEnv mockedEnv
 
     it "returns install plan" $ do
-      withCabalFile $ \sandbox -> do
-        let ?target = sandbox
-            ?cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
+      withCabalFile $ \_ -> do
+        let ?cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
             ?mockedCallProcess = mock cabalSandboxInit
         withMockedEnv (cabalInstallPlan undefined []) `shouldReturn` [Package "setenv" "0.1.1.3"]
 
@@ -81,10 +83,28 @@ spec = do
 
         gitDependencyPath <- createCachedGitDependency gitCache cachedGitDependency version
 
-        let ?target = sandbox
-            ?cabalInstallResult = readFile "cabal-output"
+        let ?cabalInstallResult = readFile "cabal-output"
             ?mockedCallProcess = mockMany [
                 cabalSandboxInit
               , ("cabal", ["sandbox", "add-source", gitDependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage gitDependency])
               ]
         withMockedEnv (cabalInstallPlan gitCache [cachedGitDependency]) `shouldReturn` [gitDependency]
+
+  describe "generateCabalFile" $ do
+    context "when there is a cabal file" $ do
+      it "returns contents" $ do
+        inTempDirectory $ do
+          writeFile "foo.cabal" "foo"
+          generateCabalFile `shouldReturn` ("foo.cabal", "foo")
+
+    context "when there are multiple cabal files" $ do
+      it "fails" $ do
+        inTempDirectory $ do
+          touch "foo.cabal"
+          touch "bar.cabal"
+          generateCabalFile `shouldThrow` errorCall "Multiple cabal files found."
+
+    context "when there is no cabal file" $ do
+      it "fails" $ do
+        inTempDirectory $ do
+          generateCabalFile `shouldThrow` errorCall "No cabal file found."

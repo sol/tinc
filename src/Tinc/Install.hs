@@ -7,6 +7,7 @@ module Tinc.Install (
   installDependencies
 #ifdef TEST
 , cabalInstallPlan
+, generateCabalFile
 #endif
 ) where
 
@@ -60,10 +61,11 @@ solveDependencies gitCache = extractGitDependencies >>= mapM (clone gitCache) >>
 
 cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => Path GitCache -> [CachedGitDependency] -> m [Package]
 cabalInstallPlan gitCache gitDependencies = withSystemTempDirectory "tinc" $ \dir -> do
-  target <- liftIO getCurrentDirectory
+  cabalFile <- liftIO generateCabalFile
   let command :: [String]
-      command = "install" : "--only-dependencies" : "--enable-tests" : "--dry-run" : [target]
+      command = "install" : "--only-dependencies" : "--enable-tests" : "--dry-run" : []
   withCurrentDirectory dir $ do
+    liftIO $ uncurry writeFile cabalFile
     _ <- initSandbox (map (cachedGitDependencyPath gitCache) gitDependencies) []
     map addGitRevision <$> (readProcess "cabal" command "" >>= parseInstallPlan)
   where
@@ -73,6 +75,14 @@ cabalInstallPlan gitCache gitDependencies = withSystemTempDirectory "tinc" $ \di
       Nothing -> p
 
     revisions = [(name, rev) | CachedGitDependency name rev <- gitDependencies]
+
+generateCabalFile :: IO (FilePath, String)
+generateCabalFile = do
+  files <- filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
+  case files of
+    [file] -> (,) file <$> readFile file
+    [] -> die "No cabal file found."
+    _ -> die "Multiple cabal files found."
 
 printInstallPlan :: InstallPlan -> IO ()
 printInstallPlan (InstallPlan reusable missing) = do
