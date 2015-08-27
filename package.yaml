@@ -26,7 +26,7 @@ dependencies:
   - temporary
   - exceptions
   - transformers
-  - hpack >= 0.4
+  - hpack >= 0.6
   - aeson
   - bytestring
   - yaml

@@ -91,6 +91,69 @@ spec = do
         withMockedEnv (cabalInstallPlan gitCache [cachedGitDependency]) `shouldReturn` [gitDependency]
 
   describe "generateCabalFile" $ do
+    context "when there is a tinc.yaml" $ do
+      it "generates a cabal file" $ do
+        inTempDirectory $ do
+          writeFile "tinc.yaml" $ unlines [
+              "dependencies:"
+            , "  - foo"
+            ]
+          generateCabalFile `shouldReturn` ("tinc-generated.cabal", unlines [
+              "name: tinc-generated"
+            , "version: 0.0.0"
+            , "build-type: Simple"
+            , "cabal-version: >= 1.10"
+            , ""
+            , "executable tinc-generated"
+            , "  main-is: Generated.hs"
+            , "  build-depends:"
+            , "      foo"
+            , "  default-language: Haskell2010"
+            ])
+
+    context "when there is a package.yaml" $ do
+      it "generates a cabal file" $ do
+        inTempDirectory $ do
+          writeFile "package.yaml" $ unlines [
+              "name: foo"
+            ]
+          generateCabalFile `shouldReturn` ("foo.cabal", unlines [
+              "name: foo"
+            , "version: 0.0.0"
+            , "build-type: Simple"
+            , "cabal-version: >= 1.10"
+            ])
+
+    context "when there are both a package.yaml and a tinc.yaml" $ do
+      it "combines them" $ do
+        inTempDirectory $ do
+          writeFile "package.yaml" $ unlines [
+              "name: foo"
+            , "library:"
+            , "  dependencies: foo"
+            ]
+          writeFile "tinc.yaml" $ unlines [
+              "dependencies:"
+            , "  - bar"
+            ]
+          generateCabalFile `shouldReturn` ("tinc-generated.cabal", unlines [
+              "name: tinc-generated"
+            , "version: 0.0.0"
+            , "build-type: Simple"
+            , "cabal-version: >= 1.10"
+            , ""
+            , "library"
+            , "  build-depends:"
+            , "      foo"
+            , "  default-language: Haskell2010"
+            , ""
+            , "executable tinc-generated"
+            , "  main-is: Generated.hs"
+            , "  build-depends:"
+            , "      bar"
+            , "  default-language: Haskell2010"
+            ])
+
     context "when there is a cabal file" $ do
       it "returns contents" $ do
         inTempDirectory $ do
@@ -108,12 +171,3 @@ spec = do
       it "fails" $ do
         inTempDirectory $ do
           generateCabalFile `shouldThrow` errorCall "No cabal file found."
-
-    context "when there is a package.yaml" $ do
-      it "generates a cabal file" $ do
-        inTempDirectory $ do
-          writeFile "package.yaml" $ unlines [
-              "name: foo"
-            , "library: {}"
-            ]
-          fst <$> generateCabalFile `shouldReturn` "foo.cabal"

@@ -19,16 +19,15 @@ import           Control.Monad.Compat
 import           Control.Monad.IO.Class
 import           Data.Function
 import           Data.List.Compat
-import qualified Hpack.Run as Hpack
-import qualified Hpack.Config as Hpack
 import           System.Directory
 import           System.IO.Temp
 
 import           Tinc.Cache
+import           Tinc.Config
 import           Tinc.Fail
 import           Tinc.GhcInfo
 import           Tinc.Git
-import           Tinc.Hpack
+import qualified Tinc.Hpack as Hpack
 import           Tinc.Package
 import           Tinc.PackageGraph
 import           Tinc.Process
@@ -58,8 +57,9 @@ createInstallPlan ghcInfo cacheDir installPlan = do
       missing = installPlan \\ map fst reusable
   return (InstallPlan reusable missing)
 
+-- FIXME: Move getAdditionalDependencies here
 solveDependencies :: Path GitCache -> IO [Package]
-solveDependencies gitCache = extractGitDependencies >>= mapM (clone gitCache) >>= cabalInstallPlan gitCache
+solveDependencies gitCache = Hpack.extractGitDependencies >>= mapM (clone gitCache) >>= cabalInstallPlan gitCache
 
 cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => Path GitCache -> [CachedGitDependency] -> m [Package]
 cabalInstallPlan gitCache gitDependencies = withSystemTempDirectory "tinc" $ \dir -> do
@@ -80,13 +80,17 @@ cabalInstallPlan gitCache gitDependencies = withSystemTempDirectory "tinc" $ \di
 
 generateCabalFile :: IO (FilePath, String)
 generateCabalFile = do
-  exists <- doesFileExist Hpack.packageConfig
-  if exists then hpack else copyCabalFile
+  deps <- getAdditionalDependencies
+  exists <- Hpack.doesConfigExist
+  if exists
+    then Hpack.render <$> Hpack.readConfig deps
+    else do
+      if null deps
+        then copyCabalFile
+        else do
+          let package = Hpack.mkPackage deps
+          return (Hpack.render package)
   where
-    hpack = do
-      (_, file, contents) <- Hpack.run
-      return (file, contents)
-
     copyCabalFile = do
       files <- filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
       case files of
