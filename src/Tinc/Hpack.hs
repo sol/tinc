@@ -55,4 +55,4 @@ mkPackage :: [Dependency] -> Package
 mkPackage deps = (package "tinc-generated" "0.0.0"){packageExecutables = [mkExecutable deps]}
 
 mkExecutable :: [Dependency] -> Section Executable
-mkExecutable deps = Section (Executable "tinc-generated" "Generated.hs" []) [] deps [] [] []
+mkExecutable deps = (section $ Executable "tinc-generated" "Generated.hs" []){sectionDependencies = deps}

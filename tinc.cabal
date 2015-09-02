@@ -43,7 +43,7 @@ executable tinc
     , temporary
     , exceptions
     , transformers
-    , hpack >= 0.6
+    , hpack >= 0.7.0
     , aeson
     , bytestring
     , yaml
@@ -90,7 +90,7 @@ test-suite acceptance
     , temporary
     , exceptions
     , transformers
-    , hpack >= 0.6
+    , hpack >= 0.7.0
     , aeson
     , bytestring
     , yaml
@@ -161,7 +161,7 @@ test-suite spec
     , temporary
     , exceptions
     , transformers
-    , hpack >= 0.6
+    , hpack >= 0.7.0
     , aeson
     , bytestring
     , yaml
