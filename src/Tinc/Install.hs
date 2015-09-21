@@ -20,6 +20,7 @@ import           Control.Monad.IO.Class
 import           Data.Function
 import           Data.List.Compat
 import           System.Directory
+import           System.FilePath
 import           System.IO.Temp
 
 import qualified Hpack.Config as Hpack
@@ -61,7 +62,30 @@ createInstallPlan ghcInfo cacheDir installPlan = do
 solveDependencies :: Path GitCache -> IO [Package]
 solveDependencies gitCache = do
   additionalDeps <- getAdditionalDependencies
-  Hpack.extractGitDependencies additionalDeps >>= mapM (clone gitCache) >>= cabalInstallPlan additionalDeps gitCache
+  cachedGitDependencies <- Hpack.extractGitDependencies additionalDeps >>= mapM (clone gitCache)
+  cachedLocalDependencies <- localDependencies gitCache additionalDeps
+  let addSourceDependencies = cachedLocalDependencies ++ cachedGitDependencies
+  cabalInstallPlan additionalDeps gitCache addSourceDependencies
+
+localDependencies :: Path GitCache -> [Hpack.Dependency] -> IO [CachedGitDependency]
+localDependencies gitCache dependencies = do
+  mapM local [(name, path) | Hpack.Dependency name (Just (Hpack.Local path)) <- dependencies]
+  where
+    local :: (String, FilePath) -> IO CachedGitDependency
+    local (name, dir) = do
+      withSystemTempDirectory "tinc" $ \ ((</> "package") -> tempDir) -> do
+        createDirectory tempDir
+        cabalSdist dir tempDir
+        fp <- fingerprint tempDir
+        let dst = path gitCache </> name </> fp
+        createDirectoryIfMissing True (path gitCache </> name)
+        cabalSdist tempDir dst
+        return $ CachedGitDependency name fp
+
+    cabalSdist :: FilePath -> FilePath -> IO ()
+    cabalSdist sourceDirectory tempDir = do
+      withCurrentDirectory sourceDirectory $ do
+        callProcess "cabal" ["sdist", "--output-directory", tempDir]
 
 cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => [Hpack.Dependency] -> Path GitCache -> [CachedGitDependency] -> m [Package]
 cabalInstallPlan additionalDeps gitCache gitDependencies = withSystemTempDirectory "tinc" $ \dir -> do

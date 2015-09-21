@@ -3,11 +3,12 @@ module Util where
 import           Prelude ()
 import           Prelude.Compat
 
+import           Control.Monad.Catch
 import           Control.Monad.Compat
 import           Control.Monad.IO.Class
-import           Control.Monad.Catch
 import           Data.Char
 import           Data.List.Compat
+import           GHC.Fingerprint
 import           System.Directory
 import           System.FilePath
 
@@ -26,3 +27,20 @@ listDirectories dir = do
     filter (`notElem` [".", ".."]) <$>
     getDirectoryContents dir
   filterM doesDirectoryExist $ map (dir </>) files
+
+listFiles :: FilePath -> IO [FilePath]
+listFiles dir = do
+  c <- map (dir </>) . filter (`notElem` [".", ".."]) <$> getDirectoryContents dir
+  subdirsFiles  <- filterM doesDirectoryExist c >>= mapM listFiles
+  files <- filterM doesFileExist c
+  return (files ++ concat subdirsFiles)
+
+fingerprint :: FilePath -> IO String
+fingerprint dir = withCurrentDirectory dir $ do
+  files <- listFiles "."
+  show . fingerprintFingerprints . sort <$> mapM fingerprintFile files
+  where
+    fingerprintFile :: FilePath -> IO Fingerprint
+    fingerprintFile file = do
+      hash <- getFileHash file
+      return $ fingerprintFingerprints [hash, fingerprintString file]
