@@ -22,6 +22,7 @@ import           Data.List.Compat
 import           System.Directory
 import           System.IO.Temp
 
+import qualified Hpack.Config as Hpack
 import           Tinc.Cache
 import           Tinc.Config
 import           Tinc.Fail
@@ -57,13 +58,14 @@ createInstallPlan ghcInfo cacheDir installPlan = do
       missing = installPlan \\ map fst reusable
   return (InstallPlan reusable missing)
 
--- FIXME: Move getAdditionalDependencies here
 solveDependencies :: Path GitCache -> IO [Package]
-solveDependencies gitCache = Hpack.extractGitDependencies >>= mapM (clone gitCache) >>= cabalInstallPlan gitCache
+solveDependencies gitCache = do
+  additionalDeps <- getAdditionalDependencies
+  Hpack.extractGitDependencies additionalDeps >>= mapM (clone gitCache) >>= cabalInstallPlan additionalDeps gitCache
 
-cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => Path GitCache -> [CachedGitDependency] -> m [Package]
-cabalInstallPlan gitCache gitDependencies = withSystemTempDirectory "tinc" $ \dir -> do
-  cabalFile <- liftIO generateCabalFile
+cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => [Hpack.Dependency] -> Path GitCache -> [CachedGitDependency] -> m [Package]
+cabalInstallPlan additionalDeps gitCache gitDependencies = withSystemTempDirectory "tinc" $ \dir -> do
+  cabalFile <- liftIO (generateCabalFile additionalDeps)
   let command :: [String]
       command = "install" : "--only-dependencies" : "--enable-tests" : "--dry-run" : []
   withCurrentDirectory dir $ do
@@ -78,9 +80,8 @@ cabalInstallPlan gitCache gitDependencies = withSystemTempDirectory "tinc" $ \di
 
     revisions = [(name, rev) | CachedGitDependency name rev <- gitDependencies]
 
-generateCabalFile :: IO (FilePath, String)
-generateCabalFile = do
-  deps <- getAdditionalDependencies
+generateCabalFile :: [Hpack.Dependency] -> IO (FilePath, String)
+generateCabalFile deps = do
   exists <- Hpack.doesConfigExist
   if exists
     then Hpack.render <$> Hpack.readConfig deps

@@ -70,7 +70,7 @@ spec = do
       withCabalFile $ \_ -> do
         let ?cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
             ?mockedCallProcess = mock cabalSandboxInit
-        withMockedEnv (cabalInstallPlan undefined []) `shouldReturn` [Package "setenv" "0.1.1.3"]
+        withMockedEnv (cabalInstallPlan [] undefined []) `shouldReturn` [Package "setenv" "0.1.1.3"]
 
     it "takes git dependencies into account" $ do
       withCabalFile $ \sandbox -> do
@@ -88,17 +88,13 @@ spec = do
                 cabalSandboxInit
               , ("cabal", ["sandbox", "add-source", gitDependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage gitDependency])
               ]
-        withMockedEnv (cabalInstallPlan gitCache [cachedGitDependency]) `shouldReturn` [gitDependency]
+        withMockedEnv (cabalInstallPlan [] gitCache [cachedGitDependency]) `shouldReturn` [gitDependency]
 
   describe "generateCabalFile" $ do
-    context "when there is a tinc.yaml" $ do
+    context "when there are additional dependencies" $ do
       it "generates a cabal file" $ do
         inTempDirectory $ do
-          writeFile "tinc.yaml" $ unlines [
-              "dependencies:"
-            , "  - foo"
-            ]
-          generateCabalFile `shouldReturn` ("tinc-generated.cabal", unlines [
+          generateCabalFile ["foo"] `shouldReturn` ("tinc-generated.cabal", unlines [
               "name: tinc-generated"
             , "version: 0.0.0"
             , "build-type: Simple"
@@ -117,14 +113,14 @@ spec = do
           writeFile "package.yaml" $ unlines [
               "name: foo"
             ]
-          generateCabalFile `shouldReturn` ("foo.cabal", unlines [
+          generateCabalFile [] `shouldReturn` ("foo.cabal", unlines [
               "name: foo"
             , "version: 0.0.0"
             , "build-type: Simple"
             , "cabal-version: >= 1.10"
             ])
 
-    context "when there are both a package.yaml and a tinc.yaml" $ do
+    context "when there are both a package.yaml and additional dependencies" $ do
       it "combines them" $ do
         inTempDirectory $ do
           writeFile "package.yaml" $ unlines [
@@ -132,11 +128,7 @@ spec = do
             , "library:"
             , "  dependencies: foo"
             ]
-          writeFile "tinc.yaml" $ unlines [
-              "dependencies:"
-            , "  - bar"
-            ]
-          generateCabalFile `shouldReturn` ("tinc-generated.cabal", unlines [
+          generateCabalFile ["bar"] `shouldReturn` ("tinc-generated.cabal", unlines [
               "name: tinc-generated"
             , "version: 0.0.0"
             , "build-type: Simple"
@@ -158,16 +150,16 @@ spec = do
       it "returns contents" $ do
         inTempDirectory $ do
           writeFile "foo.cabal" "foo"
-          generateCabalFile `shouldReturn` ("foo.cabal", "foo")
+          generateCabalFile [] `shouldReturn` ("foo.cabal", "foo")
 
     context "when there are multiple cabal files" $ do
       it "fails" $ do
         inTempDirectory $ do
           touch "foo.cabal"
           touch "bar.cabal"
-          generateCabalFile `shouldThrow` errorCall "Multiple cabal files found."
+          generateCabalFile [] `shouldThrow` errorCall "Multiple cabal files found."
 
     context "when there is no cabal file" $ do
       it "fails" $ do
         inTempDirectory $ do
-          generateCabalFile `shouldThrow` errorCall "No cabal file found."
+          generateCabalFile [] `shouldThrow` errorCall "No cabal file found."

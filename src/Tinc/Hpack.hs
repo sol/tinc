@@ -13,7 +13,6 @@ import           Hpack.Config
 import           Hpack.Run
 import           System.Directory
 
-import           Tinc.Config
 import           Tinc.Fail
 
 data GitDependency = GitDependency {
@@ -22,9 +21,8 @@ data GitDependency = GitDependency {
 , gitDependencyRef :: String
 } deriving (Eq, Show)
 
-extractGitDependencies :: IO [GitDependency]
-extractGitDependencies = do
-  additionalDeps <- getAdditionalDependencies
+extractGitDependencies :: [Dependency] ->  IO [GitDependency]
+extractGitDependencies additionalDeps = do
   exists <- doesFileExist packageConfig
   packageDeps <- if exists
     then do
