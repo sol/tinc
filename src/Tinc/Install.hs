@@ -86,14 +86,14 @@ generateCabalFile deps = do
   if exists
     then Hpack.render <$> Hpack.readConfig deps
     else do
-      if null deps
-        then copyCabalFile
+      files <- filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
+      if (null deps || (not . null) files)
+        then copyCabalFile files
         else do
           let package = Hpack.mkPackage deps
           return (Hpack.render package)
   where
-    copyCabalFile = do
-      files <- filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
+    copyCabalFile files = do
       case files of
         [file] -> (,) file <$> readFile file
         [] -> die "No cabal file found."

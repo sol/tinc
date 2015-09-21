@@ -152,6 +152,12 @@ spec = do
           writeFile "foo.cabal" "foo"
           generateCabalFile [] `shouldReturn` ("foo.cabal", "foo")
 
+      context "when there are additional dependencies" $ do
+        it "ignores them (for now)" $ do
+          inTempDirectory $ do
+            writeFile "foo.cabal" "foo"
+            generateCabalFile ["foo"] `shouldReturn` ("foo.cabal", "foo")
+
     context "when there are multiple cabal files" $ do
       it "fails" $ do
         inTempDirectory $ do
