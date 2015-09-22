@@ -1,4 +1,4 @@
-language: haskell
+language: c
 
 env:
   - GHCVER=7.8.4
@@ -10,9 +10,21 @@ before_install:
   - sudo apt-get install ghc-$GHCVER
   - export PATH=/opt/ghc/$GHCVER/bin:$PATH
   - sudo apt-get install cabal-install-1.22
-  - export PATH=/opt/cabal/1.22/bin:$PATH
+  - mkdir -p ~/.cabal/bin/
+  - export PATH=/opt/cabal/1.22/bin:~/.cabal/bin:$PATH
   - ghc --version
   - cabal --version
+  - (cd ~/.cabal/bin && wget https://s3-ap-southeast-1.amazonaws.com/zalora-public/tinc)
+  - chmod +x ~/.cabal/bin/tinc
+
+install:
+  - cabal update
+  - cabal install hspec-discover
+  - tinc
 
 script:
   - cabal configure --enable-tests --ghc-options=-Werror && cabal build && cabal test
+
+cache:
+  directories:
+    - $HOME/.tinc/cache
