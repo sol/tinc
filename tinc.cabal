@@ -44,7 +44,7 @@ executable tinc
     , exceptions
     , transformers
     , hpack >= 0.7.0
-    , aeson
+    , aeson >= 0.10.0
     , bytestring
     , yaml
     , Cabal == 1.22.*
@@ -91,7 +91,7 @@ test-suite acceptance
     , exceptions
     , transformers
     , hpack >= 0.7.0
-    , aeson
+    , aeson >= 0.10.0
     , bytestring
     , yaml
     , Cabal == 1.22.*
@@ -162,7 +162,7 @@ test-suite spec
     , exceptions
     , transformers
     , hpack >= 0.7.0
-    , aeson
+    , aeson >= 0.10.0
     , bytestring
     , yaml
     , Cabal == 1.22.*

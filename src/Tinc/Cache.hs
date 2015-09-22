@@ -79,7 +79,7 @@ data GitRevision = GitRevision {
 } deriving (Eq, Ord, Show, Generic)
 
 gitRevisionJsonOptions :: Options
-gitRevisionJsonOptions = defaultOptions{fieldLabelModifier = camelTo '-' . drop (length "GitRevision")}
+gitRevisionJsonOptions = defaultOptions{fieldLabelModifier = camelTo2 '-' . drop (length "GitRevision")}
 
 instance FromJSON GitRevision where
   parseJSON = genericParseJSON gitRevisionJsonOptions

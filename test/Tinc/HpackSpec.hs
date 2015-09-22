@@ -46,7 +46,7 @@ spec = do
               "ghc-options: 23"
             , "library: {}"
             ]
-          extractGitDependencies [] `shouldThrow` errorCall "package.yaml: when expecting a String, encountered Number instead"
+          extractGitDependencies [] `shouldThrow` errorCall "package.yaml: Error in $.ghc-options: failed to parse field ghc-options: expected String, encountered Number"
 
     context "when package.yaml does not exist" $ do
       it "returns an empty list" $ do
