@@ -8,16 +8,16 @@ import           Data.Maybe
 import           System.Directory
 import           System.FilePath
 
-import           Tinc.Types
 import           Tinc.GhcInfo
-import           Tinc.Git
+import           Tinc.Sandbox
+import           Tinc.Types
 
 type Plugins = [(String, Plugin)]
 type Plugin = FilePath
 
 data Facts = Facts {
   factsCache :: Path CacheDir
-, factsGitCache :: Path GitCache
+, factsAddSourceCache :: Path AddSourceCache
 , factsPlugins :: Plugins
 , factsGhcInfo :: GhcInfo
 } deriving (Eq, Show)
@@ -35,15 +35,15 @@ setup = do
       cacheDir :: Path CacheDir
       cacheDir = Path (home </> ".tinc" </> "cache" </> ghcFlavor)
 
-      gitCache :: Path GitCache
-      gitCache = Path (home </> ".tinc" </> "cache" </> "git")
+      addSourceCache :: Path AddSourceCache
+      addSourceCache = Path (home </> ".tinc" </> "cache" </> "add-source")
 
   createDirectoryIfMissing True (path cacheDir)
   createDirectoryIfMissing True pluginsDir
   plugins <- listPlugins pluginsDir
   return Facts {
     factsCache = cacheDir
-  , factsGitCache = gitCache
+  , factsAddSourceCache = addSourceCache
   , factsPlugins = plugins
   , factsGhcInfo = ghcInfo
   }

@@ -25,9 +25,9 @@ tinc args = do
   Facts{..} <- setup
   case args of
     [] -> withCacheLock factsCache $
-      installDependencies factsGhcInfo False factsCache factsGitCache
+      installDependencies factsGhcInfo False factsCache factsAddSourceCache
     ["--dry-run"] -> withCacheLock factsCache $
-      installDependencies factsGhcInfo True factsCache factsGitCache
+      installDependencies factsGhcInfo True factsCache factsAddSourceCache
     ["--version"] -> putStrLn $(gitHash)
     name : rest | Just plugin <- lookup name factsPlugins -> callProcess plugin rest
     _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)

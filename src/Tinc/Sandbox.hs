@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -9,6 +10,9 @@ module Tinc.Sandbox (
 , findPackageDb
 , initSandbox
 , recache
+, AddSource(..)
+, AddSourceCache
+, addSourcePath
 ) where
 
 import           Prelude ()
@@ -16,14 +20,16 @@ import           Prelude.Compat
 
 import           Control.Monad.Compat
 import           Control.Monad.IO.Class
+import           Data.Aeson
+import           Data.Aeson.Types
 import           Data.List.Compat
 import           Data.Maybe
+import           GHC.Generics
 import           System.Directory
 import           System.FilePath
 
 import           Tinc.Fail
 import           Tinc.GhcPkg
-import           Tinc.Git
 import           Tinc.Process
 import           Tinc.Types
 
@@ -34,13 +40,13 @@ data Sandbox
 currentDirectory :: Path Sandbox
 currentDirectory = "."
 
-initSandbox :: (MonadIO m, Fail m, Process m) => [Path CachedGitDependency] -> [Path PackageConfig] -> m (Path PackageDb)
-initSandbox gitDependencies packageConfigs = do
+initSandbox :: (MonadIO m, Fail m, Process m) => [Path AddSource] -> [Path PackageConfig] -> m (Path PackageDb)
+initSandbox addSourceDependencies packageConfigs = do
   deleteSandbox
   callProcess "cabal" ["sandbox", "init"]
   packageDb <- findPackageDb currentDirectory
   registerPackageConfigs packageDb packageConfigs
-  mapM_ (\ dep -> callProcess "cabal" ["sandbox", "add-source", path dep]) gitDependencies
+  mapM_ (\ dep -> callProcess "cabal" ["sandbox", "add-source", path dep]) addSourceDependencies
   return packageDb
 
 deleteSandbox :: (MonadIO m, Process m) => m ()
@@ -72,3 +78,21 @@ registerPackageConfigs packageDb packages = do
 
 recache :: Process m => Path PackageDb -> m ()
 recache packageDb = callProcess "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDb]
+
+data AddSourceCache
+
+data AddSource = AddSource {
+  addSourcePackageName :: String
+, addSourceHash :: String -- git revision or fingerprint of local dependency
+} deriving (Eq, Show, Generic)
+
+addSourceJsonOptions :: Options
+addSourceJsonOptions = defaultOptions{fieldLabelModifier = camelTo2 '-' . drop (length ("AddSource" :: String))}
+
+instance FromJSON AddSource where
+  parseJSON = genericParseJSON addSourceJsonOptions
+instance ToJSON AddSource where
+  toJSON = genericToJSON addSourceJsonOptions
+
+addSourcePath :: Path AddSourceCache -> AddSource -> Path AddSource
+addSourcePath (Path cache) (AddSource name rev) = Path $ cache </> name </> rev

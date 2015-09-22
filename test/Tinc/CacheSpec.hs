@@ -74,78 +74,78 @@ spec = do
           withEnv mockedEnv (readPackageGraph [] globalPackageDb packageDb)
             `shouldReturn` G.fromList [(package, PackageConfig packageConfig, [])]
 
-  describe "addRevisions" $ do
-    let gitRevision = "8cd0e753e18b1576cbe3eb2e61977a3b0debf430"
+  describe "addAddSourceHashes" $ do
+    let hash = "8cd0e753e18b1576cbe3eb2e61977a3b0debf430"
         foo = Package "foo" "0.1.0"
-        writeGitRevisions packageDb =
-          writeFile (path packageDb </> "git-revisions.yaml") "- {name: foo, revision: 8cd0e753e18b1576cbe3eb2e61977a3b0debf430}"
+        writeAddSourceHashes packageDb =
+          writeFile (path packageDb </> "add-source.yaml") "- {package-name: foo, hash: 8cd0e753e18b1576cbe3eb2e61977a3b0debf430}"
 
-    it "adds git revisions to a package graph" $ do
+    it "adds add-source hashes to a package graph" $ do
       withSystemTempDirectory "tinc" $ \ (Path -> packageDb) -> do
         let fooConfig = PackageConfig ""
             graph = G.fromList [(foo, fooConfig, [])]
-        writeGitRevisions packageDb
-        addRevisions packageDb graph `shouldReturn`
-          G.fromList [(setGitRevision gitRevision foo, fooConfig, [])]
+        writeAddSourceHashes packageDb
+        addAddSourceHashes packageDb graph `shouldReturn`
+          G.fromList [(setAddSourceHash hash foo, fooConfig, [])]
 
-    it "doesn't attach git revisions to global packages" $ do
+    it "doesn't attach add-source hashes to global packages" $ do
       withSystemTempDirectory "tinc" $ \ (Path -> packageDb) -> do
         let fooConfig = GlobalPackage
             graph = G.fromList [(foo, fooConfig, [])]
-        writeGitRevisions packageDb
-        addRevisions packageDb graph `shouldReturn`
+        writeAddSourceHashes packageDb
+        addAddSourceHashes packageDb graph `shouldReturn`
           G.fromList [(foo, fooConfig, [])]
 
   describe "populateCache" $ do
     let mockedReadProcess = mockMany ([] :: [(String, [String], String, IO String)])
         cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
 
-    it "uses git dependencies" $
+    it "uses add-source dependencies" $
       inTempDirectory $ do
         withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
-          withSystemTempDirectory "tinc" $ \ (Path -> gitCache) -> do
+          withSystemTempDirectory "tinc" $ \ (Path -> addSourceCache) -> do
             let mockedCallProcess command args = mockMany [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
-                    cabalAddSource = ("cabal", ["sandbox", "add-source", path gitCache </> "foo" </> "abc"], writeFile "add-source" "foo")
+                    cabalAddSource = ("cabal", ["sandbox", "add-source", path addSourceCache </> "foo" </> "abc"], writeFile "add-source" "foo")
                     cabalInstall = ("cabal", ["install", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
                     recache = ("ghc-pkg",["--no-user-package-db", "recache", "--package-db", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
             _ <- withEnv mockedEnv $
-              populateCache cache gitCache [Package "foo" "0.1.0"{versionGitRevision = Just "abc"}] []
+              populateCache cache addSourceCache [Package "foo" "0.1.0"{versionAddSourceHash = Just "abc"}] []
             [sandbox] <- listSandboxes cache
             readFile (path sandbox </> "install") `shouldReturn` "bar"
 
-    it "stores revisions of git dependencies in the cache" $
+    it "stores hashes of add-source dependencies in the cache" $
       inTempDirectory $ do
         withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
-          withSystemTempDirectory "tinc" $ \ (Path -> gitCache) -> do
+          withSystemTempDirectory "tinc" $ \ (Path -> addSourceCache) -> do
             let mockedCallProcess command args = mockMany [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
-                    cabalAddSource = ("cabal", ["sandbox", "add-source", path gitCache </> "foo" </> "abc"], return ())
+                    cabalAddSource = ("cabal", ["sandbox", "add-source", path addSourceCache </> "foo" </> "abc"], return ())
                     cabalInstall = ("cabal", ["install", "foo-0.1.0"], return ())
                     recache = ("ghc-pkg",["--no-user-package-db", "recache", "--package-db", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
             _ <- withEnv mockedEnv $
-              populateCache cache gitCache [Package "foo" "0.1.0"{versionGitRevision = Just "abc"}] []
+              populateCache cache addSourceCache [Package "foo" "0.1.0"{versionAddSourceHash = Just "abc"}] []
             [sandbox] <- listSandboxes cache
             packageDb <- findPackageDb sandbox
-            readGitRevisions packageDb `shouldReturn` [GitRevision "foo" "abc"]
+            readAddSourceHashes packageDb `shouldReturn` [AddSource "foo" "abc"]
 
   describe "listSandboxes" $ do
     it "lists sandboxes" $ do
       inTempDirectory $ do
-        touch "foo/tinc.valid"
-        touch "bar/tinc.valid"
+        touch "foo/tinc.valid.v2"
+        touch "bar/tinc.valid.v2"
         sandboxes <- listSandboxes "."
         sandboxes `shouldMatchList` ["./foo", "./bar"]
 
     it "rejects invalid sandboxes" $ do
       inTempDirectory $ do
-        touch "foo/tinc.valid"
+        touch "foo/tinc.valid.v2"
         touch "bar/something"
         sandboxes <- listSandboxes "."
         sandboxes `shouldMatchList` ["./foo"]

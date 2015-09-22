@@ -1,5 +1,14 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RecordWildCards #-}
-module Tinc.Git where
+module Tinc.Git (
+  clone
+
+#ifdef TEST
+, checkCabalName
+, determinePackageName
+, findCabalFile
+#endif
+) where
 
 import           Prelude ()
 import           Prelude.Compat
@@ -19,26 +28,14 @@ import           System.IO.Temp
 import           Tinc.Fail
 import           Tinc.Hpack
 import           Tinc.Process
+import           Tinc.Sandbox
 import           Tinc.Types
 import           Util
 
-data CachedGitDependency = CachedGitDependency {
-  cachedGitDependencyName :: String
-, cachedGitDependencyRevision :: String
-} deriving (Eq, Show)
-
-cachedGitDependencyPath :: Path GitCache -> CachedGitDependency -> Path CachedGitDependency
-cachedGitDependencyPath cache (CachedGitDependency name rev) = revisionToPath cache name rev
-
-revisionToPath :: Path GitCache -> String -> String -> Path CachedGitDependency
-revisionToPath (Path cache) name rev = Path $ cache </> name </> rev
-
-data GitCache
-
-clone :: (Fail m, Process m, MonadIO m, MonadMask m) => Path GitCache -> GitDependency -> m CachedGitDependency
+clone :: (Fail m, Process m, MonadIO m, MonadMask m) => Path AddSourceCache -> GitDependency -> m AddSource
 clone cache dep@(GitDependency name url ref) = do
-  alreadyInCache <- liftIO $ doesDirectoryExist (path $ revisionToPath cache name ref)
-  CachedGitDependency name <$> if alreadyInCache then return ref else populateCache
+  alreadyInCache <- liftIO $ doesDirectoryExist (path $ addSourcePath cache (AddSource name ref))
+  AddSource name <$> if alreadyInCache then return ref else populateCache
   where
     populateCache = do
       liftIO $ createDirectoryIfMissing True (path cache)
@@ -54,7 +51,7 @@ clone cache dep@(GitDependency name url ref) = do
 
         checkCabalName tmp dep
         liftIO $ do
-          let dst = revisionToPath cache name rev
+          let dst = addSourcePath cache (AddSource name rev)
           exists <- doesDirectoryExist $ path dst
           unless exists $ do
             createDirectoryIfMissing True (path cache </> name)

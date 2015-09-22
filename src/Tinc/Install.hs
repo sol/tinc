@@ -37,12 +37,12 @@ import           Tinc.Sandbox
 import           Tinc.Types
 import           Util
 
-installDependencies :: GhcInfo -> Bool -> Path CacheDir -> Path GitCache -> IO ()
-installDependencies ghcInfo dryRun cacheDir gitCache = do
-      solveDependencies gitCache
+installDependencies :: GhcInfo -> Bool -> Path CacheDir -> Path AddSourceCache -> IO ()
+installDependencies ghcInfo dryRun cacheDir addSourceCache = do
+      solveDependencies addSourceCache
   >>= createInstallPlan ghcInfo cacheDir
   >>= tee printInstallPlan
-  >>= unless dryRun . realizeInstallPlan cacheDir gitCache
+  >>= unless dryRun . realizeInstallPlan cacheDir addSourceCache
   where
     tee :: Monad m => (a -> m ()) -> a -> m a
     tee action a = action a >> return a
@@ -59,50 +59,50 @@ createInstallPlan ghcInfo cacheDir installPlan = do
       missing = installPlan \\ map fst reusable
   return (InstallPlan reusable missing)
 
-solveDependencies :: Path GitCache -> IO [Package]
-solveDependencies gitCache = do
+solveDependencies :: Path AddSourceCache -> IO [Package]
+solveDependencies addSourceCache = do
   additionalDeps <- getAdditionalDependencies
-  cachedGitDependencies <- Hpack.extractGitDependencies additionalDeps >>= mapM (clone gitCache)
-  cachedLocalDependencies <- localDependencies gitCache additionalDeps
+  cachedGitDependencies <- Hpack.extractGitDependencies additionalDeps >>= mapM (clone addSourceCache)
+  cachedLocalDependencies <- localDependencies addSourceCache additionalDeps
   let addSourceDependencies = cachedLocalDependencies ++ cachedGitDependencies
-  cabalInstallPlan additionalDeps gitCache addSourceDependencies
+  cabalInstallPlan additionalDeps addSourceCache addSourceDependencies
 
-localDependencies :: Path GitCache -> [Hpack.Dependency] -> IO [CachedGitDependency]
-localDependencies gitCache dependencies = do
+localDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [AddSource]
+localDependencies addSourceCache dependencies = do
   mapM local [(name, path) | Hpack.Dependency name (Just (Hpack.Local path)) <- dependencies]
   where
-    local :: (String, FilePath) -> IO CachedGitDependency
+    local :: (String, FilePath) -> IO AddSource
     local (name, dir) = do
       withSystemTempDirectory "tinc" $ \ ((</> "package") -> tempDir) -> do
         createDirectory tempDir
         cabalSdist dir tempDir
         fp <- fingerprint tempDir
-        let dst = path gitCache </> name </> fp
-        createDirectoryIfMissing True (path gitCache </> name)
+        let dst = path addSourceCache </> name </> fp
+        createDirectoryIfMissing True (path addSourceCache </> name)
         cabalSdist tempDir dst
-        return $ CachedGitDependency name fp
+        return $ AddSource name fp
 
     cabalSdist :: FilePath -> FilePath -> IO ()
     cabalSdist sourceDirectory tempDir = do
       withCurrentDirectory sourceDirectory $ do
         callProcess "cabal" ["sdist", "--output-directory", tempDir]
 
-cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => [Hpack.Dependency] -> Path GitCache -> [CachedGitDependency] -> m [Package]
-cabalInstallPlan additionalDeps gitCache gitDependencies = withSystemTempDirectory "tinc" $ \dir -> do
+cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
+cabalInstallPlan additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
   cabalFile <- liftIO (generateCabalFile additionalDeps)
   let command :: [String]
       command = "install" : "--only-dependencies" : "--enable-tests" : "--dry-run" : []
   withCurrentDirectory dir $ do
     liftIO $ uncurry writeFile cabalFile
-    _ <- initSandbox (map (cachedGitDependencyPath gitCache) gitDependencies) []
-    map addGitRevision <$> (readProcess "cabal" command "" >>= parseInstallPlan)
+    _ <- initSandbox (map (addSourcePath addSourceCache) addSourceDependencies) []
+    map addAddSourceHash <$> (readProcess "cabal" command "" >>= parseInstallPlan)
   where
-    addGitRevision :: Package -> Package
-    addGitRevision p@(Package name version) = case lookup name revisions of
-      Just rev -> Package name version {versionGitRevision = Just rev}
+    addAddSourceHash :: Package -> Package
+    addAddSourceHash p@(Package name version) = case lookup name addSourceHashes of
+      Just rev -> Package name version {versionAddSourceHash = Just rev}
       Nothing -> p
 
-    revisions = [(name, rev) | CachedGitDependency name rev <- gitDependencies]
+    addSourceHashes = [(name, rev) | AddSource name rev <- addSourceDependencies]
 
 generateCabalFile :: [Hpack.Dependency] -> IO (FilePath, String)
 generateCabalFile deps = do
@@ -128,13 +128,13 @@ printInstallPlan (InstallPlan reusable missing) = do
   mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map fst reusable)
   mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
 
-realizeInstallPlan :: Path CacheDir -> Path GitCache -> InstallPlan -> IO ()
-realizeInstallPlan cacheDir gitCache (InstallPlan reusable missing) =
+realizeInstallPlan :: Path CacheDir -> Path AddSourceCache -> InstallPlan -> IO ()
+realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) =
   packageConfigs >>= void . initSandbox []
   where
     packageConfigs
       | null missing = return (map snd reusable)
-      | otherwise = populateCache cacheDir gitCache missing reusable
+      | otherwise = populateCache cacheDir addSourceCache missing reusable
 
 findReusablePackages :: Cache -> [Package] -> [(Package, Path PackageConfig)]
 findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusablePackages

@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 module Tinc.Package (
   Package(..)
-, setGitRevision
+, setAddSourceHash
 , Version(..)
 , showPackage
 , parsePackage
@@ -19,13 +19,13 @@ data Package
   }
   deriving (Eq, Ord, Show)
 
-setGitRevision :: String -> Package -> Package
-setGitRevision revision (Package name (Version number _)) =
-  Package name (Version number (Just revision))
+setAddSourceHash :: String -> Package -> Package
+setAddSourceHash hash (Package name (Version number _)) =
+  Package name (Version number (Just hash))
 
 data Version = Version {
   versionNumber :: String
-, versionGitRevision :: Maybe String
+, versionAddSourceHash :: Maybe String
 } deriving (Eq, Ord, Show)
 
 showPackage :: Package -> String

@@ -17,9 +17,9 @@ import           System.Directory
 import           System.FilePath
 import           Test.Mockery.Directory
 
-import           Tinc.Git
 import           Tinc.Install
 import           Tinc.Package
+import           Tinc.Sandbox
 import           Tinc.Types
 import           Util
 
@@ -34,14 +34,14 @@ writeCabalFile name version dependencies = do
     , "  build-depends: " ++ intercalate ", " dependencies
     ]
 
-createCachedGitDependency :: Path GitCache -> CachedGitDependency -> String -> IO FilePath
-createCachedGitDependency gitCache CachedGitDependency{..} version = do
-  createDirectoryIfMissing True gitDependencyPath
-  withCurrentDirectory gitDependencyPath $ do
-    writeCabalFile cachedGitDependencyName version []
-  return gitDependencyPath
+createCachedAddSourceDependency :: Path AddSourceCache -> AddSource -> String -> IO FilePath
+createCachedAddSourceDependency addSourceCache AddSource{..} version = do
+  createDirectoryIfMissing True dependencyPath
+  withCurrentDirectory dependencyPath $ do
+    writeCabalFile addSourcePackageName version []
+  return dependencyPath
   where
-    gitDependencyPath = path gitCache </> cachedGitDependencyName </> cachedGitDependencyRevision
+    dependencyPath = path addSourceCache </> addSourcePackageName </> addSourceHash
 
 spec :: Spec
 spec = do
@@ -72,23 +72,23 @@ spec = do
             ?mockedCallProcess = mock cabalSandboxInit
         withMockedEnv (cabalInstallPlan [] undefined []) `shouldReturn` [Package "setenv" "0.1.1.3"]
 
-    it "takes git dependencies into account" $ do
+    it "takes add-source dependencies into account" $ do
       withCabalFile $ \sandbox -> do
         let name = "setenv"
             version = "0.1.1.2"
-            revision = "fc2b9dbb754edcc14b0d9fa21201d67bc00794ec"
-            cachedGitDependency = CachedGitDependency name revision
-            gitCache = Path (sandbox </> "git-cache")
-            gitDependency = Package name (Version version $ Just revision)
+            hash = "fc2b9dbb754edcc14b0d9fa21201d67bc00794ec"
+            cachedDependency = AddSource name hash
+            addSourceCache = Path (sandbox </> "add-source-cache")
+            dependency = Package name (Version version $ Just hash)
 
-        gitDependencyPath <- createCachedGitDependency gitCache cachedGitDependency version
+        dependencyPath <- createCachedAddSourceDependency addSourceCache cachedDependency version
 
         let ?cabalInstallResult = readFile "cabal-output"
             ?mockedCallProcess = mockMany [
                 cabalSandboxInit
-              , ("cabal", ["sandbox", "add-source", gitDependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage gitDependency])
+              , ("cabal", ["sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
               ]
-        withMockedEnv (cabalInstallPlan [] gitCache [cachedGitDependency]) `shouldReturn` [gitDependency]
+        withMockedEnv (cabalInstallPlan [] addSourceCache [cachedDependency]) `shouldReturn` [dependency]
 
   describe "generateCabalFile" $ do
     context "when there are additional dependencies" $ do

@@ -8,8 +8,8 @@ import           Tinc.Package
 spec :: Spec
 spec = do
   describe "showPackage" $ do
-    it "ignores git revision" $ do
-      showPackage (Package "foo" "0.1.0" {versionGitRevision = Just "32509a18bb6ddc01014863d135a247bd65d16c38"})
+    it "ignores add-source hash" $ do
+      showPackage (Package "foo" "0.1.0" {versionAddSourceHash = Just "32509a18bb6ddc01014863d135a247bd65d16c38"})
         `shouldBe` "foo-0.1.0"
 
   describe "parseInstallPlan" $ do

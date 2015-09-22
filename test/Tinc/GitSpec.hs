@@ -20,13 +20,14 @@ import           Test.Mockery.Directory
 
 import           Tinc.Git
 import           Tinc.Hpack
+import           Tinc.Sandbox
 
 spec :: Spec
 spec = do
   describe "clone" $ do
     let url = "https://github.com/haskell-tinc/hpack"
         rev = "6bebd90d1e22901e94460c02bba9d0fa5b343f81"
-        cachedGitDependency = CachedGitDependency "hpack" rev
+        cachedGitDependency = AddSource "hpack" rev
 
         mockedCallProcess command args = do
           let dst = atDef "/path/to/some/tmp/dir" args 2
