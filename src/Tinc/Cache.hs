@@ -142,4 +142,4 @@ populateCache cacheDir addSourceCache missing reusable = do
           liftIO $ encodeFile (path packageDb </> addSourceHashesFile) addSourceHashes
           recache packageDb
 
-    addSourceHashes = [AddSource name hash | Package name (Version _ (Just hash)) <- missing]
+    addSourceHashes = [AddSource name hash | Package name (Version _ (Just hash)) <- (missing ++ map fst reusable)]

@@ -109,7 +109,7 @@ spec = do
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource = ("cabal", ["sandbox", "add-source", path addSourceCache </> "foo" </> "abc"], writeFile "add-source" "foo")
                     cabalInstall = ("cabal", ["install", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
-                    recache = ("ghc-pkg",["--no-user-package-db", "recache", "--package-db", packageDb], return ())
+                    recache = ("ghc-pkg", ["--no-user-package-db", "recache", "--package-db", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
             _ <- withEnv mockedEnv $
@@ -121,19 +121,24 @@ spec = do
       inTempDirectory $ do
         withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
           withSystemTempDirectory "tinc" $ \ (Path -> addSourceCache) -> do
-            let mockedCallProcess command args = mockMany [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
+            let mockedCallProcess command args = mockMany [cabalSandboxInit, cabalAddSource "foo/abc", cabalAddSource "bar/def", cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
-                    cabalAddSource = ("cabal", ["sandbox", "add-source", path addSourceCache </> "foo" </> "abc"], return ())
-                    cabalInstall = ("cabal", ["install", "foo-0.1.0"], return ())
-                    recache = ("ghc-pkg",["--no-user-package-db", "recache", "--package-db", packageDb], return ())
+                    cabalAddSource packageCachePath =
+                      ("cabal", ["sandbox", "add-source", path addSourceCache </> packageCachePath], return ())
+                    cabalInstall = ("cabal", ["install", "foo-0.1.0", "bar-0.1.0"], return ())
+                    recache = ("ghc-pkg", ["--no-user-package-db", "recache", "--package-db", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
+            let barPackageConfig = Path (path cache </> "foo")
+            touch $ path barPackageConfig
             _ <- withEnv mockedEnv $
-              populateCache cache addSourceCache [Package "foo" "0.1.0"{versionAddSourceHash = Just "abc"}] []
+              populateCache cache addSourceCache
+                [Package "foo" "0.1.0"{versionAddSourceHash = Just "abc"}]
+                [(Package "bar" "0.1.0"{versionAddSourceHash = Just "def"}, barPackageConfig)]
             [sandbox] <- listSandboxes cache
             packageDb <- findPackageDb sandbox
-            readAddSourceHashes packageDb `shouldReturn` [AddSource "foo" "abc"]
+            readAddSourceHashes packageDb `shouldReturn` [AddSource "foo" "abc", AddSource "bar" "def"]
 
   describe "listSandboxes" $ do
     it "lists sandboxes" $ do
