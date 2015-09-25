@@ -20,7 +20,6 @@ import           Control.Monad.IO.Class
 import           Data.Function
 import           Data.List.Compat
 import           System.Directory
-import           System.FilePath
 import           System.IO.Temp
 
 import qualified Hpack.Config as Hpack
@@ -28,7 +27,6 @@ import           Tinc.Cache
 import           Tinc.Config
 import           Tinc.Fail
 import           Tinc.GhcInfo
-import           Tinc.Git
 import qualified Tinc.Hpack as Hpack
 import           Tinc.Package
 import           Tinc.PackageGraph
@@ -62,30 +60,8 @@ createInstallPlan ghcInfo cacheDir installPlan = do
 solveDependencies :: Path AddSourceCache -> IO [Package]
 solveDependencies addSourceCache = do
   additionalDeps <- getAdditionalDependencies
-  cachedGitDependencies <- Hpack.extractGitDependencies additionalDeps >>= mapM (clone addSourceCache)
-  cachedLocalDependencies <- localDependencies addSourceCache additionalDeps
-  let addSourceDependencies = cachedLocalDependencies ++ cachedGitDependencies
+  addSourceDependencies <- Hpack.extractsAddSourceDependencies addSourceCache additionalDeps
   cabalInstallPlan additionalDeps addSourceCache addSourceDependencies
-
-localDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [AddSource]
-localDependencies addSourceCache dependencies = do
-  mapM local [(name, path) | Hpack.Dependency name (Just (Hpack.Local path)) <- dependencies]
-  where
-    local :: (String, FilePath) -> IO AddSource
-    local (name, dir) = do
-      withSystemTempDirectory "tinc" $ \ ((</> "package") -> tempDir) -> do
-        createDirectory tempDir
-        cabalSdist dir tempDir
-        fp <- fingerprint tempDir
-        let dst = path addSourceCache </> name </> fp
-        createDirectoryIfMissing True (path addSourceCache </> name)
-        cabalSdist tempDir dst
-        return $ AddSource name fp
-
-    cabalSdist :: FilePath -> FilePath -> IO ()
-    cabalSdist sourceDirectory tempDir = do
-      withCurrentDirectory sourceDirectory $ do
-        callProcess "cabal" ["sdist", "--output-directory", tempDir]
 
 cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
 cabalInstallPlan additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do

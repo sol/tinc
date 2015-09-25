@@ -56,7 +56,6 @@ executable tinc
       Tinc.Fail
       Tinc.GhcInfo
       Tinc.GhcPkg
-      Tinc.Git
       Tinc.Hpack
       Tinc.Install
       Tinc.Package
@@ -108,7 +107,6 @@ test-suite acceptance
       Tinc.Fail
       Tinc.GhcInfo
       Tinc.GhcPkg
-      Tinc.Git
       Tinc.Hpack
       Tinc.Install
       Tinc.Package
@@ -129,7 +127,6 @@ test-suite acceptance
       Tinc.ConfigSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
-      Tinc.GitSpec
       Tinc.HpackSpec
       Tinc.InstallSpec
       Tinc.PackageGraphSpec
@@ -179,7 +176,6 @@ test-suite spec
       Tinc.Fail
       Tinc.GhcInfo
       Tinc.GhcPkg
-      Tinc.Git
       Tinc.Hpack
       Tinc.Install
       Tinc.Package
@@ -199,7 +195,6 @@ test-suite spec
       Tinc.ConfigSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
-      Tinc.GitSpec
       Tinc.HpackSpec
       Tinc.InstallSpec
       Tinc.PackageGraphSpec
