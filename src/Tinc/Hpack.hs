@@ -55,7 +55,7 @@ render :: Hpack.Package -> (FilePath, String)
 render pkg = (name, contents)
   where
     name = Hpack.packageName pkg ++ ".cabal"
-    contents = renderPackage defaultRenderSettings 0 [] pkg
+    contents = renderPackage defaultRenderSettings 2 [] pkg
 
 mkPackage :: [Hpack.Dependency] -> Hpack.Package
 mkPackage deps = (Hpack.package "tinc-generated" "0.0.0"){Hpack.packageExecutables = [mkExecutable deps]}
