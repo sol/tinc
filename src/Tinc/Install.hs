@@ -7,6 +7,7 @@ module Tinc.Install (
   installDependencies
 #ifdef TEST
 , cabalInstallPlan
+, copyFreezeFile
 , generateCabalFile
 #endif
 ) where
@@ -21,6 +22,7 @@ import           Data.Function
 import           Data.List.Compat
 import           System.Directory
 import           System.IO.Temp
+import           System.FilePath
 
 import qualified Hpack.Config as Hpack
 import           Tinc.Cache
@@ -65,6 +67,7 @@ solveDependencies addSourceCache = do
 
 cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
 cabalInstallPlan additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
+  liftIO $ copyFreezeFile dir
   cabalFile <- liftIO (generateCabalFile additionalDeps)
   let command :: [String]
       command = "install" : "--only-dependencies" : "--enable-tests" : "--dry-run" : []
@@ -79,6 +82,14 @@ cabalInstallPlan additionalDeps addSourceCache addSourceDependencies = withSyste
       Nothing -> p
 
     addSourceHashes = [(name, rev) | AddSource name rev <- addSourceDependencies]
+
+copyFreezeFile :: FilePath -> IO ()
+copyFreezeFile dst = do
+  exists <- doesFileExist freezeFile
+  when exists $ do
+    copyFile freezeFile (dst </> freezeFile)
+  where
+    freezeFile = "cabal.config"
 
 generateCabalFile :: [Hpack.Dependency] -> IO (FilePath, String)
 generateCabalFile deps = do
