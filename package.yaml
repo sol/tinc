@@ -4,7 +4,7 @@ category: Development
 license: "BSD3"
 author: "Sönke Hahn"
 copyright: "Sönke Hahn"
-maintainer: "soenke.hahn@zalora.com"
+maintainer: "soenkehahn@gmail.com"
 github: haskell-tinc/tinc
 
 extra-source-files:
