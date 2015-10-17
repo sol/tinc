@@ -19,7 +19,7 @@ import           Control.Monad.Catch
 import           Control.Monad.Compat
 import           Control.Monad.IO.Class
 import           Data.List.Compat
-import           System.Directory
+import           System.Directory hiding (getDirectoryContents)
 import           System.IO.Temp
 import           System.FilePath
 

@@ -30,7 +30,7 @@ import           Distribution.PackageDescription.Parse
 import           Distribution.Verbosity
 import qualified Hpack.Config as Hpack
 import           Hpack.Run
-import           System.Directory
+import           System.Directory hiding (getDirectoryContents)
 import           System.FilePath
 import           System.IO.Temp
 

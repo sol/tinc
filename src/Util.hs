@@ -9,7 +9,8 @@ import           Control.Monad.IO.Class
 import           Data.Char
 import           Data.List.Compat
 import           GHC.Fingerprint
-import           System.Directory
+import           System.Directory hiding (getDirectoryContents)
+import qualified System.Directory as Directory
 import           System.FilePath
 
 strip :: String -> String
@@ -21,23 +22,25 @@ withCurrentDirectory dir action = do
     liftIO $ setCurrentDirectory dir
     action
 
-listDirectories :: FilePath -> IO [FilePath]
-listDirectories dir = do
-  files <- sort <$>
-    filter (`notElem` [".", ".."]) <$>
-    getDirectoryContents dir
-  filterM doesDirectoryExist $ map (dir </>) files
+getDirectoryContents :: FilePath -> IO [FilePath]
+getDirectoryContents dir = filter (`notElem` [".", ".."]) <$> Directory.getDirectoryContents dir
 
-listFiles :: FilePath -> IO [FilePath]
-listFiles dir = do
-  c <- map (dir </>) . filter (`notElem` [".", ".."]) <$> getDirectoryContents dir
-  subdirsFiles  <- filterM doesDirectoryExist c >>= mapM listFiles
+listDirectoryContents :: FilePath -> IO [FilePath]
+listDirectoryContents dir = sort . map (dir </>) <$> getDirectoryContents dir
+
+listDirectories :: FilePath -> IO [FilePath]
+listDirectories dir = listDirectoryContents dir >>= filterM doesDirectoryExist
+
+listFilesRecursively :: FilePath -> IO [FilePath]
+listFilesRecursively dir = do
+  c <- listDirectoryContents dir
+  subdirsFiles  <- filterM doesDirectoryExist c >>= mapM listFilesRecursively
   files <- filterM doesFileExist c
   return (files ++ concat subdirsFiles)
 
 fingerprint :: FilePath -> IO String
 fingerprint dir = withCurrentDirectory dir $ do
-  files <- listFiles "."
+  files <- listFilesRecursively "."
   show . fingerprintFingerprints . sort <$> mapM fingerprintFile files
   where
     fingerprintFile :: FilePath -> IO Fingerprint

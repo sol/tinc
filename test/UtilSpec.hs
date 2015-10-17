@@ -16,12 +16,12 @@ spec = do
         writeFile "baz" ""
         listDirectories "." `shouldReturn` ["./bar", "./foo"]
 
-  describe "listFiles" $ do
-    it "lists files" $ do
+  describe "listFilesRecursively" $ do
+    it "lists files recursively" $ do
       inTempDirectory $ do
         touch "foo"
         touch "bar/baz"
-        listFiles "." >>= (`shouldMatchList` ["./foo", "./bar/baz"])
+        listFilesRecursively "." >>= (`shouldMatchList` ["./foo", "./bar/baz"])
 
   describe "fingerprint" $ do
     it "returns a fingerprint for files in specified directory" $ do

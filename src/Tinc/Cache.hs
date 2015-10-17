@@ -30,7 +30,7 @@ import qualified Data.ByteString as B
 import           Data.List.Compat
 import qualified Data.Map as Map
 import           Data.Yaml
-import           System.Directory
+import           System.Directory hiding (getDirectoryContents)
 import           System.FilePath
 import           System.IO.Temp
 import           Data.Function
