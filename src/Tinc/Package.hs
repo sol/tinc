@@ -12,12 +12,10 @@ import           Data.List
 
 import           Tinc.Fail
 
-data Package
-  = Package {
-    packageName :: String,
-    packageVersion :: Version
-  }
-  deriving (Eq, Ord, Show)
+data Package = Package {
+  packageName :: String
+, packageVersion :: Version
+} deriving (Eq, Ord, Show)
 
 setAddSourceHash :: String -> Package -> Package
 setAddSourceHash hash (Package name (Version number _)) =

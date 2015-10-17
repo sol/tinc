@@ -46,7 +46,7 @@ installDependencies ghcInfo dryRun cacheDir addSourceCache = do
     tee action a = action a >> return a
 
 data InstallPlan = InstallPlan {
-  _installPlanReusable :: [(Package, Path PackageConfig)]
+  _installPlanReusable :: [CachedPackage]
 , _installPlanMissing :: [Package]
 } deriving (Eq, Show)
 
@@ -54,7 +54,7 @@ createInstallPlan :: GhcInfo -> Path CacheDir -> [Package] -> IO InstallPlan
 createInstallPlan ghcInfo cacheDir installPlan = do
   cache <- readCache ghcInfo cacheDir
   let reusable = findReusablePackages cache installPlan
-      missing = installPlan \\ map fst reusable
+      missing = installPlan \\ map cachedPackageName reusable
   return (InstallPlan reusable missing)
 
 solveDependencies :: Path AddSourceCache -> IO [Package]
@@ -110,13 +110,14 @@ generateCabalFile deps = do
 
 printInstallPlan :: InstallPlan -> IO ()
 printInstallPlan (InstallPlan reusable missing) = do
-  mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map fst reusable)
+  mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map cachedPackageName reusable)
   mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
 
 realizeInstallPlan :: Path CacheDir -> Path AddSourceCache -> InstallPlan -> IO ()
-realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) =
-  packageConfigs >>= void . initSandbox []
+realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) = do
+  packageConfigs >>= void . initSandbox [] . map cachedPackageConfig
   where
+    packageConfigs :: IO [CachedPackage]
     packageConfigs
-      | null missing = return (map snd reusable)
+      | null missing = return reusable
       | otherwise = populateCache cacheDir addSourceCache missing reusable

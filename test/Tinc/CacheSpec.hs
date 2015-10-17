@@ -40,11 +40,11 @@ spec = do
   describe "listPackageConfigs" $ do
     it "lists package configs in package database" $ withSystemTempDirectory "tinc" $ \ p -> do
       let packages = [
-              (Package "foo" "2.1.7", Path $ p </> "foo-2.1.7-8b77e2706d2c2c9243c5d86e44c11aa6.conf")
-            , (Package "bar" "0.0.0", Path $ p </> "bar-0.0.0-57c8091ea57afec62c051eda2322cc2f.conf")
-            , (Package "baz" "0.6.1", Path $ p </> "baz-0.6.1-91bc956c71d416cc2ca71cc535d34d6f.conf")
+              CachedPackage (Package "foo" "2.1.7") (Path $ p </> "foo-2.1.7-8b77e2706d2c2c9243c5d86e44c11aa6.conf")
+            , CachedPackage (Package "bar" "0.0.0") (Path $ p </> "bar-0.0.0-57c8091ea57afec62c051eda2322cc2f.conf")
+            , CachedPackage (Package "baz" "0.6.1") (Path $ p </> "baz-0.6.1-91bc956c71d416cc2ca71cc535d34d6f.conf")
             ]
-      mapM_ (touch . path . snd) packages
+      mapM_ (touch . path . cachedPackageConfig) packages
       listPackageConfigs (Path p) >>= (`shouldMatchList` packages)
 
   describe "packageFromPackageConfig" $ do
@@ -135,7 +135,7 @@ spec = do
             _ <- withEnv mockedEnv $
               populateCache cache addSourceCache
                 [Package "foo" "0.1.0"{versionAddSourceHash = Just "abc"}]
-                [(Package "bar" "0.1.0"{versionAddSourceHash = Just "def"}, barPackageConfig)]
+                [CachedPackage (Package "bar" "0.1.0"{versionAddSourceHash = Just "def"}) barPackageConfig]
             [sandbox] <- listSandboxes cache
             packageDb <- findPackageDb sandbox
             readAddSourceHashes packageDb `shouldReturn` [AddSource "foo" "abc", AddSource "bar" "def"]

@@ -4,6 +4,7 @@
 {-# LANGUAGE TupleSections #-}
 module Tinc.Cache (
   Cache
+, CachedPackage(..)
 , readCache
 , findReusablePackages
 , populateCache
@@ -44,24 +45,29 @@ import           Tinc.Sandbox
 import           Tinc.Types
 import           Util
 
-findReusablePackages :: Cache -> [Package] -> [(Package, Path PackageConfig)]
+data CachedPackage = CachedPackage {
+  cachedPackageName :: Package
+, cachedPackageConfig :: Path PackageConfig
+} deriving (Eq, Show)
+
+findReusablePackages :: Cache -> [Package] -> [CachedPackage]
 findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusablePackages
   where
-    reusablePackages :: [(Package, Path PackageConfig)]
-    reusablePackages = nubBy ((==) `on` fst) (concatMap findReusable packageGraphs)
+    reusablePackages :: [CachedPackage]
+    reusablePackages = nubBy ((==) `on` cachedPackageName) (concatMap findReusable packageGraphs)
 
-    findReusable :: PackageGraph PackageLocation -> [(Package, Path PackageConfig)]
+    findReusable :: PackageGraph PackageLocation -> [CachedPackage]
     findReusable cacheGraph =
-      [(p, c) | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
+      [CachedPackage p c | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
       where
         packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
 
-listPackageConfigs :: MonadIO m => Path PackageDb -> m [(Package, Path PackageConfig)]
+listPackageConfigs :: MonadIO m => Path PackageDb -> m [CachedPackage]
 listPackageConfigs p = do
   packageConfigs <- liftIO $ filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path p)
   let packages = map packageFromPackageConfig packageConfigs
       absolutePackageConfigs = map (Path . (path p </>)) packageConfigs
-  return (zip packages absolutePackageConfigs)
+  return (zipWith CachedPackage packages absolutePackageConfigs)
 
 packageFromPackageConfig :: FilePath -> Package
 packageFromPackageConfig = parsePackage . reverse . drop 1 . dropWhile (/= '-') . reverse
@@ -78,9 +84,12 @@ readPackageGraph :: (MonadIO m, Fail m, GhcPkg m) => [Package] -> Path PackageDb
 readPackageGraph globalPackages globalPackageDb packageDb = do
   packageConfigs <- liftIO $ listPackageConfigs packageDb
   let globalValues = map (, GlobalPackage) globalPackages
-  let values = map (fmap PackageConfig) packageConfigs
+  let values = toValues packageConfigs
   dot <- readGhcPkg [globalPackageDb, packageDb] ["dot"]
   fromDot (globalValues ++ values) dot >>= liftIO . addAddSourceHashes packageDb
+  where
+    toValues :: [CachedPackage] -> [(Package, PackageLocation)]
+    toValues packages = [(p, PackageConfig c) | CachedPackage p c <- packages]
 
 addSourceHashesFile :: FilePath
 addSourceHashesFile = "add-source.yaml"
@@ -128,7 +137,7 @@ listSandboxes (Path cacheDir) = map Path <$> listEntries
     listEntries = listDirectories cacheDir >>= filterM isValidCacheEntry
 
 populateCache :: forall m . (MonadIO m, MonadMask m, Fail m, Process m) =>
-  Path CacheDir -> Path AddSourceCache -> [Package] -> [(Package, Path PackageConfig)] -> m [Path PackageConfig]
+  Path CacheDir -> Path AddSourceCache -> [Package] -> [CachedPackage] -> m [CachedPackage]
 populateCache cacheDir addSourceCache missing reusable = do
   basename <- takeBaseName <$> liftIO getCurrentDirectory
   sandbox <- liftIO $ createTempDirectory (path cacheDir) (basename ++ "-")
@@ -136,19 +145,19 @@ populateCache cacheDir addSourceCache missing reusable = do
   list sandbox
   where
     installPlan :: [Package]
-    installPlan = missing ++ map fst reusable
+    installPlan = missing ++ map cachedPackageName reusable
 
     populate sandbox = do
       withCurrentDirectory sandbox $ do
-        packageDb <- initSandbox (map (addSourcePath addSourceCache) addSourceHashes) (map snd reusable)
+        packageDb <- initSandbox (map (addSourcePath addSourceCache) addSourceHashes) (map cachedPackageConfig reusable)
         writeAddSourceHashes packageDb
         liftIO $ writeFile validMarker ""
         callProcess "cabal" ("install" : map showPackage installPlan)
 
-    list :: FilePath -> m [Path PackageConfig]
+    list :: FilePath -> m [CachedPackage]
     list sandbox = do
       sourcePackageDb <- findPackageDb (Path sandbox)
-      map snd <$> listPackageConfigs sourcePackageDb
+      listPackageConfigs sourcePackageDb
 
     writeAddSourceHashes packageDb
       | null addSourceHashes = return ()
@@ -156,4 +165,4 @@ populateCache cacheDir addSourceCache missing reusable = do
           liftIO $ encodeFile (path packageDb </> addSourceHashesFile) addSourceHashes
           recache packageDb
 
-    addSourceHashes = [AddSource name hash | Package name (Version _ (Just hash)) <- (missing ++ map fst reusable)]
+    addSourceHashes = [AddSource name hash | Package name (Version _ (Just hash)) <- (missing ++ map cachedPackageName reusable)]
