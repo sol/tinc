@@ -108,7 +108,7 @@ spec = do
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource = ("cabal", ["sandbox", "add-source", path addSourceCache </> "foo" </> "abc"], writeFile "add-source" "foo")
-                    cabalInstall = ("cabal", ["install", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
+                    cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
                     recache = ("ghc-pkg", ["--no-user-package-db", "recache", "--package-db", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
@@ -126,7 +126,7 @@ spec = do
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource packageCachePath =
                       ("cabal", ["sandbox", "add-source", path addSourceCache </> packageCachePath], return ())
-                    cabalInstall = ("cabal", ["install", "foo-0.1.0", "bar-0.1.0"], return ())
+                    cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0", "bar-0.1.0"], return ())
                     recache = ("ghc-pkg", ["--no-user-package-db", "recache", "--package-db", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
@@ -153,14 +153,14 @@ spec = do
   describe "listSandboxes" $ do
     it "lists sandboxes" $ do
       inTempDirectory $ do
-        touch "foo/tinc.valid.v2"
-        touch "bar/tinc.valid.v2"
+        touch "foo/tinc.valid.v3"
+        touch "bar/tinc.valid.v3"
         sandboxes <- listSandboxes "."
         sandboxes `shouldMatchList` ["./foo", "./bar"]
 
     it "rejects invalid sandboxes" $ do
       inTempDirectory $ do
-        touch "foo/tinc.valid.v2"
+        touch "foo/tinc.valid.v3"
         touch "bar/something"
         sandboxes <- listSandboxes "."
         sandboxes `shouldMatchList` ["./foo"]

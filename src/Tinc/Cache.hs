@@ -125,7 +125,7 @@ readCache ghcInfo cacheDir = do
   return (Cache globalPackages cache)
 
 validMarker :: FilePath
-validMarker = "tinc.valid.v2"
+validMarker = "tinc.valid.v3"
 
 listSandboxes :: Path CacheDir -> IO [Path Sandbox]
 listSandboxes (Path cacheDir) = map Path <$> listEntries
@@ -154,7 +154,7 @@ populateCache cacheDir addSourceCache missing reusable
         packageDb <- initSandbox (map (addSourcePath addSourceCache) addSourceHashes) (map cachedPackageConfig reusable)
         writeAddSourceHashes packageDb
         liftIO $ writeFile validMarker ""
-        callProcess "cabal" ("install" : map showPackage installPlan)
+        callProcess "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage installPlan)
 
     list :: FilePath -> m [CachedPackage]
     list sandbox = do
