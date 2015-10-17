@@ -11,7 +11,7 @@ module Tinc.Cache (
 
 #ifdef TEST
 , PackageLocation(..)
-, listPackageConfigs
+, listPackages
 , readPackageGraph
 , packageFromPackageConfig
 , readAddSourceHashes
@@ -62,12 +62,12 @@ findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusable
       where
         packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
 
-listPackageConfigs :: MonadIO m => Path PackageDb -> m [CachedPackage]
-listPackageConfigs p = do
+listPackages :: MonadIO m => Path PackageDb -> m [CachedPackage]
+listPackages p = do
   packageConfigs <- liftIO $ filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path p)
+  absolutePackageConfigs <- liftIO . mapM canonicalizePath $ map (path p </>) packageConfigs
   let packages = map packageFromPackageConfig packageConfigs
-      absolutePackageConfigs = map (Path . (path p </>)) packageConfigs
-  return (zipWith CachedPackage packages absolutePackageConfigs)
+  return (zipWith CachedPackage packages (map Path absolutePackageConfigs))
 
 packageFromPackageConfig :: FilePath -> Package
 packageFromPackageConfig = parsePackage . reverse . drop 1 . dropWhile (/= '-') . reverse
@@ -82,7 +82,7 @@ data PackageLocation = GlobalPackage | PackageConfig (Path PackageConfig)
 
 readPackageGraph :: (MonadIO m, Fail m, GhcPkg m) => [Package] -> Path PackageDb -> Path PackageDb -> m (PackageGraph PackageLocation)
 readPackageGraph globalPackages globalPackageDb packageDb = do
-  packageConfigs <- liftIO $ listPackageConfigs packageDb
+  packageConfigs <- liftIO $ listPackages packageDb
   let globalValues = map (, GlobalPackage) globalPackages
   let values = toValues packageConfigs
   dot <- readGhcPkg [globalPackageDb, packageDb] ["dot"]
@@ -159,7 +159,7 @@ populateCache cacheDir addSourceCache missing reusable
     list :: FilePath -> m [CachedPackage]
     list sandbox = do
       sourcePackageDb <- findPackageDb (Path sandbox)
-      listPackageConfigs sourcePackageDb
+      listPackages sourcePackageDb
 
     writeAddSourceHashes packageDb
       | null addSourceHashes = return ()

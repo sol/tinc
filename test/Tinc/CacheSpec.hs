@@ -37,7 +37,7 @@ instance GhcPkg (WithEnv ReadGhcPkgEnv) where
 
 spec :: Spec
 spec = do
-  describe "listPackageConfigs" $ do
+  describe "listPackages" $ do
     it "lists package configs in package database" $ withSystemTempDirectory "tinc" $ \ p -> do
       let packages = [
               CachedPackage (Package "foo" "2.1.7") (Path $ p </> "foo-2.1.7-8b77e2706d2c2c9243c5d86e44c11aa6.conf")
@@ -45,7 +45,7 @@ spec = do
             , CachedPackage (Package "baz" "0.6.1") (Path $ p </> "baz-0.6.1-91bc956c71d416cc2ca71cc535d34d6f.conf")
             ]
       mapM_ (touch . path . cachedPackageConfig) packages
-      listPackageConfigs (Path p) >>= (`shouldMatchList` packages)
+      listPackages (Path p) >>= (`shouldMatchList` packages)
 
   describe "packageFromPackageConfig" $ do
     it "parses package from package config path" $ do
