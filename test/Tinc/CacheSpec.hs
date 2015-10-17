@@ -13,10 +13,12 @@ import           Test.Mockery.Action
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Reader
+import           Data.List
 import qualified Data.Graph.Wrapper as G
 import           Safe
 import           System.FilePath
 import           System.IO.Temp
+import           System.Directory
 import           Test.Mockery.Directory
 
 import           Tinc.Cache
@@ -164,3 +166,25 @@ spec = do
         touch "bar/something"
         sandboxes <- listSandboxes "."
         sandboxes `shouldMatchList` ["./foo"]
+
+  describe "cachedExecutables" $ do
+    let sandbox = ".cabal-sandbox"
+        packageConfig = Path (sandbox </> "packages.conf.d/markdown-unlit-0.1.0-269c14.conf")
+        package = Package "markdown-unlit" "0.1.0"
+        cachedPackage = CachedPackage package packageConfig
+        executables = [
+            sandbox </> "bin/markdown-unlit-0.1.0/foo"
+          , sandbox </> "bin/markdown-unlit-0.1.0/bar"
+          ]
+    it "returns executables for specified package" $ do
+      inTempDirectory $ do
+        touch (path packageConfig)
+        mapM_ touch executables
+        dir <- getCurrentDirectory
+        cachedExecutables cachedPackage `shouldReturn` sort (map (dir </>) executables)
+
+    context "when package has no executables" $ do
+      it "returns empty list" $ do
+        inTempDirectory $ do
+          touch (path packageConfig)
+          cachedExecutables cachedPackage `shouldReturn` []

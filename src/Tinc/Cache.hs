@@ -7,6 +7,7 @@ module Tinc.Cache (
 , CachedPackage(..)
 , readCache
 , findReusablePackages
+, cachedExecutables
 , populateCache
 
 #ifdef TEST
@@ -49,6 +50,15 @@ data CachedPackage = CachedPackage {
   cachedPackageName :: Package
 , cachedPackageConfig :: Path PackageConfig
 } deriving (Eq, Show)
+
+cachedExecutables :: CachedPackage -> IO [FilePath]
+cachedExecutables (CachedPackage package (Path config)) = do
+  exists <- doesDirectoryExist binDir
+  if exists
+    then listDirectoryContents binDir >>= mapM canonicalizePath
+    else return []
+  where
+    binDir = dropFileName config </> ".." </> "bin" </> showPackage package
 
 findReusablePackages :: Cache -> [Package] -> [CachedPackage]
 findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusablePackages

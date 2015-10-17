@@ -115,7 +115,9 @@ printInstallPlan (InstallPlan reusable missing) = do
 
 realizeInstallPlan :: Path CacheDir -> Path AddSourceCache -> InstallPlan -> IO ()
 realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) = do
-  packageConfigs >>= void . initSandbox [] . map cachedPackageConfig
+  packages <- populateCache cacheDir addSourceCache missing reusable
+  void . initSandbox [] $ map cachedPackageConfig packages
+  mapM cachedExecutables packages >>= mapM_ linkExecutable . concat
   where
-    packageConfigs :: IO [CachedPackage]
-    packageConfigs = populateCache cacheDir addSourceCache missing reusable
+    linkExecutable :: FilePath -> IO ()
+    linkExecutable name = callProcess "ln" ["-s", name, cabalSandboxBinDirectory]

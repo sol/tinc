@@ -13,6 +13,7 @@ module Tinc.Sandbox (
 , AddSource(..)
 , AddSourceCache
 , addSourcePath
+, cabalSandboxBinDirectory
 ) where
 
 import           Prelude ()
@@ -47,6 +48,7 @@ initSandbox addSourceDependencies packageConfigs = do
   packageDb <- findPackageDb currentDirectory
   registerPackageConfigs packageDb packageConfigs
   mapM_ (\ dep -> callProcess "cabal" ["sandbox", "add-source", path dep]) addSourceDependencies
+  liftIO $ createDirectoryIfMissing False cabalSandboxBinDirectory
   return packageDb
 
 deleteSandbox :: (MonadIO m, Process m) => m ()
@@ -68,6 +70,9 @@ isPackageDb = ("-packages.conf.d" `isSuffixOf`)
 
 cabalSandboxDirectory :: FilePath
 cabalSandboxDirectory = ".cabal-sandbox"
+
+cabalSandboxBinDirectory :: FilePath
+cabalSandboxBinDirectory = cabalSandboxDirectory </> "bin"
 
 registerPackageConfigs :: (MonadIO m, Process m) => Path PackageDb -> [Path PackageConfig] -> m ()
 registerPackageConfigs _packageDb [] = return ()
