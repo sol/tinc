@@ -140,6 +140,16 @@ spec = do
             packageDb <- findPackageDb sandbox
             readAddSourceHashes packageDb `shouldReturn` [AddSource "foo" "abc", AddSource "bar" "def"]
 
+    context "when list of missing packages is empty" $ do
+      it "returns reusable packages" $ do
+        let mockedEnv = env {envReadProcess = undefined, envCallProcess = undefined}
+            reusable = [
+                CachedPackage (Package "foo" "0.1.0") "foo.conf"
+              , CachedPackage (Package "bar" "0.1.0") "bar.conf"
+              ]
+        withEnv mockedEnv (populateCache undefined undefined [] reusable)
+          `shouldReturn` reusable
+
   describe "listSandboxes" $ do
     it "lists sandboxes" $ do
       inTempDirectory $ do

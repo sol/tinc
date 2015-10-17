@@ -138,11 +138,13 @@ listSandboxes (Path cacheDir) = map Path <$> listEntries
 
 populateCache :: forall m . (MonadIO m, MonadMask m, Fail m, Process m) =>
   Path CacheDir -> Path AddSourceCache -> [Package] -> [CachedPackage] -> m [CachedPackage]
-populateCache cacheDir addSourceCache missing reusable = do
-  basename <- takeBaseName <$> liftIO getCurrentDirectory
-  sandbox <- liftIO $ createTempDirectory (path cacheDir) (basename ++ "-")
-  populate sandbox
-  list sandbox
+populateCache cacheDir addSourceCache missing reusable
+  | null missing = return reusable
+  | otherwise = do
+      basename <- takeBaseName <$> liftIO getCurrentDirectory
+      sandbox <- liftIO $ createTempDirectory (path cacheDir) (basename ++ "-")
+      populate sandbox
+      list sandbox
   where
     installPlan :: [Package]
     installPlan = missing ++ map cachedPackageName reusable

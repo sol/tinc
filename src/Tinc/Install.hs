@@ -118,6 +118,4 @@ realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) = do
   packageConfigs >>= void . initSandbox [] . map cachedPackageConfig
   where
     packageConfigs :: IO [CachedPackage]
-    packageConfigs
-      | null missing = return reusable
-      | otherwise = populateCache cacheDir addSourceCache missing reusable
+    packageConfigs = populateCache cacheDir addSourceCache missing reusable
