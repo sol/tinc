@@ -18,7 +18,6 @@ import           Prelude.Compat
 import           Control.Monad.Catch
 import           Control.Monad.Compat
 import           Control.Monad.IO.Class
-import           Data.Function
 import           Data.List.Compat
 import           System.Directory
 import           System.IO.Temp
@@ -31,7 +30,6 @@ import           Tinc.Fail
 import           Tinc.GhcInfo
 import qualified Tinc.Hpack as Hpack
 import           Tinc.Package
-import           Tinc.PackageGraph
 import           Tinc.Process
 import           Tinc.Sandbox
 import           Tinc.Types
@@ -122,15 +120,3 @@ realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) =
     packageConfigs
       | null missing = return (map snd reusable)
       | otherwise = populateCache cacheDir addSourceCache missing reusable
-
-findReusablePackages :: Cache -> [Package] -> [(Package, Path PackageConfig)]
-findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusablePackages
-  where
-    reusablePackages :: [(Package, Path PackageConfig)]
-    reusablePackages = nubBy ((==) `on` fst) (concatMap findReusable packageGraphs)
-
-    findReusable :: PackageGraph PackageLocation -> [(Package, Path PackageConfig)]
-    findReusable cacheGraph =
-      [(p, c) | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
-      where
-        packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)

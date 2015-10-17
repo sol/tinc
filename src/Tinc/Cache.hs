@@ -3,12 +3,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 module Tinc.Cache (
-  Cache(..)
-, PackageLocation(..)
+  Cache
 , readCache
+, findReusablePackages
 , populateCache
 
 #ifdef TEST
+, PackageLocation(..)
 , listPackageConfigs
 , readPackageGraph
 , packageFromPackageConfig
@@ -31,6 +32,7 @@ import           Data.Yaml
 import           System.Directory
 import           System.FilePath
 import           System.IO.Temp
+import           Data.Function
 
 import           Tinc.Fail
 import           Tinc.GhcInfo
@@ -41,6 +43,18 @@ import           Tinc.Process
 import           Tinc.Sandbox
 import           Tinc.Types
 import           Util
+
+findReusablePackages :: Cache -> [Package] -> [(Package, Path PackageConfig)]
+findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusablePackages
+  where
+    reusablePackages :: [(Package, Path PackageConfig)]
+    reusablePackages = nubBy ((==) `on` fst) (concatMap findReusable packageGraphs)
+
+    findReusable :: PackageGraph PackageLocation -> [(Package, Path PackageConfig)]
+    findReusable cacheGraph =
+      [(p, c) | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
+      where
+        packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
 
 listPackageConfigs :: MonadIO m => Path PackageDb -> m [(Package, Path PackageConfig)]
 listPackageConfigs p = do
