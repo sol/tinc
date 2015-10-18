@@ -39,20 +39,6 @@ instance GhcPkg (WithEnv ReadGhcPkgEnv) where
 
 spec :: Spec
 spec = do
-  describe "listPackages" $ do
-    it "lists package configs in package database" $ withSystemTempDirectory "tinc" $ \ p -> do
-      let packages = [
-              CachedPackage (Package "foo" "2.1.7") (Path $ p </> "foo-2.1.7-8b77e2706d2c2c9243c5d86e44c11aa6.conf")
-            , CachedPackage (Package "bar" "0.0.0") (Path $ p </> "bar-0.0.0-57c8091ea57afec62c051eda2322cc2f.conf")
-            , CachedPackage (Package "baz" "0.6.1") (Path $ p </> "baz-0.6.1-91bc956c71d416cc2ca71cc535d34d6f.conf")
-            ]
-      mapM_ (touch . path . cachedPackageConfig) packages
-      listPackages (Path p) >>= (`shouldMatchList` packages)
-
-  describe "packageFromPackageConfig" $ do
-    it "parses package from package config path" $ do
-      packageFromPackageConfig "hspec-core-2.1.7-8b77e2706d2c2c9243c5d86e44c11aa6.conf" `shouldBe` Package "hspec-core" "2.1.7"
-
   describe "readPackageGraph" $ do
     context "when a package has no dependencies and no other packages depend on it" $ do
       it "includes package" $ do

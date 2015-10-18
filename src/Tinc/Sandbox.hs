@@ -10,10 +10,18 @@ module Tinc.Sandbox (
 , findPackageDb
 , initSandbox
 , recache
+
 , AddSource(..)
 , AddSourceCache
 , addSourcePath
 , cabalSandboxBinDirectory
+
+, listPackages
+
+#ifdef TEST
+, packageFromPackageConfig
+, registerPackage
+#endif
 ) where
 
 import           Prelude ()
@@ -26,11 +34,13 @@ import           Data.Aeson.Types
 import           Data.List.Compat
 import           Data.Maybe
 import           GHC.Generics
-import           System.Directory
+import           System.Directory hiding (getDirectoryContents)
 import           System.FilePath
 
+import           Util
 import           Tinc.Fail
 import           Tinc.GhcPkg
+import           Tinc.Package
 import           Tinc.Process
 import           Tinc.Types
 
@@ -77,9 +87,21 @@ cabalSandboxBinDirectory = cabalSandboxDirectory </> "bin"
 registerPackageConfigs :: (MonadIO m, Process m) => Path PackageDb -> [Path PackageConfig] -> m ()
 registerPackageConfigs _packageDb [] = return ()
 registerPackageConfigs packageDb packages = do
-  forM_ packages $ \ package ->
-    liftIO $ copyFile (path package) (path packageDb </> takeFileName (path package))
+  liftIO $ forM_ packages (registerPackage packageDb)
   recache packageDb
+
+registerPackage :: Path PackageDb -> Path PackageConfig -> IO ()
+registerPackage packageDb package = linkFile (path package) (path packageDb)
+
+listPackages :: MonadIO m => Path PackageDb -> m [(Package, Path PackageConfig)]
+listPackages p = do
+  packageConfigs <- liftIO $ filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path p)
+  absolutePackageConfigs <- liftIO . mapM canonicalizePath $ map (path p </>) packageConfigs
+  let packages = map packageFromPackageConfig packageConfigs
+  return (zip packages (map Path absolutePackageConfigs))
+
+packageFromPackageConfig :: FilePath -> Package
+packageFromPackageConfig = parsePackage . reverse . drop 1 . dropWhile (/= '-') . reverse
 
 recache :: Process m => Path PackageDb -> m ()
 recache packageDb = callProcess "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDb]

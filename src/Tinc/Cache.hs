@@ -14,7 +14,6 @@ module Tinc.Cache (
 , PackageLocation(..)
 , listPackages
 , readPackageGraph
-, packageFromPackageConfig
 , readAddSourceHashes
 , addAddSourceHashes
 , listSandboxes
@@ -72,16 +71,6 @@ findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusable
       where
         packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
 
-listPackages :: MonadIO m => Path PackageDb -> m [CachedPackage]
-listPackages p = do
-  packageConfigs <- liftIO $ filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path p)
-  absolutePackageConfigs <- liftIO . mapM canonicalizePath $ map (path p </>) packageConfigs
-  let packages = map packageFromPackageConfig packageConfigs
-  return (zipWith CachedPackage packages (map Path absolutePackageConfigs))
-
-packageFromPackageConfig :: FilePath -> Package
-packageFromPackageConfig = parsePackage . reverse . drop 1 . dropWhile (/= '-') . reverse
-
 data Cache = Cache {
   _cacheGlobalPackages :: [Package]
 , _cachePackageGraphs :: [PackageGraph PackageLocation]
@@ -94,12 +83,9 @@ readPackageGraph :: (MonadIO m, Fail m, GhcPkg m) => [Package] -> Path PackageDb
 readPackageGraph globalPackages globalPackageDb packageDb = do
   packageConfigs <- liftIO $ listPackages packageDb
   let globalValues = map (, GlobalPackage) globalPackages
-  let values = toValues packageConfigs
+  let values = map (fmap PackageConfig) packageConfigs
   dot <- readGhcPkg [globalPackageDb, packageDb] ["dot"]
   fromDot (globalValues ++ values) dot >>= liftIO . addAddSourceHashes packageDb
-  where
-    toValues :: [CachedPackage] -> [(Package, PackageLocation)]
-    toValues packages = [(p, PackageConfig c) | CachedPackage p c <- packages]
 
 addSourceHashesFile :: FilePath
 addSourceHashesFile = "add-source.yaml"
@@ -169,7 +155,7 @@ populateCache cacheDir addSourceCache missing reusable
     list :: FilePath -> m [CachedPackage]
     list sandbox = do
       sourcePackageDb <- findPackageDb (Path sandbox)
-      listPackages sourcePackageDb
+      map (uncurry CachedPackage) <$> listPackages sourcePackageDb
 
     writeAddSourceHashes packageDb
       | null addSourceHashes = return ()

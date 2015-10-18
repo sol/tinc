@@ -12,9 +12,15 @@ import           GHC.Fingerprint
 import           System.Directory hiding (getDirectoryContents)
 import qualified System.Directory as Directory
 import           System.FilePath
+import           System.Process
 
 strip :: String -> String
 strip = dropWhile isSpace . reverse . dropWhile isSpace . reverse
+
+linkFile :: FilePath -> FilePath -> IO ()
+linkFile src_ dst = do
+  src <- canonicalizePath src_
+  callProcess "ln" ["-s", src, dst]
 
 withCurrentDirectory :: (MonadIO m, MonadMask m) => FilePath -> m a -> m a
 withCurrentDirectory dir action = do

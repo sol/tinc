@@ -120,4 +120,4 @@ realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) = do
   mapM cachedExecutables packages >>= mapM_ linkExecutable . concat
   where
     linkExecutable :: FilePath -> IO ()
-    linkExecutable name = callProcess "ln" ["-s", name, cabalSandboxBinDirectory]
+    linkExecutable name = linkFile name cabalSandboxBinDirectory
