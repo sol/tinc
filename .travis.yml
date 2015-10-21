@@ -2,7 +2,7 @@ sudo: false
 
 env:
   - GHCVER=7.8.4
-  - GHCVER=7.10.1
+  - GHCVER=7.10.2
 
 addons:
   apt:
@@ -10,7 +10,7 @@ addons:
       - hvr-ghc
     packages:
       - ghc-7.8.4
-      - ghc-7.10.1
+      - ghc-7.10.2
       - cabal-install-1.22
 
 before_install:
@@ -18,7 +18,6 @@ before_install:
   - ghc --version
   - cabal --version
   - travis_retry cabal update
-  - cabal install hspec-discover
   - mkdir -p $HOME/.local/bin
   - (cd $HOME/.local/bin && wget https://s3-ap-southeast-1.amazonaws.com/zalora-public/tinc && chmod +x ./tinc)
 
