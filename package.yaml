@@ -53,10 +53,9 @@ tests:
     cpp-options: -DTEST
 
   acceptance:
-    main: "Spec.hs"
+    main: AcceptanceSpec
     source-dirs:
       - acceptance
-      - test
     dependencies:
       - hspec
       - hspec-expectations

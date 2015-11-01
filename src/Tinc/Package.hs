@@ -9,6 +9,7 @@ module Tinc.Package (
 ) where
 
 import           Data.List
+import           Data.String
 
 import           Tinc.Fail
 
@@ -25,6 +26,9 @@ data Version = Version {
   versionNumber :: String
 , versionAddSourceHash :: Maybe String
 } deriving (Eq, Ord, Show)
+
+instance IsString Version where
+  fromString version = Version version Nothing
 
 showPackage :: Package -> String
 showPackage (Package name version) = name ++ "-" ++ showVersion version
