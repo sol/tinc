@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ViewPatterns #-}
 module InstallSpec (spec) where
 
 import           Prelude ()
@@ -33,7 +32,7 @@ spec = do
           "cabal-version:  >= 1.8"
           "library"
           "  build-depends:"
-          "      generics-sop"
+          "      generics-sop == 0.1.1.2"
           "    , setenv == 0.1.1.3"
 
         putStrLn "X populates cache"

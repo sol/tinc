@@ -29,8 +29,13 @@ tinc args = do
     ["--dry-run"] -> withCacheLock factsCache $
       installDependencies factsGhcInfo True factsCache factsAddSourceCache
     ["--version"] -> putStrLn $(gitHash)
-    name : rest | Just plugin <- lookup name factsPlugins -> callProcess plugin rest
+    name : rest | Just plugin <- lookup name factsPlugins -> callPlugin plugin rest
     _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)
+
+callPlugin :: String -> [String] -> IO ()
+callPlugin name args = do
+  pid <- spawnProcess name args
+  waitForProcess pid >>= throwIO
 
 withCacheLock :: Path CacheDir -> IO a -> IO a
 withCacheLock cache action = do
