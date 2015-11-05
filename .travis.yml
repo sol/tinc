@@ -27,11 +27,11 @@ install:
   - tinc
 
 script:
-  - cabal configure --enable-tests --ghc-options=-Werror --disable-optimization && cabal build && cabal test
+  - cabal configure --enable-tests --ghc-options=-Werror && cabal build && cabal test
 
 before_deploy:
   - mkdir -p build
-  - cp dist/build/tinc/tinc
+  - cp dist/build/tinc/tinc build
 
 deploy:
   provider: s3
