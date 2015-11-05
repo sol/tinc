@@ -1,5 +1,7 @@
 sudo: false
 
+language: c
+
 env:
   - GHCVER=7.8.4
   - GHCVER=7.10.2
@@ -15,11 +17,11 @@ addons:
 
 before_install:
   - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/1.22/bin:$PATH
+  - (mkdir -p $HOME/.local/bin && cd $HOME/.local/bin && wget https://zalora-public.s3.amazonaws.com/tinc && chmod +x tinc)
   - ghc --version
   - cabal --version
   - travis_retry cabal update
-  - mkdir -p $HOME/.local/bin
-  - (cd $HOME/.local/bin && wget https://s3-ap-southeast-1.amazonaws.com/zalora-public/tinc && chmod +x ./tinc)
+  - sed -i 's/^jobs:/-- jobs:/' ${HOME}/.cabal/config
 
 install:
   - tinc
