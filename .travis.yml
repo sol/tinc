@@ -42,7 +42,6 @@ deploy:
   bucket: zalora-public
   local_dir: build
   skip_cleanup: true
-  acl: public_read
   on:
     condition: $GHCVER = 7.10.2
 
