@@ -29,6 +29,22 @@ install:
 script:
   - cabal configure --enable-tests --ghc-options=-Werror --disable-optimization && cabal build && cabal test
 
+before_deploy:
+  - mkdir -p build
+  - cp dist/build/tinc/tinc
+
+deploy:
+  provider: s3
+  access_key_id: AKIAIBUWFUF2B6KL7ZGQ
+  secret_access_key:
+    secure: "eCCtfBOqWfqvmPXv+1BkKAg4bimWDU6i+xuWEeGDQdg45rUjuven/u96xMLA3VdLsUOw3xq7fYIjZDDHCDHHG2DsE7j3g9LpQfw58Qw+ou3jOmdCvc7ZsEA4uV5Hs/xQ7KAsEyqr6x2z0Uf+cN6YgUcmTdvAoAe88awMDZ1QqHfMR9T7n50/Q/IUxPvzj2V5Fbqv5vadXG9TiTTsDg0eRQDtFCCSGE033oIphu/YjMuwSYtJQM9ss9m4WOLuhSveDa4ayLz7sboS2eh/umDv5TIT6rjFrjalgqluv97ZOuikfk+yuFCRqQfH6SsvoGZrn7i/TJgEmXfMDk4ODOqWHJop2Uragu5zBKPN7UCDvx5pADLmJQAy0uSBEmQNiNcfggIN4HQEyfo+1Lx9W28BAPmxlygyQmhQuq1gJZg/WnOPGEWAfogvXIxAJJKPNpM+pXAS50Wx7OrwazO0SG7buwORNeL9hIY834xhI3pAeyMT7TZYsQuQp6+QyHYP6CDJAE/cnqjEqfPXG6qgjuJ3Udeksa/id5PdW748m62sfLszz5VYWCt7XdZuD3I5+8zL79adQufPmZRdDdD0E4/1HrLsu8H5nlM+wSNOxnLRZmGfeYThCh1ITUxbpxVEO2zvr4LtdiKA5O8w3COqLX+rdbFL/evTGbapQihnKgUmicE="
+  bucket: zalora-public
+  local_dir: build
+  skip_cleanup: true
+  acl: public_read
+  on:
+    condition: $GHCVER = 7.10.2
+
 cache:
   directories:
     - $HOME/.tinc/cache
