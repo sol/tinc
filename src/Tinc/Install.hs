@@ -7,6 +7,7 @@ module Tinc.Install (
   installDependencies
 #ifdef TEST
 , cabalInstallPlan
+, cabalDryInstall
 , copyFreezeFile
 , generateCabalFile
 #endif
@@ -22,11 +23,13 @@ import           Data.List.Compat
 import           System.Directory hiding (getDirectoryContents)
 import           System.IO.Temp
 import           System.FilePath
+import           Control.Exception (IOException)
 
 import qualified Hpack.Config as Hpack
 import           Tinc.Cache
 import           Tinc.Config
 import           Tinc.Fail
+import           Tinc.Freeze
 import           Tinc.GhcInfo
 import qualified Tinc.Hpack as Hpack
 import           Tinc.Package
@@ -67,12 +70,11 @@ cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => [Hpack.Depend
 cabalInstallPlan additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
   liftIO $ copyFreezeFile dir
   cabalFile <- liftIO (generateCabalFile additionalDeps)
-  let command :: [String]
-      command = "install" : "--only-dependencies" : "--enable-tests" : "--dry-run" : []
+  constraints <- liftIO readFreezeFile
   withCurrentDirectory dir $ do
     liftIO $ uncurry writeFile cabalFile
     _ <- initSandbox (map (addSourcePath addSourceCache) addSourceDependencies) []
-    map addAddSourceHash <$> (readProcess "cabal" command "" >>= parseInstallPlan)
+    map addAddSourceHash <$> cabalDryInstall ["--only-dependencies", "--enable-tests"] constraints
   where
     addAddSourceHash :: Package -> Package
     addAddSourceHash p@(Package name version) = case lookup name addSourceHashes of
@@ -80,6 +82,18 @@ cabalInstallPlan additionalDeps addSourceCache addSourceDependencies = withSyste
       Nothing -> p
 
     addSourceHashes = [(name, rev) | AddSource name rev <- addSourceDependencies]
+
+cabalDryInstall :: (Fail m, Process m, MonadCatch m) => [String] -> [String] -> m [Package]
+cabalDryInstall args constraints = go >>= parseInstallPlan
+  where
+    install xs = readProcess "cabal" ("install" : "--dry-run" : xs) ""
+
+    go = do
+      r <- try $ install (args ++ constraints)
+      case r of
+        Left _ | (not . null) constraints -> install args
+        Left err -> throwM (err :: IOException)
+        Right s -> return s
 
 copyFreezeFile :: FilePath -> IO ()
 copyFreezeFile dst = do
@@ -118,6 +132,7 @@ realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) = do
   packages <- populateCache cacheDir addSourceCache missing reusable
   void . initSandbox [] $ map cachedPackageConfig packages
   mapM cachedExecutables packages >>= mapM_ linkExecutable . concat
+  writeFreezeFile (missing ++ map cachedPackageName reusable)
   where
     linkExecutable :: FilePath -> IO ()
     linkExecutable name = linkFile name cabalSandboxBinDirectory

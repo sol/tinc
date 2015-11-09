@@ -45,10 +45,26 @@ createCachedAddSourceDependency addSourceCache AddSource{..} version = do
 
 spec :: Spec
 spec = do
-  let cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
+  before_ (unlessTravis $ pendingWith "too slow") $ do
+    describe "cabalDryInstall" $ do
+      it "takes constraints into account" $ do
+        inTempDirectory $ do
+          _ <- initSandbox [] []
+          installPlan <- cabalDryInstall ["hspec"] ["--constraint=hspec-core == 2.0.2"]
+          installPlan `shouldContain` [Package "hspec-core" "2.0.2"]
+
+      context "when constraints can not be satisfied" $ do
+        it "retries without constraints" $ do
+          inTempDirectory $ do
+            _ <- initSandbox [] []
+            installPlan <- cabalDryInstall ["hspec-2.2.0"] ["--constraint=hspec-core == 2.0.2"]
+            installPlan `shouldContain` [Package "hspec-core" "2.2.0"]
 
   describe "cabalInstallPlan" $ do
-    let withCabalFile action = inTempDirectory $ do
+
+    let cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
+
+        withCabalFile action = inTempDirectory $ do
           writeCabalFile "foo" "0.0.0" ["setenv <= 0.1.1.3"]
           getCurrentDirectory >>= action
 
@@ -61,7 +77,7 @@ spec = do
         mockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => Env
         mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = ?mockedCallProcess}
           where
-            mockedReadProcess = mock ("cabal", ["install", "--only-dependencies", "--enable-tests", "--dry-run"], "", ?cabalInstallResult)
+            mockedReadProcess = mock ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests"], "", ?cabalInstallResult)
 
         withMockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => WithEnv Env a -> IO a
         withMockedEnv = withEnv mockedEnv

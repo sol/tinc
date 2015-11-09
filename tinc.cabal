@@ -54,6 +54,7 @@ executable tinc
       Tinc.Cache
       Tinc.Config
       Tinc.Fail
+      Tinc.Freeze
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Hpack
@@ -103,6 +104,7 @@ test-suite acceptance
       Tinc.Cache
       Tinc.Config
       Tinc.Fail
+      Tinc.Freeze
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Hpack
@@ -154,6 +156,7 @@ test-suite spec
       Tinc.Cache
       Tinc.Config
       Tinc.Fail
+      Tinc.Freeze
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Hpack
@@ -174,6 +177,7 @@ test-suite spec
       Test.Mockery.ActionSpec
       Tinc.CacheSpec
       Tinc.ConfigSpec
+      Tinc.FreezeSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
       Tinc.HpackSpec
