@@ -60,7 +60,7 @@ createInstallPlan ghcInfo cacheDir installPlan = do
 solveDependencies :: Path AddSourceCache -> IO [Package]
 solveDependencies addSourceCache = do
   additionalDeps <- getAdditionalDependencies
-  addSourceDependencies <- Hpack.extractsAddSourceDependencies addSourceCache additionalDeps
+  addSourceDependencies <- Hpack.extractAddSourceDependencies addSourceCache additionalDeps
   cabalInstallPlan additionalDeps addSourceCache addSourceDependencies
 
 cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]

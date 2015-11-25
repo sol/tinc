@@ -5,7 +5,7 @@ module Tinc.Hpack (
 , doesConfigExist
 , render
 , mkPackage
-, extractsAddSourceDependencies
+, extractAddSourceDependencies
 
 #ifdef TEST
 , parseAddSourceDependencies
@@ -63,8 +63,8 @@ mkPackage deps = (Hpack.package "tinc-generated" "0.0.0"){Hpack.packageExecutabl
 mkExecutable :: [Hpack.Dependency] -> Hpack.Section Hpack.Executable
 mkExecutable deps = (Hpack.section $ Hpack.Executable "tinc-generated" "Generated.hs" []){Hpack.sectionDependencies = deps}
 
-extractsAddSourceDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [Sandbox.AddSource]
-extractsAddSourceDependencies addSourceCache addSourceDeps =
+extractAddSourceDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [Sandbox.AddSource]
+extractAddSourceDependencies addSourceCache addSourceDeps =
   parseAddSourceDependencies addSourceDeps >>= mapM (uncurry (cacheAddSourceDep addSourceCache))
 
 parseAddSourceDependencies :: [Hpack.Dependency] ->  IO [(String, Hpack.AddSource)]
