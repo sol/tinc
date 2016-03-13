@@ -4,16 +4,18 @@ import           Prelude ()
 import           Prelude.Compat
 
 import           Data.List.Compat
+import           Control.Monad.Compat
 import           Data.Maybe
 import           System.Directory
 import           System.FilePath
+import           Data.Function
 
 import           Tinc.GhcInfo
 import           Tinc.Sandbox
 import           Tinc.Types
 
-type Plugins = [(String, Plugin)]
-type Plugin = FilePath
+type Plugins = [Plugin]
+type Plugin = (String, FilePath)
 
 data Facts = Facts {
   factsCache :: Path CacheDir
@@ -40,7 +42,7 @@ setup = do
 
   createDirectoryIfMissing True (path cacheDir)
   createDirectoryIfMissing True pluginsDir
-  plugins <- listPlugins pluginsDir
+  plugins <- listAllPlugins pluginsDir
   return Facts {
     factsCache = cacheDir
   , factsAddSourceCache = addSourceCache
@@ -48,8 +50,24 @@ setup = do
   , factsGhcInfo = ghcInfo
   }
 
+listAllPlugins :: FilePath -> IO Plugins
+listAllPlugins pluginsDir = do
+  plugins <- listPlugins pluginsDir
+  pathPlugins <- getSearchPath >>= listPathPlugins
+  return (pathPlugins ++ plugins)
+
 listPlugins :: FilePath -> IO Plugins
 listPlugins pluginsDir = do
-  files <- mapMaybe (stripPrefix "tinc-") <$> getDirectoryContents pluginsDir
-  let f name = (name, pluginsDir </> "tinc-" ++ name)
-  return (map f files)
+  exists <- doesDirectoryExist pluginsDir
+  if exists
+    then do
+      files <- mapMaybe (stripPrefix "tinc-") <$> getDirectoryContents pluginsDir
+      let f name = (name, pluginsDir </> "tinc-" ++ name)
+      filterM isExecutable (map f files)
+    else return []
+
+isExecutable :: Plugin -> IO Bool
+isExecutable = fmap executable . getPermissions . snd
+
+listPathPlugins :: [FilePath] -> IO Plugins
+listPathPlugins = fmap (nubBy ((==) `on` fst) . concat) . mapM listPlugins
