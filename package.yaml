@@ -49,6 +49,7 @@ tests:
       - mockery >= 0.3.0
       - HUnit >= 1.3
       - safe
+      - unix
     cpp-options: -DTEST
 
   acceptance:

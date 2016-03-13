@@ -97,11 +97,11 @@ cabalDryInstall args constraints = go >>= parseInstallPlan
 
 copyFreezeFile :: FilePath -> IO ()
 copyFreezeFile dst = do
-  exists <- doesFileExist freezeFile
+  exists <- doesFileExist cabalFreezeFile
   when exists $ do
-    copyFile freezeFile (dst </> freezeFile)
+    copyFile cabalFreezeFile (dst </> cabalFreezeFile)
   where
-    freezeFile = "cabal.config"
+    cabalFreezeFile = "cabal.config"
 
 generateCabalFile :: [Hpack.Dependency] -> IO (FilePath, String)
 generateCabalFile deps = do

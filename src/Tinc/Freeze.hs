@@ -3,7 +3,11 @@
 module Tinc.Freeze (
   writeFreezeFile
 , readFreezeFile
+, freezeFile
 ) where
+
+import           Prelude ()
+import           Prelude.Compat
 
 import           Data.Aeson
 import qualified Data.ByteString as B
@@ -13,6 +17,9 @@ import           Data.List
 import qualified Data.Yaml as Yaml
 import           Hpack.Yaml
 import           GHC.Generics
+import           Control.Exception
+import           Control.Monad.Compat
+import           System.IO.Error
 import           System.Directory
 
 import           Tinc.Fail
@@ -43,9 +50,12 @@ instance ToJSON FreezeFile where
   toJSON = genericToJSON defaultOptions
 
 writeFreezeFile :: [Package] -> IO ()
-writeFreezeFile deps = B.writeFile freezeFile (Yaml.encode contents)
+writeFreezeFile deps = do
+  old <- either (const Nothing) Just <$> tryJust (guard . isDoesNotExistError) (B.readFile freezeFile)
+  unless (Just contents == old) $ do
+    B.writeFile freezeFile contents
   where
-    contents = FreezeFile (sortByName $ map toDependency deps)
+    contents = Yaml.encode $ FreezeFile (sortByName $ map toDependency deps)
 
 sortByName :: [Dependency] -> [Dependency]
 sortByName = sortBy $ comparing f
