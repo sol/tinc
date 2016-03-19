@@ -55,6 +55,7 @@ executable tinc
       Tinc.Config
       Tinc.Fail
       Tinc.Freeze
+      Tinc.Ghci
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Hpack
@@ -105,6 +106,7 @@ test-suite acceptance
       Tinc.Config
       Tinc.Fail
       Tinc.Freeze
+      Tinc.Ghci
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Hpack
@@ -158,6 +160,7 @@ test-suite spec
       Tinc.Config
       Tinc.Fail
       Tinc.Freeze
+      Tinc.Ghci
       Tinc.GhcInfo
       Tinc.GhcPkg
       Tinc.Hpack
@@ -180,6 +183,7 @@ test-suite spec
       Tinc.ConfigSpec
       Tinc.FreezeSpec
       Tinc.GhcInfoSpec
+      Tinc.GhciSpec
       Tinc.GhcPkgSpec
       Tinc.HpackSpec
       Tinc.InstallSpec
