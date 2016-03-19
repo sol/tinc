@@ -16,7 +16,7 @@ class (Functor m, Applicative m, Monad m) => Fail m where
       message
     , "This is most likely a bug.  Please report an issue at:"
     , ""
-    , "  https://github.com/zalora/tinc/issues"
+    , "  https://github.com/sol/tinc/issues"
     ]
 
 instance Fail IO where

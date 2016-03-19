@@ -1,11 +1,12 @@
 name: tinc
 version: 0.1.0
 category: Development
-license: "BSD3"
-author: "Sönke Hahn"
-copyright: "Sönke Hahn"
-maintainer: "soenkehahn@gmail.com"
-github: haskell-tinc/tinc
+license: MIT
+copyright: (c) 2015-2016 Simon Hengel
+author: Simon Hengel <sol@typeful.net>
+maintainer: Simon Hengel <sol@typeful.net>
+
+github: sol/tinc
 
 extra-source-files:
   - test/resources/*

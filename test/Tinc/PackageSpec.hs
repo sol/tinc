@@ -37,7 +37,7 @@ spec = do
           , ""
           , "This is most likely a bug.  Please report an issue at:"
           , ""
-          , "  https://github.com/zalora/tinc/issues"
+          , "  https://github.com/sol/tinc/issues"
           ]
 
   describe "parsePackage" $ do
