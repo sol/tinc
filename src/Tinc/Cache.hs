@@ -11,6 +11,9 @@ module Tinc.Cache (
 , populateCache
 
 #ifdef TEST
+, PopulateCacheAction(..)
+, populateCacheAction
+
 , PackageLocation(..)
 , listPackages
 , readPackageGraph
@@ -98,6 +101,13 @@ readAddSourceHashes packageDb = do
     then B.readFile file >>= either (dieLoc __FILE__) return . decodeEither
     else return []
 
+writeAddSourceHashes :: (MonadIO m, Process m) => Path PackageDb -> [AddSource] -> m ()
+writeAddSourceHashes packageDb addSourceHashes
+  | null addSourceHashes = return ()
+  | otherwise = do
+      liftIO $ encodeFile (path packageDb </> addSourceHashesFile) addSourceHashes
+      recache packageDb
+
 addAddSourceHash :: Map.Map String String -> Package -> PackageLocation -> Package
 addAddSourceHash hashes package location = case location of
   PackageConfig _ -> maybe package (\ hash -> setAddSourceHash hash package) (Map.lookup (packageName package) hashes)
@@ -132,6 +142,25 @@ listSandboxes (Path cacheDir) = map Path <$> listEntries
     listEntries :: IO [FilePath]
     listEntries = listDirectories cacheDir >>= filterM isValidCacheEntry
 
+data PopulateCacheAction = PopulateCacheAction {
+  populateCacheActionInstallPlan :: [Package]
+, populateCacheActionAddSource :: [Path AddSource]
+, populateCacheActionWriteAddSourceHashes :: [AddSource]
+} deriving (Eq, Show)
+
+populateCacheAction :: Path AddSourceCache -> [Package] -> [CachedPackage] -> PopulateCacheAction
+populateCacheAction addSourceCache missing reusable = PopulateCacheAction {
+    populateCacheActionInstallPlan = installPlan
+  , populateCacheActionAddSource = addSource
+  , populateCacheActionWriteAddSourceHashes = [AddSource name hash | Package name (Version _ (Just hash)) <- (missing ++ map cachedPackageName reusable)]
+  }
+  where
+    installPlan :: [Package]
+    installPlan = missing ++ [p | p@(Package _ (Version _ Nothing)) <- map cachedPackageName reusable]
+
+    addSource :: [Path AddSource]
+    addSource = map (addSourcePath addSourceCache) [AddSource name hash | Package name (Version _ (Just hash)) <- missing]
+
 populateCache :: forall m . (MonadIO m, MonadMask m, Fail m, Process m) =>
   Path CacheDir -> Path AddSourceCache -> [Package] -> [CachedPackage] -> m [CachedPackage]
 populateCache cacheDir addSourceCache missing reusable
@@ -142,25 +171,17 @@ populateCache cacheDir addSourceCache missing reusable
       populate sandbox
       list sandbox
   where
-    installPlan :: [Package]
-    installPlan = missing ++ map cachedPackageName reusable
+    PopulateCacheAction{..} = populateCacheAction addSourceCache missing reusable
 
+    populate :: FilePath -> m ()
     populate sandbox = do
       withCurrentDirectory sandbox $ do
-        packageDb <- initSandbox (map (addSourcePath addSourceCache) addSourceHashes) (map cachedPackageConfig reusable)
-        writeAddSourceHashes packageDb
+        packageDb <- initSandbox populateCacheActionAddSource (map cachedPackageConfig reusable)
+        writeAddSourceHashes packageDb populateCacheActionWriteAddSourceHashes
         liftIO $ writeFile validMarker ""
-        callProcess "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage installPlan)
+        callProcess "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage populateCacheActionInstallPlan)
 
     list :: FilePath -> m [CachedPackage]
     list sandbox = do
       sourcePackageDb <- findPackageDb (Path sandbox)
       map (uncurry CachedPackage) <$> listPackages sourcePackageDb
-
-    writeAddSourceHashes packageDb
-      | null addSourceHashes = return ()
-      | otherwise = do
-          liftIO $ encodeFile (path packageDb </> addSourceHashesFile) addSourceHashes
-          recache packageDb
-
-    addSourceHashes = [AddSource name hash | Package name (Version _ (Just hash)) <- (missing ++ map cachedPackageName reusable)]

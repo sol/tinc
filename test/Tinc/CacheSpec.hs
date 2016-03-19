@@ -84,6 +84,28 @@ spec = do
         addAddSourceHashes packageDb graph `shouldReturn`
           G.fromList [(foo, fooConfig, [])]
 
+  describe "populateCacheAction" $ do
+    let addSourceCache = "/path/to/add-source-cache"
+
+    it "adds add-source dependencies to the sandbox" $ do
+      let missing = [Package "foo" (Version "0.1.0" $ Just "foo-hash")]
+      populateCacheActionAddSource (populateCacheAction addSourceCache missing []) `shouldBe`
+        ["/path/to/add-source-cache/foo/foo-hash"]
+
+    it "does not add reusable add-source dependencies to the sandbox" $ do
+      let reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "/foo"]
+      populateCacheActionAddSource (populateCacheAction addSourceCache [] reusable) `shouldBe` []
+
+    it "does not include reusable add-source dependencies in the install plan" $ do
+      let reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "/foo"]
+      populateCacheActionInstallPlan (populateCacheAction addSourceCache [] reusable) `shouldBe` []
+
+    it "stores hashes of add-source dependencies in the cache" $ do
+      let missing = [Package "foo" (Version "0.1.0" $ Just "foo-hash")]
+          reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "/foo"]
+      populateCacheActionWriteAddSourceHashes (populateCacheAction addSourceCache missing reusable) `shouldBe`
+        [AddSource "foo" "foo-hash", AddSource "bar" "bar-hash"]
+
   describe "populateCache" $ do
     let mockedReadProcess = mockMany ([] :: [(String, [String], String, IO String)])
         cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
@@ -114,7 +136,7 @@ spec = do
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource packageCachePath =
                       ("cabal", ["sandbox", "add-source", path addSourceCache </> packageCachePath], return ())
-                    cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0", "bar-0.1.0"], return ())
+                    cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], return ())
                     recache = ("ghc-pkg", ["--no-user-package-db", "recache", "--package-db", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
