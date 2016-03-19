@@ -101,12 +101,10 @@ readAddSourceHashes packageDb = do
     then B.readFile file >>= either (dieLoc __FILE__) return . decodeEither
     else return []
 
-writeAddSourceHashes :: (MonadIO m, Process m) => Path PackageDb -> [AddSource] -> m ()
+writeAddSourceHashes :: Path PackageDb -> [AddSource] -> IO ()
 writeAddSourceHashes packageDb addSourceHashes
   | null addSourceHashes = return ()
-  | otherwise = do
-      liftIO $ encodeFile (path packageDb </> addSourceHashesFile) addSourceHashes
-      recache packageDb
+  | otherwise = encodeFile (path packageDb </> addSourceHashesFile) addSourceHashes
 
 addAddSourceHash :: Map.Map String String -> Package -> PackageLocation -> Package
 addAddSourceHash hashes package location = case location of
@@ -169,19 +167,15 @@ populateCache cacheDir addSourceCache missing reusable
       basename <- takeBaseName <$> liftIO getCurrentDirectory
       sandbox <- liftIO $ createTempDirectory (path cacheDir) (basename ++ "-")
       populate sandbox
-      list sandbox
   where
     PopulateCacheAction{..} = populateCacheAction addSourceCache missing reusable
 
-    populate :: FilePath -> m ()
+    populate :: FilePath -> m [CachedPackage]
     populate sandbox = do
       withCurrentDirectory sandbox $ do
         packageDb <- initSandbox populateCacheActionAddSource (map cachedPackageConfig reusable)
-        writeAddSourceHashes packageDb populateCacheActionWriteAddSourceHashes
-        liftIO $ writeFile validMarker ""
+        liftIO $ do
+          writeAddSourceHashes packageDb populateCacheActionWriteAddSourceHashes
+          writeFile validMarker ""
         callProcess "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage populateCacheActionInstallPlan)
-
-    list :: FilePath -> m [CachedPackage]
-    list sandbox = do
-      sourcePackageDb <- findPackageDb (Path sandbox)
-      map (uncurry CachedPackage) <$> listPackages sourcePackageDb
+        map (uncurry CachedPackage) <$> listPackages packageDb
