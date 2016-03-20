@@ -69,8 +69,8 @@ findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusable
     reusablePackages = nubBy ((==) `on` cachedPackageName) (concatMap findReusable packageGraphs)
 
     findReusable :: PackageGraph PackageLocation -> [CachedPackage]
-    findReusable cacheGraph =
-      [CachedPackage p c | (p, PackageConfig c)  <- calculateReusablePackages packages cacheGraph]
+    findReusable packageGraph =
+      [CachedPackage p c | (p, PackageConfig c)  <- calculateReusablePackages packages packageGraph]
       where
         packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
 
