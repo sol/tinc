@@ -89,22 +89,30 @@ spec = do
 
     it "adds add-source dependencies to the sandbox" $ do
       let missing = [Package "foo" (Version "0.1.0" $ Just "foo-hash")]
-      populateCacheActionAddSource (populateCacheAction addSourceCache missing []) `shouldBe`
-        ["/path/to/add-source-cache/foo/foo-hash"]
+      populateCacheActionAddSource <$> populateCacheAction addSourceCache missing [] `shouldBe`
+        Right ["/path/to/add-source-cache/foo/foo-hash"]
 
     it "does not add reusable add-source dependencies to the sandbox" $ do
-      let reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "/foo"]
-      populateCacheActionAddSource (populateCacheAction addSourceCache [] reusable) `shouldBe` []
+      let missing = [Package "foo" "0.1.0"]
+          reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "bar.conf"]
+      populateCacheActionAddSource <$> populateCacheAction addSourceCache missing reusable `shouldBe` Right []
 
     it "does not include reusable add-source dependencies in the install plan" $ do
-      let reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "/foo"]
-      populateCacheActionInstallPlan (populateCacheAction addSourceCache [] reusable) `shouldBe` []
+      let missing = [Package "foo" "0.1.0"]
+          reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "bar.conf"]
+      populateCacheActionInstallPlan <$> populateCacheAction addSourceCache missing reusable `shouldBe` Right missing
 
     it "stores hashes of add-source dependencies in the cache" $ do
       let missing = [Package "foo" (Version "0.1.0" $ Just "foo-hash")]
-          reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "/foo"]
-      populateCacheActionWriteAddSourceHashes (populateCacheAction addSourceCache missing reusable) `shouldBe`
-        [AddSource "foo" "foo-hash", AddSource "bar" "bar-hash"]
+          reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "bar.conf"]
+      populateCacheActionWriteAddSourceHashes <$> populateCacheAction addSourceCache missing reusable `shouldBe`
+        Right [AddSource "foo" "foo-hash", AddSource "bar" "bar-hash"]
+
+    context "when list of missing packages is empty" $ do
+      let missing = []
+      it "returns reusable packages" $ do
+        let reusable = [CachedPackage (Package "foo" "0.1.0") "foo.conf", CachedPackage (Package "bar" "0.2.0") "bar.conf"]
+        populateCacheAction addSourceCache missing reusable `shouldBe` Left reusable
 
   describe "populateCache" $ do
     let mockedReadProcess = mockMany ([] :: [(String, [String], String, IO String)])

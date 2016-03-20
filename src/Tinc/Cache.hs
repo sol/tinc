@@ -146,8 +146,10 @@ data PopulateCacheAction = PopulateCacheAction {
 , populateCacheActionWriteAddSourceHashes :: [AddSource]
 } deriving (Eq, Show)
 
-populateCacheAction :: Path AddSourceCache -> [Package] -> [CachedPackage] -> PopulateCacheAction
-populateCacheAction addSourceCache missing reusable = PopulateCacheAction {
+populateCacheAction :: Path AddSourceCache -> [Package] -> [CachedPackage] -> Either [CachedPackage] PopulateCacheAction
+populateCacheAction addSourceCache missing reusable
+  | null missing = Left reusable
+  | otherwise = Right PopulateCacheAction {
     populateCacheActionInstallPlan = installPlan
   , populateCacheActionAddSource = addSource
   , populateCacheActionWriteAddSourceHashes = [AddSource name hash | Package name (Version _ (Just hash)) <- (missing ++ map cachedPackageName reusable)]
@@ -159,19 +161,11 @@ populateCacheAction addSourceCache missing reusable = PopulateCacheAction {
     addSource :: [Path AddSource]
     addSource = map (addSourcePath addSourceCache) [AddSource name hash | Package name (Version _ (Just hash)) <- missing]
 
-populateCache :: forall m . (MonadIO m, MonadMask m, Fail m, Process m) =>
-  Path CacheDir -> Path AddSourceCache -> [Package] -> [CachedPackage] -> m [CachedPackage]
-populateCache cacheDir addSourceCache missing reusable
-  | null missing = return reusable
-  | otherwise = do
-      basename <- takeBaseName <$> liftIO getCurrentDirectory
-      sandbox <- liftIO $ createTempDirectory (path cacheDir) (basename ++ "-")
-      populate sandbox
+populateCache :: (MonadIO m, MonadMask m, Fail m, Process m) => Path CacheDir -> Path AddSourceCache -> [Package] -> [CachedPackage] -> m [CachedPackage]
+populateCache cacheDir addSourceCache missing reusable = either return populate (populateCacheAction addSourceCache missing reusable)
   where
-    PopulateCacheAction{..} = populateCacheAction addSourceCache missing reusable
-
-    populate :: FilePath -> m [CachedPackage]
-    populate sandbox = do
+    populate PopulateCacheAction{..} = do
+      sandbox <- liftIO $ newCacheEntry cacheDir
       withCurrentDirectory sandbox $ do
         packageDb <- initSandbox populateCacheActionAddSource (map cachedPackageConfig reusable)
         liftIO $ do
@@ -179,3 +173,8 @@ populateCache cacheDir addSourceCache missing reusable
           writeFile validMarker ""
         callProcess "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage populateCacheActionInstallPlan)
         map (uncurry CachedPackage) <$> listPackages packageDb
+
+newCacheEntry :: Path CacheDir -> IO FilePath
+newCacheEntry cacheDir = do
+  basename <- takeBaseName <$> getCurrentDirectory
+  createTempDirectory (path cacheDir) (basename ++ "-")
