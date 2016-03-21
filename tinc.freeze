@@ -30,7 +30,7 @@ dependencies:
 - name: hashable
   version: '1.2.4.0'
 - name: hpack
-  version: '0.11.0'
+  version: '0.11.1'
 - name: hspec
   version: '2.2.2'
 - name: hspec-core

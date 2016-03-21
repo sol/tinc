@@ -46,7 +46,7 @@ readConfig additionalDeps = Hpack.readPackageConfig Hpack.packageConfig >>= eith
     addDependencies :: Hpack.Package -> Hpack.Package
     addDependencies p
       | null additionalDeps = p
-      | otherwise = p { Hpack.packageName = "tinc-generated", Hpack.packageExecutables = mkExecutable additionalDeps : Hpack.packageExecutables p }
+      | otherwise = (Hpack.renamePackage "tinc-generated" p) {Hpack.packageExecutables = mkExecutable additionalDeps : Hpack.packageExecutables p}
 
 doesConfigExist :: IO Bool
 doesConfigExist = doesFileExist Hpack.packageConfig
