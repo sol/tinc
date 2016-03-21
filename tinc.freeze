@@ -86,13 +86,15 @@ dependencies:
 - name: temporary
   version: '1.2.0.4'
 - name: text
-  version: '1.2.2.0'
+  version: '1.2.2.1'
 - name: tf-random
   version: '0.5'
 - name: transformers-base
   version: '0.4.4'
 - name: transformers-compat
   version: '0.5.1.4'
+- name: unix-compat
+  version: '0.4.1.4'
 - name: unordered-containers
   version: '0.2.7.0'
 - name: vector

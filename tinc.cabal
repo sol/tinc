@@ -49,6 +49,7 @@ executable tinc
     , yaml
     , Cabal == 1.22.*
     , gitrev
+    , unix-compat
   other-modules:
       Run
       Tinc.Cache
@@ -95,6 +96,7 @@ test-suite acceptance
     , yaml
     , Cabal == 1.22.*
     , gitrev
+    , unix-compat
     , hspec
     , hspec-expectations
     , mockery
@@ -147,6 +149,7 @@ test-suite spec
     , yaml
     , Cabal == 1.22.*
     , gitrev
+    , unix-compat
     , hspec
     , mockery >= 0.3.0
     , HUnit >= 1.3

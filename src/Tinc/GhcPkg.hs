@@ -22,14 +22,11 @@ instance GhcPkg IO where
   readGhcPkg (packageDbsToArgs -> packageDbs) args = do
     readProcess "ghc-pkg" ("--no-user-package-db" : "--simple-output" : packageDbs ++ args) ""
 
-listPackages :: GhcPkg m => [Path PackageDb] -> m [Package]
-listPackages packageDbs = parsePackages <$> readGhcPkg packageDbs ["list"]
+listGlobalPackages :: GhcPkg m => m [Package]
+listGlobalPackages = parsePackages <$> readGhcPkg [] ["list"]
   where
     parsePackages :: String -> [Package]
     parsePackages = map parsePackage . words
-
-listGlobalPackages :: GhcPkg m => m [Package]
-listGlobalPackages = listPackages []
 
 packageDbsToArgs :: [Path PackageDb] -> [String]
 packageDbsToArgs packageDbs = concatMap (\ packageDb -> ["--package-db", path packageDb]) packageDbs

@@ -58,6 +58,7 @@ spec = do
 
               mockedEnv = ghcPkgEnv {envReadGhcPkg = mock (packageDbs, ["dot"], return graph)}
           touch $ path packageConfig
+          touch $ path packageDb </> "package.cache"
 
           withEnv mockedEnv (readPackageGraph [] globalPackageDb packageDb)
             `shouldReturn` G.fromList [(package, PackageConfig packageConfig, [])]

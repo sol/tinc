@@ -15,7 +15,6 @@ module Tinc.Cache (
 , populateCacheAction
 
 , PackageLocation(..)
-, listPackages
 , readPackageGraph
 , readAddSourceHashes
 , addAddSourceHashes
@@ -36,6 +35,7 @@ import           Data.Yaml
 import           System.Directory hiding (getDirectoryContents)
 import           System.FilePath
 import           System.IO.Temp
+import           System.PosixCompat.Files
 import           Data.Function
 
 import           Tinc.Fail
@@ -87,8 +87,24 @@ readPackageGraph globalPackages globalPackageDb packageDb = do
   packageConfigs <- liftIO $ listPackages packageDb
   let globalValues = map (, GlobalPackage) globalPackages
   let values = map (fmap PackageConfig) packageConfigs
-  dot <- readGhcPkg [globalPackageDb, packageDb] ["dot"]
+  dot <- readDotFile
   fromDot (globalValues ++ values) dot >>= liftIO . addAddSourceHashes packageDb
+  where
+    dotFile = path packageDb </> "packages.dot"
+    readDotFile = do
+      exists <- liftIO $ doesFileExist dotFile
+      if exists
+        then do
+          liftIO $ readFile dotFile
+        else do
+          dot <- readGhcPkg [globalPackageDb, packageDb] ["dot"]
+          liftIO $ do
+            writeFile dotFile dot
+            touchPackageCache packageDb
+          return dot
+
+touchPackageCache :: Path PackageDb -> IO ()
+touchPackageCache packageDb = touchFile (path packageDb </> "package.cache")
 
 addSourceHashesFile :: FilePath
 addSourceHashesFile = "add-source.yaml"
@@ -104,7 +120,9 @@ readAddSourceHashes packageDb = do
 writeAddSourceHashes :: Path PackageDb -> [AddSource] -> IO ()
 writeAddSourceHashes packageDb addSourceHashes
   | null addSourceHashes = return ()
-  | otherwise = encodeFile (path packageDb </> addSourceHashesFile) addSourceHashes
+  | otherwise = do
+      encodeFile (path packageDb </> addSourceHashesFile) addSourceHashes
+      touchPackageCache packageDb
 
 addAddSourceHash :: Map.Map String String -> Package -> PackageLocation -> Package
 addAddSourceHash hashes package location = case location of

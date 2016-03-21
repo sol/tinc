@@ -33,6 +33,7 @@ dependencies:
   - yaml
   - Cabal == 1.22.*
   - gitrev
+  - unix-compat
 
 source-dirs: src
 
