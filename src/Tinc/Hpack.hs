@@ -41,12 +41,12 @@ import           Tinc.Types
 import           Util
 
 readConfig :: [Hpack.Dependency] -> IO Hpack.Package
-readConfig deps = Hpack.readPackageConfig Hpack.packageConfig >>= either die (return . addDependencies . snd)
+readConfig additionalDeps = Hpack.readPackageConfig Hpack.packageConfig >>= either die (return . addDependencies . snd)
   where
     addDependencies :: Hpack.Package -> Hpack.Package
     addDependencies p
-      | null deps = p
-      | otherwise = p { Hpack.packageName = "tinc-generated", Hpack.packageExecutables = mkExecutable deps : Hpack.packageExecutables p }
+      | null additionalDeps = p
+      | otherwise = p { Hpack.packageName = "tinc-generated", Hpack.packageExecutables = mkExecutable additionalDeps : Hpack.packageExecutables p }
 
 doesConfigExist :: IO Bool
 doesConfigExist = doesFileExist Hpack.packageConfig

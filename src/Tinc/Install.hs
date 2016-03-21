@@ -104,23 +104,26 @@ copyFreezeFile dst = do
     cabalFreezeFile = "cabal.config"
 
 generateCabalFile :: [Hpack.Dependency] -> IO (FilePath, String)
-generateCabalFile deps = do
-  exists <- Hpack.doesConfigExist
-  if exists
-    then Hpack.render <$> Hpack.readConfig deps
-    else do
-      files <- filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
-      if (null deps || (not . null) files)
-        then copyCabalFile files
-        else do
-          let package = Hpack.mkPackage deps
-          return (Hpack.render package)
+generateCabalFile additionalDeps = do
+  hasHpackConfig <- Hpack.doesConfigExist
+  cabalFiles <- filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
+  case cabalFiles of
+    _ | hasHpackConfig -> renderHpack
+    [] | not (null additionalDeps) -> generate
+    [cabalFile] -> reuseExisting cabalFile
+    [] -> die "No cabal file found."
+    _ -> die "Multiple cabal files found."
   where
-    copyCabalFile files = do
-      case files of
-        [file] -> (,) file <$> readFile file
-        [] -> die "No cabal file found."
-        _ -> die "Multiple cabal files found."
+    renderHpack :: IO (FilePath, String)
+    renderHpack = Hpack.render <$> Hpack.readConfig additionalDeps
+
+    generate :: IO (FilePath, String)
+    generate = do
+      let package = Hpack.mkPackage additionalDeps
+      return (Hpack.render package)
+
+    reuseExisting :: FilePath -> IO (FilePath, String)
+    reuseExisting file = (,) file <$> readFile file
 
 printInstallPlan :: InstallPlan -> IO ()
 printInstallPlan (InstallPlan reusable missing) = do
