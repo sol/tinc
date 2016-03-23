@@ -1,2 +1,2 @@
 #!/bin/sh
-tinc exec sensei "$@"
+cabal exec -- sensei "$@"

@@ -1,2 +1,2 @@
 #!/bin/sh
-tinc exec ghci "$@"
+cabal exec -- ghci "$@"
