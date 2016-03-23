@@ -1,4 +1,4 @@
-module Tinc.Setup where
+module Tinc.Facts where
 
 import           Prelude ()
 import           Prelude.Compat
@@ -24,8 +24,8 @@ data Facts = Facts {
 , factsGhcInfo :: GhcInfo
 } deriving (Eq, Show)
 
-setup :: IO Facts
-setup = do
+discoverFacts :: IO Facts
+discoverFacts = do
   ghcInfo <- getGhcInfo
   home <- getHomeDirectory
   let pluginsDir :: FilePath

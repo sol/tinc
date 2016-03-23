@@ -35,15 +35,16 @@ import qualified Tinc.Hpack as Hpack
 import           Tinc.Package
 import           Tinc.Process
 import           Tinc.Sandbox
+import           Tinc.Facts
 import           Tinc.Types
 import           Util
 
-installDependencies :: GhcInfo -> Bool -> Path CacheDir -> Path AddSourceCache -> IO ()
-installDependencies ghcInfo dryRun cacheDir addSourceCache = do
-      solveDependencies addSourceCache
-  >>= createInstallPlan ghcInfo cacheDir
+installDependencies :: Bool -> Facts -> IO ()
+installDependencies dryRun Facts{..} = do
+      solveDependencies factsAddSourceCache
+  >>= createInstallPlan factsGhcInfo factsCache
   >>= tee printInstallPlan
-  >>= unless dryRun . realizeInstallPlan cacheDir addSourceCache
+  >>= unless dryRun . realizeInstallPlan factsCache factsAddSourceCache
   where
     tee :: Monad m => (a -> m ()) -> a -> m a
     tee action a = action a >> return a

@@ -11,7 +11,7 @@ import           System.Process
 
 import           Tinc.Types
 import           Tinc.GhcInfo
-import           Tinc.Setup
+import           Tinc.Facts
 
 mkExecutable :: FilePath -> IO ()
 mkExecutable p = do
@@ -20,7 +20,7 @@ mkExecutable p = do
 
 spec :: Spec
 spec = do
-  describe "setup" $ beforeAll setup $ do
+  describe "discoverFacts" $ beforeAll discoverFacts $ do
     it "includes GHC version in cache directory" $ \ facts -> do
       path (factsCache facts) `shouldContain` ghcInfoVersion (factsGhcInfo facts)
 

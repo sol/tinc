@@ -15,6 +15,7 @@ import           Test.Mockery.Directory
 import           Run (unsetEnvVars)
 import           Tinc.GhcInfo
 import           Tinc.Install
+import           Tinc.Facts
 import           Tinc.Types
 import           Util
 
@@ -31,7 +32,7 @@ spec = do
       unsetEnvVars
 
       ghcInfo <- getGhcInfo
-      let tinc = installDependencies ghcInfo False cacheDir (error (__FILE__ ++ ": factsAddSourceCache"))
+      let tinc = installDependencies False Facts { factsGhcInfo = ghcInfo, factsCache = cacheDir, factsAddSourceCache = undefined, factsPlugins = undefined }
 
       createDirectoryIfMissing True (path cacheDir)
 

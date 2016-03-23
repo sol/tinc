@@ -10,7 +10,7 @@ import           System.FilePath
 import           System.Process
 
 import           Tinc.Install
-import           Tinc.Setup
+import           Tinc.Facts
 import           Tinc.Types
 
 unsetEnvVars :: IO ()
@@ -22,15 +22,16 @@ unsetEnvVars = do
 tinc :: [String] -> IO ()
 tinc args = do
   unsetEnvVars
-  Facts{..} <- setup
+  facts@Facts{..} <- discoverFacts
   case args of
     [] -> withCacheLock factsCache $
-      installDependencies factsGhcInfo False factsCache factsAddSourceCache
+      installDependencies False facts
     ["--dry-run"] -> withCacheLock factsCache $
-      installDependencies factsGhcInfo True factsCache factsAddSourceCache
+      installDependencies True facts
     ["--version"] -> putStrLn $(gitHash)
     name : rest | Just plugin <- lookup name factsPlugins -> callPlugin plugin rest
     _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)
+
 
 callPlugin :: String -> [String] -> IO ()
 callPlugin name args = do
