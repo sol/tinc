@@ -1,4 +1,4 @@
-module Tinc.SetupSpec (spec) where
+module Tinc.FactsSpec (spec) where
 
 import           Prelude ()
 import           Prelude.Compat

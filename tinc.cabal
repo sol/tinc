@@ -181,6 +181,7 @@ test-suite spec
       Test.Mockery.ActionSpec
       Tinc.CacheSpec
       Tinc.ConfigSpec
+      Tinc.FactsSpec
       Tinc.FreezeSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
@@ -189,6 +190,5 @@ test-suite spec
       Tinc.PackageGraphSpec
       Tinc.PackageSpec
       Tinc.SandboxSpec
-      Tinc.SetupSpec
       UtilSpec
   default-language: Haskell2010
