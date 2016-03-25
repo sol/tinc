@@ -52,6 +52,7 @@ tests:
       - HUnit >= 1.3
       - safe
       - unix
+      - with-location
     cpp-options: -DTEST
 
   acceptance:

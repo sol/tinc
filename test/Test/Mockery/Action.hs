@@ -1,18 +1,19 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Test.Mockery.Action where
 
-import           Control.Exception
 import           Control.Monad.IO.Class
 import           Data.List
-import           Test.HUnit.Lang
+import           Test.Hspec
+import           Data.WithLocation
 
-mock :: Mockable a => a -> Action a
+mock :: WithLocation (Mockable a => a -> Action a)
 mock a = mockMany [a]
 
 class Mockable a where
   type Action a
-  mockMany :: [a] -> Action a
+  mockMany :: WithLocation([a] -> Action a)
 
 instance (MonadIO m, Eq a, Show a) => Mockable (a, m r) where
   type Action (a, m r) = a -> m r
@@ -38,12 +39,14 @@ instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Mockable (a, b
       actual = (a1, b1, c1)
       expected = map (\(a, b, c, r) -> ((a, b, c), r)) options
 
-unexpectedParameters :: (MonadIO m, Show a) => Bool -> [a] -> a -> m r
-unexpectedParameters pluralize expected actual = liftIO . throwIO . HUnitFailure Nothing . unlines $ [
-    message
-  , expectedMessage
-  , actualMessage
-  ]
+unexpectedParameters :: WithLocation ((MonadIO m, Show a) => Bool -> [a] -> a -> m r)
+unexpectedParameters pluralize expected actual = do
+  liftIO . expectationFailure . unlines $ [
+      message
+    , expectedMessage
+    , actualMessage
+    ]
+  return (error "Test.Mockery.Action.unexpectedParameters: This should never happen!")
   where
     message
       | pluralize = "Unexected parameters to mocked action!"
