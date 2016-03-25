@@ -11,6 +11,10 @@ hUnitFailure actual (HUnitFailure _ expected) = actual == expected
 
 spec :: Spec
 spec = do
+  describe "dummy" $ do
+    it "fails" $ do
+      (dummy "test" :: Int -> Int -> IO Int) 23 42 `shouldThrow` hUnitFailure "Unexpected call to dummy action: test"
+
   describe "stub" $ do
     context "with one parameter" $ do
       context "when receiving specified parameters" $ do
@@ -51,19 +55,19 @@ spec = do
             , " but got: " ++ show ("23", "42", "65")
             ]
 
-  describe "stubMany" $ do
-    context "with two parameters" $ do
-      context "when receiving specified parameters" $ do
-        it "returns specified value" $ do
-          stubMany [("foo", "bar", return "r"), ("foo", "baz", return "_")] "foo" "bar" `shouldReturn` "r"
+    context "when used with lists" $ do
+      context "with two parameters" $ do
+        context "when receiving specified parameters" $ do
+          it "returns specified value" $ do
+            stub [("foo", "bar", return "r"), ("foo", "baz", return "_")] "foo" "bar" `shouldReturn` "r"
 
-      context "when receiving unexpected parameters" $ do
-        it "throws an exception" $ do
-          stubMany [(10, 20, return ()), (23, 42, return ())] (23 :: Int) (65 :: Int) `shouldThrow` (hUnitFailure . unlines) [
-              "Unexected parameters to mocked action!"
-            , "expected one of: (10,20), (23,42)"
-            , "        but got: (23,65)"
-            ]
+        context "when receiving unexpected parameters" $ do
+          it "throws an exception" $ do
+            stub [(10, 20, return ()), (23, 42, return ())] (23 :: Int) (65 :: Int) `shouldThrow` (hUnitFailure . unlines) [
+                "Unexected parameters to mocked action!"
+              , "expected one of: (10,20), (23,42)"
+              , "        but got: (23,65)"
+              ]
 
   describe "expectOnce" $ do
     let
@@ -100,7 +104,3 @@ spec = do
       let stubbedAction = stub ("foo", "bar", "baz", return "r")
           call action = action "foo" "bar" "baz"
       expectOnceSpec stubbedAction call
-
-  describe "dummy" $ do
-    it "fails" $ do
-      (dummy "test" :: Int -> Int -> IO Int) 23 42 `shouldThrow` hUnitFailure "Unexpected call to dummy action: test"

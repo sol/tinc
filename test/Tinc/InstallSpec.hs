@@ -85,7 +85,7 @@ spec = do
         dependencyPath <- createCachedAddSourceDependency addSourceCache cachedDependency version
 
         let ?cabalInstallResult = readFile "cabal-output"
-            ?mockedCallProcess = stubMany [
+            ?mockedCallProcess = stub [
                 cabalSandboxInit
               , ("cabal", ["sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
               ]

@@ -122,7 +122,7 @@ spec = do
       inTempDirectory $ do
         withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
           withSystemTempDirectory "tinc" $ \ (Path -> addSourceCache) -> do
-            let mockedCallProcess command args = stubMany [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
+            let mockedCallProcess command args = stub [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource = ("cabal", ["sandbox", "add-source", path addSourceCache </> "foo" </> "abc"], writeFile "add-source" "foo")
@@ -139,7 +139,7 @@ spec = do
       inTempDirectory $ do
         withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
           withSystemTempDirectory "tinc" $ \ (Path -> addSourceCache) -> do
-            let mockedCallProcess command args = stubMany [cabalSandboxInit, cabalAddSource "foo/abc", cabalAddSource "bar/def", cabalInstall, recache] command args
+            let mockedCallProcess command args = stub [cabalSandboxInit, cabalAddSource "foo/abc", cabalAddSource "bar/def", cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource packageCachePath =

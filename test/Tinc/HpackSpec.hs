@@ -87,7 +87,7 @@ spec = do
                 createDirectory $ dst </> ".git"
                 writeFile (dst </> "hpack.cabal") "name: hpack"
               gitCheckout = ("git", ["reset", "--hard", "0.1.0"], writeFile "rev" (rev ++ "\n"))
-          stubMany [gitClone, gitCheckout] command args
+          stub [gitClone, gitCheckout] command args
 
         mockedReadProcess = stub ("git", ["rev-parse", "HEAD"], "", readFile "rev")
 

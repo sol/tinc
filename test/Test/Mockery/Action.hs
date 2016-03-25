@@ -6,7 +6,6 @@ module Test.Mockery.Action (
 , dummy
 , dummy_
 , Stub (..)
-, stub
 , ExpectCall (..)
 ) where
 
@@ -52,31 +51,40 @@ instance Dummy (a -> b -> c -> d -> e -> f -> IO r) where
     let err = "Unexpected call to dummy action" ++ maybe "!" (": " ++) name
     failure err
 
-stub :: WithLocation (Stub a => a -> Action a)
-stub a = stubMany [a]
-
 class Stub a where
-  type Action a
-  stubMany :: WithLocation([a] -> Action a)
+  type Action_ a
+  stub :: WithLocation(a -> Action_ a)
 
 instance (MonadIO m, Eq a, Show a) => Stub (a, m r) where
-  type Action (a, m r) = a -> m r
-  stubMany expected actual = case lookup actual expected of
+  type Action_ (a, m r) = (a -> m r)
+  stub option = stub [option]
+
+instance (MonadIO m, Eq a, Show a, Eq b, Show b) => Stub (a, b, m r) where
+  type Action_ (a, b, m r) = (a -> b -> m r)
+  stub option = stub [option]
+
+instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Stub (a, b, c, m r) where
+  type Action_ (a, b, c, m r) = (a -> b -> c -> m r)
+  stub option = stub [option]
+
+instance (MonadIO m, Eq a, Show a) => Stub [(a, m r)] where
+  type Action_ [(a, m r)] = a -> m r
+  stub expected actual = case lookup actual expected of
     Just r -> r
     _ -> unexpectedParameters False (map fst expected) actual
 
-instance (MonadIO m, Eq a, Show a, Eq b, Show b) => Stub (a, b, m r) where
-  type Action (a, b, m r) = (a -> b -> m r)
-  stubMany options a1 b1 = case lookup actual expected of
+instance (MonadIO m, Eq a, Show a, Eq b, Show b) => Stub [(a, b, m r)] where
+  type Action_ [(a, b, m r)] = (a -> b -> m r)
+  stub options a1 b1 = case lookup actual expected of
     Just r -> r
     _ -> unexpectedParameters True (map fst expected) actual
     where
       actual = (a1, b1)
       expected = map (\(a, b, r) -> ((a, b), r)) options
 
-instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Stub (a, b, c, m r) where
-  type Action (a, b, c, m r) = (a -> b -> c -> m r)
-  stubMany options a1 b1 c1 = case lookup actual expected of
+instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Stub [(a, b, c, m r)] where
+  type Action_ [(a, b, c, m r)] = (a -> b -> c -> m r)
+  stub options a1 b1 c1 = case lookup actual expected of
     Just r -> r
     _ -> unexpectedParameters True (map fst expected) actual
     where
