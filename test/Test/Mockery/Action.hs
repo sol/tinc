@@ -2,8 +2,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Test.Mockery.Action (
-  mock
-, Mockable (..)
+  Dummy (..)
+, dummy
+, dummy_
+, Stub (..)
+, stub
 , ExpectCall (..)
 ) where
 
@@ -14,31 +17,66 @@ import           Data.List
 import           Test.Hspec
 import           Data.WithLocation
 
-mock :: WithLocation (Mockable a => a -> Action a)
-mock a = mockMany [a]
+failure :: WithLocation (String -> IO a)
+failure err = expectationFailure err >> return undefined
 
-class Mockable a where
+dummy :: WithLocation (Dummy a => String -> a)
+dummy = dummyNamed . Just
+
+dummy_ :: WithLocation (Dummy a => a)
+dummy_ = dummyNamed Nothing
+
+class Dummy a where
+  dummyNamed :: WithLocation (Maybe String -> a)
+
+instance Dummy (IO r) where
+  dummyNamed name = dummyNamed name ()
+
+instance Dummy (a -> IO r) where
+  dummyNamed name = dummyNamed name ()
+
+instance Dummy (a -> b -> IO r) where
+  dummyNamed name = dummyNamed name ()
+
+instance Dummy (a -> b -> c -> IO r) where
+  dummyNamed name = dummyNamed name ()
+
+instance Dummy (a -> b -> c -> d -> IO r) where
+  dummyNamed name = dummyNamed name ()
+
+instance Dummy (a -> b -> c -> d -> e -> IO r) where
+  dummyNamed name = dummyNamed name ()
+
+instance Dummy (a -> b -> c -> d -> e -> f -> IO r) where
+  dummyNamed name _ _ _ _ _ _ = do
+    let err = "Unexpected call to dummy action" ++ maybe "!" (": " ++) name
+    failure err
+
+stub :: WithLocation (Stub a => a -> Action a)
+stub a = stubMany [a]
+
+class Stub a where
   type Action a
-  mockMany :: WithLocation([a] -> Action a)
+  stubMany :: WithLocation([a] -> Action a)
 
-instance (MonadIO m, Eq a, Show a) => Mockable (a, m r) where
+instance (MonadIO m, Eq a, Show a) => Stub (a, m r) where
   type Action (a, m r) = a -> m r
-  mockMany expected actual = case lookup actual expected of
+  stubMany expected actual = case lookup actual expected of
     Just r -> r
     _ -> unexpectedParameters False (map fst expected) actual
 
-instance (MonadIO m, Eq a, Show a, Eq b, Show b) => Mockable (a, b, m r) where
+instance (MonadIO m, Eq a, Show a, Eq b, Show b) => Stub (a, b, m r) where
   type Action (a, b, m r) = (a -> b -> m r)
-  mockMany options a1 b1 = case lookup actual expected of
+  stubMany options a1 b1 = case lookup actual expected of
     Just r -> r
     _ -> unexpectedParameters True (map fst expected) actual
     where
       actual = (a1, b1)
       expected = map (\(a, b, r) -> ((a, b), r)) options
 
-instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Mockable (a, b, c, m r) where
+instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Stub (a, b, c, m r) where
   type Action (a, b, c, m r) = (a -> b -> c -> m r)
-  mockMany options a1 b1 c1 = case lookup actual expected of
+  stubMany options a1 b1 c1 = case lookup actual expected of
     Just r -> r
     _ -> unexpectedParameters True (map fst expected) actual
     where
@@ -47,12 +85,11 @@ instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Mockable (a, b
 
 unexpectedParameters :: WithLocation ((MonadIO m, Show a) => Bool -> [a] -> a -> m r)
 unexpectedParameters pluralize expected actual = do
-  liftIO . expectationFailure . unlines $ [
+  liftIO . failure . unlines $ [
       message
     , expectedMessage
     , actualMessage
     ]
-  return (error "Test.Mockery.Action.unexpectedParameters: This should never happen!")
   where
     message
       | pluralize = "Unexected parameters to mocked action!"
@@ -91,5 +128,4 @@ instance ExpectCall (a -> b -> c -> d -> e -> f -> IO r) where
     inner wrapped <* do
       n <- readIORef ref
       unless (n == 1) $ do
-        expectationFailure ("Expected to be called once, but it was called " ++ show n ++ " times instead!")
-        return undefined
+        failure ("Expected to be called once, but it was called " ++ show n ++ " times instead!")

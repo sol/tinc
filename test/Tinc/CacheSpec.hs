@@ -56,7 +56,7 @@ spec = do
               globalPackageDb = "/path/to/global/package.conf.d"
               packageDbs = [globalPackageDb, packageDb]
 
-              mockedEnv = ghcPkgEnv {envReadGhcPkg = mock (packageDbs, ["dot"], return graph)}
+              mockedEnv = ghcPkgEnv {envReadGhcPkg = stub (packageDbs, ["dot"], return graph)}
           touch $ path packageConfig
           touch $ path packageDb </> "package.cache"
 
@@ -116,21 +116,20 @@ spec = do
         populateCacheAction addSourceCache missing reusable `shouldBe` Left reusable
 
   describe "populateCache" $ do
-    let mockedReadProcess = mockMany ([] :: [(String, [String], String, IO String)])
-        cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
+    let cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
 
     it "uses add-source dependencies" $
       inTempDirectory $ do
         withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
           withSystemTempDirectory "tinc" $ \ (Path -> addSourceCache) -> do
-            let mockedCallProcess command args = mockMany [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
+            let mockedCallProcess command args = stubMany [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource = ("cabal", ["sandbox", "add-source", path addSourceCache </> "foo" </> "abc"], writeFile "add-source" "foo")
                     cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
                     recache = ("ghc-pkg", ["--no-user-package-db", "recache", "--package-db", packageDb], return ())
 
-                mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
+                mockedEnv = env {envReadProcess = dummy "envReadProcess", envCallProcess = mockedCallProcess}
             _ <- withEnv mockedEnv $
               populateCache cache addSourceCache [Package "foo" "0.1.0"{versionAddSourceHash = Just "abc"}] []
             [sandbox] <- listSandboxes cache
@@ -140,7 +139,7 @@ spec = do
       inTempDirectory $ do
         withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
           withSystemTempDirectory "tinc" $ \ (Path -> addSourceCache) -> do
-            let mockedCallProcess command args = mockMany [cabalSandboxInit, cabalAddSource "foo/abc", cabalAddSource "bar/def", cabalInstall, recache] command args
+            let mockedCallProcess command args = stubMany [cabalSandboxInit, cabalAddSource "foo/abc", cabalAddSource "bar/def", cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource packageCachePath =
@@ -148,7 +147,7 @@ spec = do
                     cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], return ())
                     recache = ("ghc-pkg", ["--no-user-package-db", "recache", "--package-db", packageDb], return ())
 
-                mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
+                mockedEnv = env {envReadProcess = dummy "envReadProcess", envCallProcess = mockedCallProcess}
             let barPackageConfig = Path (path cache </> "foo")
             touch $ path barPackageConfig
             _ <- withEnv mockedEnv $

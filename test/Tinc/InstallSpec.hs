@@ -62,7 +62,7 @@ spec = do
         mockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => Env
         mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = ?mockedCallProcess}
           where
-            mockedReadProcess = mock ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests"], "", ?cabalInstallResult)
+            mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests"], "", ?cabalInstallResult)
 
         withMockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => WithEnv Env a -> IO a
         withMockedEnv = withEnv mockedEnv
@@ -70,7 +70,7 @@ spec = do
     it "returns install plan" $ do
       withCabalFile $ \_ -> do
         let ?cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
-            ?mockedCallProcess = mock cabalSandboxInit
+            ?mockedCallProcess = stub cabalSandboxInit
         withMockedEnv (cabalInstallPlan facts [] undefined []) `shouldReturn` [Package "setenv" "0.1.1.3"]
 
     it "takes add-source dependencies into account" $ do
@@ -85,7 +85,7 @@ spec = do
         dependencyPath <- createCachedAddSourceDependency addSourceCache cachedDependency version
 
         let ?cabalInstallResult = readFile "cabal-output"
-            ?mockedCallProcess = mockMany [
+            ?mockedCallProcess = stubMany [
                 cabalSandboxInit
               , ("cabal", ["sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
               ]

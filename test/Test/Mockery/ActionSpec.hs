@@ -11,15 +11,15 @@ hUnitFailure actual (HUnitFailure _ expected) = actual == expected
 
 spec :: Spec
 spec = do
-  describe "mock" $ do
+  describe "stub" $ do
     context "with one parameter" $ do
       context "when receiving specified parameters" $ do
         it "returns specified value" $ do
-          mock ("foo", return "r") "foo" `shouldReturn` "r"
+          stub ("foo", return "r") "foo" `shouldReturn` "r"
 
       context "when receiving unexpected parameters" $ do
         it "throws an exception" $ do
-          mock ("foo", return "r") "bar" `shouldThrow` (hUnitFailure . unlines) [
+          stub ("foo", return "r") "bar" `shouldThrow` (hUnitFailure . unlines) [
               "Unexected parameter to mocked action!"
             , "expected: " ++ show "foo"
             , " but got: " ++ show "bar"
@@ -28,11 +28,11 @@ spec = do
     context "with two parameters" $ do
       context "when receiving specified parameters" $ do
         it "returns specified value" $ do
-          mock ("foo", "bar", return "r") "foo" "bar" `shouldReturn` "r"
+          stub ("foo", "bar", return "r") "foo" "bar" `shouldReturn` "r"
 
       context "when receiving unexpected parameters" $ do
         it "throws an exception" $ do
-          mock ("foo", "bar", return "r") "23" "42" `shouldThrow` (hUnitFailure . unlines) [
+          stub ("foo", "bar", return "r") "23" "42" `shouldThrow` (hUnitFailure . unlines) [
               "Unexected parameters to mocked action!"
             , "expected: " ++ show ("foo", "bar")
             , " but got: " ++ show ("23", "42")
@@ -41,25 +41,25 @@ spec = do
     context "with three parameters" $ do
       context "when receiving specified parameters" $ do
         it "returns specified value" $ do
-          mock ("foo", "bar", "baz", return "r") "foo" "bar" "baz" `shouldReturn` "r"
+          stub ("foo", "bar", "baz", return "r") "foo" "bar" "baz" `shouldReturn` "r"
 
       context "when receiving unexpected parameters" $ do
         it "throws an exception" $ do
-          mock ("foo", "bar", "baz", return "r") "23" "42" "65" `shouldThrow` (hUnitFailure . unlines) [
+          stub ("foo", "bar", "baz", return "r") "23" "42" "65" `shouldThrow` (hUnitFailure . unlines) [
               "Unexected parameters to mocked action!"
             , "expected: " ++ show ("foo", "bar", "baz")
             , " but got: " ++ show ("23", "42", "65")
             ]
 
-  describe "mockMany" $ do
+  describe "stubMany" $ do
     context "with two parameters" $ do
       context "when receiving specified parameters" $ do
         it "returns specified value" $ do
-          mockMany [("foo", "bar", return "r"), ("foo", "baz", return "_")] "foo" "bar" `shouldReturn` "r"
+          stubMany [("foo", "bar", return "r"), ("foo", "baz", return "_")] "foo" "bar" `shouldReturn` "r"
 
       context "when receiving unexpected parameters" $ do
         it "throws an exception" $ do
-          mockMany [(10, 20, return ()), (23, 42, return ())] (23 :: Int) (65 :: Int) `shouldThrow` (hUnitFailure . unlines) [
+          stubMany [(10, 20, return ()), (23, 42, return ())] (23 :: Int) (65 :: Int) `shouldThrow` (hUnitFailure . unlines) [
               "Unexected parameters to mocked action!"
             , "expected one of: (10,20), (23,42)"
             , "        but got: (23,65)"
@@ -67,36 +67,40 @@ spec = do
 
   describe "expectOnce" $ do
     let
-      expectOnceSpec mockedAction call = do
+      expectOnceSpec stubbedAction call = do
         context "when action is called once" $ do
           it "passes" $ do
-            expectOnce mockedAction $ \action -> do
+            expectOnce stubbedAction $ \action -> do
               call action
             `shouldReturn` "r"
 
         context "when action is called multiple times" $ do
           it "fails" $ do
-            expectOnce mockedAction $ \action -> do
+            expectOnce stubbedAction $ \action -> do
               replicateM_ 10 (call action)
             `shouldThrow` hUnitFailure "Expected to be called once, but it was called 10 times instead!"
 
         context "when action is not called" $ do
           it "fails" $ do
-            expectOnce mockedAction $ \_ -> do
+            expectOnce stubbedAction $ \_ -> do
               return ()
             `shouldThrow` hUnitFailure "Expected to be called once, but it was called 0 times instead!"
 
     context "with one parameter" $ do
-      let mockedAction = mock ("foo", return "r")
+      let stubbedAction = stub ("foo", return "r")
           call action = action "foo"
-      expectOnceSpec mockedAction call
+      expectOnceSpec stubbedAction call
 
     context "with two parameters" $ do
-      let mockedAction = mock ("foo", "bar", return "r")
+      let stubbedAction = stub ("foo", "bar", return "r")
           call action = action "foo" "bar"
-      expectOnceSpec mockedAction call
+      expectOnceSpec stubbedAction call
 
     context "with three parameters" $ do
-      let mockedAction = mock ("foo", "bar", "baz", return "r")
+      let stubbedAction = stub ("foo", "bar", "baz", return "r")
           call action = action "foo" "bar" "baz"
-      expectOnceSpec mockedAction call
+      expectOnceSpec stubbedAction call
+
+  describe "dummy" $ do
+    it "fails" $ do
+      (dummy "test" :: Int -> Int -> IO Int) 23 42 `shouldThrow` hUnitFailure "Unexpected call to dummy action: test"
