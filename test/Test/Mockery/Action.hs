@@ -1,9 +1,15 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
-module Test.Mockery.Action where
+module Test.Mockery.Action (
+  mock
+, Mockable (..)
+, ExpectCall (..)
+) where
 
 import           Control.Monad.IO.Class
+import           Control.Monad
+import           Data.IORef
 import           Data.List
 import           Test.Hspec
 import           Data.WithLocation
@@ -59,3 +65,31 @@ unexpectedParameters pluralize expected actual = do
     actualMessage = case expected of
       [_] -> " but got: " ++ show actual
       _ -> "        but got: " ++ show actual
+
+class ExpectCall a where
+  expectOnce :: WithLocation(a -> (a -> IO x) -> IO x)
+
+instance ExpectCall (a -> IO r) where
+  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+
+instance ExpectCall (a -> b -> IO r) where
+  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+
+instance ExpectCall (a -> b -> c -> IO r) where
+  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+
+instance ExpectCall (a -> b -> c -> d -> IO r) where
+  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+
+instance ExpectCall (a -> b -> c -> d -> e -> IO r) where
+  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+
+instance ExpectCall (a -> b -> c -> d -> e -> f -> IO r) where
+  expectOnce action inner = do
+    ref <- newIORef (0 :: Integer)
+    let wrapped a b c d e f = action a b c d e f <* modifyIORef ref succ
+    inner wrapped <* do
+      n <- readIORef ref
+      unless (n == 1) $ do
+        expectationFailure ("Expected to be called once, but it was called " ++ show n ++ " times instead!")
+        return undefined

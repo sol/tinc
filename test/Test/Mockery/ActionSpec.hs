@@ -1,6 +1,7 @@
 module Test.Mockery.ActionSpec (spec) where
 
 import           Test.Hspec
+import           Control.Monad
 
 import           Test.HUnit.Lang
 import           Test.Mockery.Action
@@ -63,3 +64,39 @@ spec = do
             , "expected one of: (10,20), (23,42)"
             , "        but got: (23,65)"
             ]
+
+  describe "expectOnce" $ do
+    let
+      expectOnceSpec mockedAction call = do
+        context "when action is called once" $ do
+          it "passes" $ do
+            expectOnce mockedAction $ \action -> do
+              call action
+            `shouldReturn` "r"
+
+        context "when action is called multiple times" $ do
+          it "fails" $ do
+            expectOnce mockedAction $ \action -> do
+              replicateM_ 10 (call action)
+            `shouldThrow` hUnitFailure "Expected to be called once, but it was called 10 times instead!"
+
+        context "when action is not called" $ do
+          it "fails" $ do
+            expectOnce mockedAction $ \_ -> do
+              return ()
+            `shouldThrow` hUnitFailure "Expected to be called once, but it was called 0 times instead!"
+
+    context "with one parameter" $ do
+      let mockedAction = mock ("foo", return "r")
+          call action = action "foo"
+      expectOnceSpec mockedAction call
+
+    context "with two parameters" $ do
+      let mockedAction = mock ("foo", "bar", return "r")
+          call action = action "foo" "bar"
+      expectOnceSpec mockedAction call
+
+    context "with three parameters" $ do
+      let mockedAction = mock ("foo", "bar", "baz", return "r")
+          call action = action "foo" "bar" "baz"
+      expectOnceSpec mockedAction call
