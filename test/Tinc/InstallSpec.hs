@@ -91,19 +91,6 @@ spec = do
               ]
         withMockedEnv (cabalInstallPlan facts [] addSourceCache [cachedDependency]) `shouldReturn` [dependency]
 
-  describe "copyFreezeFile" $ do
-    it "copies freeze file" $ do
-      inTempDirectory $ do
-        writeFile "cabal.config" "some constraints"
-        touch "foo/bar"
-        copyFreezeFile "foo"
-        readFile "foo/cabal.config" `shouldReturn` "some constraints"
-
-    context "when there is no freeze file" $ do
-      it "does nothing" $ do
-        inTempDirectory $ do
-          copyFreezeFile "foo"
-
   describe "generateCabalFile" $ do
     context "when there are additional dependencies" $ do
       it "generates a cabal file" $ do

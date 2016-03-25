@@ -20,13 +20,13 @@ import           Control.Monad.Catch
 import           Control.Monad.Compat
 import           Control.Monad.IO.Class
 import           Data.List.Compat
-import           System.Directory hiding (getDirectoryContents)
 import           System.IO.Temp
 import           System.FilePath
 import           Control.Exception (IOException)
 
 import qualified Hpack.Config as Hpack
 import           Tinc.Cabal
+import           Tinc.Env
 import           Tinc.Cache
 import           Tinc.Config
 import           Tinc.Fail
@@ -84,7 +84,7 @@ solveDependencies facts addSourceCache = do
 
 cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => Facts -> [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
 cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
-  liftIO $ copyFreezeFile dir
+  liftIO $ run (copyFreezeFile dir)
   cabalFile <- liftIO (generateCabalFile additionalDeps)
   constraints <- liftIO readFreezeFile
   withCurrentDirectory dir $ do
@@ -111,11 +111,8 @@ cabalDryInstall facts args constraints = go >>= parseInstallPlan
         Left err -> throwM (err :: IOException)
         Right s -> return s
 
-copyFreezeFile :: FilePath -> IO ()
-copyFreezeFile dst = do
-  exists <- doesFileExist cabalFreezeFile
-  when exists $ do
-    copyFile cabalFreezeFile (dst </> cabalFreezeFile)
+copyFreezeFile :: FilePath -> Tinc ()
+copyFreezeFile dst = copyFileIfExists cabalFreezeFile (dst </> cabalFreezeFile)
   where
     cabalFreezeFile = "cabal.config"
 

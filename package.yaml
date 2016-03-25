@@ -35,6 +35,7 @@ dependencies:
   - gitrev
   - unix-compat
   - with-location
+  - free
 
 source-dirs: src
 
