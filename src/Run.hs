@@ -12,6 +12,7 @@ import           System.Process
 import           Tinc.Install
 import           Tinc.Facts
 import           Tinc.Types
+import           Tinc.Nix
 
 unsetEnvVars :: IO ()
 unsetEnvVars = do
@@ -29,13 +30,15 @@ tinc args = do
     ["--dry-run"] -> withCacheLock factsCache $
       installDependencies True facts
     ["--version"] -> putStrLn $(gitHash)
-    name : rest | Just plugin <- lookup name factsPlugins -> callPlugin plugin rest
+    name : rest | Just plugin <- lookup name factsPlugins -> callPlugin facts plugin rest
     _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)
 
 
-callPlugin :: String -> [String] -> IO ()
-callPlugin name args = do
-  pid <- spawnProcess name args
+callPlugin :: Facts -> String -> [String] -> IO ()
+callPlugin Facts{..} name args = do
+  pid <- if factsUseNix
+    then uncurry spawnProcess $ nixShell name args
+    else spawnProcess name args
   waitForProcess pid >>= throwIO
 
 withCacheLock :: Path CacheDir -> IO a -> IO a

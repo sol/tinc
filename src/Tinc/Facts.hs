@@ -7,12 +7,14 @@ import           Data.List.Compat
 import           Control.Monad.Compat
 import           Data.Maybe
 import           System.Directory
+import           System.Environment.Compat
 import           System.FilePath
 import           Data.Function
 
 import           Tinc.GhcInfo
 import           Tinc.Sandbox
 import           Tinc.Types
+import           Tinc.Nix (NixCache)
 
 type Plugins = [Plugin]
 type Plugin = (String, FilePath)
@@ -20,14 +22,20 @@ type Plugin = (String, FilePath)
 data Facts = Facts {
   factsCache :: Path CacheDir
 , factsAddSourceCache :: Path AddSourceCache
+, factsNixCache :: Path NixCache
+, factsUseNix :: Bool
 , factsPlugins :: Plugins
 , factsGhcInfo :: GhcInfo
 } deriving (Eq, Show)
+
+useNix :: IO Bool
+useNix = maybe False (const True) <$> lookupEnv "TINC_USE_NIX"
 
 discoverFacts :: IO Facts
 discoverFacts = do
   ghcInfo <- getGhcInfo
   home <- getHomeDirectory
+  useNix_ <- useNix
   let pluginsDir :: FilePath
       pluginsDir = home </> ".tinc" </> "plugins"
 
@@ -40,12 +48,18 @@ discoverFacts = do
       addSourceCache :: Path AddSourceCache
       addSourceCache = Path (home </> ".tinc" </> "cache" </> "add-source")
 
+      nixCache :: Path NixCache
+      nixCache = Path (home </> ".tinc" </> "cache" </> "nix")
+
   createDirectoryIfMissing True (path cacheDir)
+  createDirectoryIfMissing True (path nixCache)
   createDirectoryIfMissing True pluginsDir
   plugins <- listAllPlugins pluginsDir
   return Facts {
     factsCache = cacheDir
   , factsAddSourceCache = addSourceCache
+  , factsNixCache = nixCache
+  , factsUseNix = useNix_
   , factsPlugins = plugins
   , factsGhcInfo = ghcInfo
   }

@@ -48,7 +48,7 @@ tests:
     source-dirs: test
     dependencies:
       - hspec
-      - mockery >= 0.3.0
+      - mockery >= 0.3.3
       - HUnit >= 1.3
       - safe
       - unix
@@ -58,6 +58,7 @@ tests:
     main: AcceptanceSpec
     source-dirs:
       - acceptance
+      - test
     dependencies:
       - hspec
       - hspec-expectations

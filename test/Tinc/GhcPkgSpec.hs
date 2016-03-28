@@ -1,8 +1,10 @@
 {-# LANGUAGE CPP #-}
 module Tinc.GhcPkgSpec (spec) where
 
+import           Control.Monad
 import           Helper
 
+import           Tinc.Facts
 import           Tinc.GhcPkg
 import           Tinc.Package
 
@@ -43,7 +45,7 @@ globalPackages = [
 
 spec :: Spec
 spec = do
-  describe "listGlobalPackages" $ do
+  describe "listGlobalPackages" $ before_ (useNix >>= (`when` pending)) $ do
     it "lists packages from global package database" $ do
       packages <- listGlobalPackages
       map packageName packages `shouldMatchList` globalPackages

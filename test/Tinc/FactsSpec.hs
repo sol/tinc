@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Tinc.FactsSpec (spec) where
 
 import           Prelude ()
@@ -5,9 +6,12 @@ import           Prelude.Compat
 
 import           Test.Hspec
 import           Test.Mockery.Directory
+import           Test.Mockery.Environment
 import           System.Directory
+import           System.Environment
 import           System.FilePath
 import           System.Process
+import           System.IO.Temp
 
 import           Tinc.Types
 import           Tinc.GhcInfo
@@ -18,11 +22,29 @@ mkExecutable p = do
   touch p
   callProcess "chmod" ["+x", p]
 
+withTempHome :: IO () -> IO ()
+withTempHome action = withSystemTempDirectory "hspec" $ \dir -> do
+  env <- filter ((== "PATH") . fst) <$> getEnvironment
+  withEnvironment (("HOME", dir) : env) $ do
+    action
+
 spec :: Spec
 spec = do
-  describe "discoverFacts" $ beforeAll discoverFacts $ do
-    it "includes GHC version in cache directory" $ \ facts -> do
-      path (factsCache facts) `shouldContain` ghcInfoVersion (factsGhcInfo facts)
+  describe "discoverFacts" $ around_ withTempHome $ do
+    it "includes GHC version in cache directory" $ do
+      Facts{..} <- discoverFacts
+      path factsCache `shouldContain` ghcInfoVersion factsGhcInfo
+
+    it "sets factsUseNix to False" $ do
+      Facts{..} <- discoverFacts
+      factsUseNix `shouldBe` False
+
+    context "when TINC_USE_NIX is set" $ do
+      it "sets factsUseNix to True" $ do
+        env <- getEnvironment
+        withEnvironment (("TINC_USE_NIX", "yes") : env) $ do
+          Facts{..} <- discoverFacts
+          factsUseNix `shouldBe` True
 
   describe "listPlugins" $ do
     it "lists plugins" $ do

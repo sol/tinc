@@ -75,3 +75,18 @@ spec = do
         fingerprint "baz"
 
       hash1 `shouldBe` hash2
+
+  describe "cachedIO" $ do
+    it "runs given action" $ do
+      inTempDirectory $ do
+        cachedIO "foo" (return "bar") `shouldReturn` "bar"
+
+    it "caches the result of the given action" $ do
+      inTempDirectory $ do
+        _ <- cachedIO "foo" (return "bar")
+        readFile "foo" `shouldReturn` "bar"
+
+    it "reuses cached result" $ do
+      inTempDirectory $ do
+        writeFile "foo" "bar"
+        cachedIO "foo" undefined `shouldReturn` "bar"

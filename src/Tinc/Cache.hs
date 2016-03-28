@@ -92,16 +92,8 @@ readPackageGraph globalPackages globalPackageDb packageDb = do
   where
     dotFile = path packageDb </> "packages.dot"
     readDotFile = do
-      exists <- liftIO $ doesFileExist dotFile
-      if exists
-        then do
-          liftIO $ readFile dotFile
-        else do
-          dot <- readGhcPkg [globalPackageDb, packageDb] ["dot"]
-          liftIO $ do
-            writeFile dotFile dot
-            touchPackageCache packageDb
-          return dot
+      cachedIOAfter (liftIO $ touchPackageCache packageDb) dotFile $ do
+        readGhcPkg [globalPackageDb, packageDb] ["dot"]
 
 touchPackageCache :: Path PackageDb -> IO ()
 touchPackageCache packageDb = touchFile (path packageDb </> "package.cache")

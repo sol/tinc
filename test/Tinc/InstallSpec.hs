@@ -45,21 +45,6 @@ createCachedAddSourceDependency addSourceCache AddSource{..} version = do
 
 spec :: Spec
 spec = do
-  before_ (unlessTravis $ pendingWith "too slow") $ do
-    describe "cabalDryInstall" $ do
-      it "takes constraints into account" $ do
-        inTempDirectory $ do
-          _ <- initSandbox [] []
-          installPlan <- cabalDryInstall ["hspec"] ["--constraint=hspec-core == 2.0.2"]
-          installPlan `shouldContain` [Package "hspec-core" "2.0.2"]
-
-      context "when constraints can not be satisfied" $ do
-        it "retries without constraints" $ do
-          inTempDirectory $ do
-            _ <- initSandbox [] []
-            installPlan <- cabalDryInstall ["hspec-2.2.0"] ["--constraint=hspec-core == 2.0.2"]
-            installPlan `shouldContain` [Package "hspec-core" "2.2.0"]
-
   describe "cabalInstallPlan" $ do
 
     let cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
@@ -86,7 +71,7 @@ spec = do
       withCabalFile $ \_ -> do
         let ?cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
             ?mockedCallProcess = mock cabalSandboxInit
-        withMockedEnv (cabalInstallPlan [] undefined []) `shouldReturn` [Package "setenv" "0.1.1.3"]
+        withMockedEnv (cabalInstallPlan facts [] undefined []) `shouldReturn` [Package "setenv" "0.1.1.3"]
 
     it "takes add-source dependencies into account" $ do
       withCabalFile $ \sandbox -> do
@@ -104,7 +89,7 @@ spec = do
                 cabalSandboxInit
               , ("cabal", ["sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
               ]
-        withMockedEnv (cabalInstallPlan [] addSourceCache [cachedDependency]) `shouldReturn` [dependency]
+        withMockedEnv (cabalInstallPlan facts [] addSourceCache [cachedDependency]) `shouldReturn` [dependency]
 
   describe "copyFreezeFile" $ do
     it "copies freeze file" $ do

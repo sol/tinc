@@ -5,7 +5,7 @@ module AcceptanceSpec (main) where
 import           Prelude ()
 import           Prelude.Compat
 
-import           Test.Hspec
+import           Helper
 
 import           Data.String.Builder
 import           System.Directory hiding (removeDirectory, getDirectoryContents)
@@ -32,7 +32,7 @@ spec = do
       unsetEnvVars
 
       ghcInfo <- getGhcInfo
-      let tinc = installDependencies False Facts { factsGhcInfo = ghcInfo, factsCache = cacheDir, factsAddSourceCache = undefined, factsPlugins = undefined }
+      let tinc = installDependencies False facts { factsGhcInfo = ghcInfo, factsCache = cacheDir }
 
       createDirectoryIfMissing True (path cacheDir)
 

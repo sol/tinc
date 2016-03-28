@@ -53,3 +53,22 @@ fingerprint dir = withCurrentDirectory dir $ do
     fingerprintFile file = do
       hash <- getFileHash file
       return $ fingerprintFingerprints [hash, fingerprintString file]
+
+cachedIO :: FilePath -> IO String -> IO String
+cachedIO = cachedIOAfter (return ())
+
+cachedIOAfter :: MonadIO m => m () -> FilePath -> m String -> m String
+cachedIOAfter actionAfter file action = do
+  exists <- liftIO $ doesFileExist file
+  if exists
+    then do
+      liftIO $ readFile file
+    else do
+      result <- action
+      liftIO $ writeFile (file ++ ".tmp") result
+      liftIO $ renameFile (file ++ ".tmp") file
+      actionAfter
+      return result
+
+tee :: Monad m => (a -> m ()) -> a -> m a
+tee action a = action a >> return a

@@ -26,6 +26,7 @@ import           System.FilePath
 import           Control.Exception (IOException)
 
 import qualified Hpack.Config as Hpack
+import           Tinc.Cabal
 import           Tinc.Cache
 import           Tinc.Config
 import           Tinc.Fail
@@ -37,17 +38,19 @@ import           Tinc.Process
 import           Tinc.Sandbox
 import           Tinc.Facts
 import           Tinc.Types
+import qualified Tinc.Nix as Nix
 import           Util
 
 installDependencies :: Bool -> Facts -> IO ()
-installDependencies dryRun Facts{..} = do
-      solveDependencies factsAddSourceCache
-  >>= createInstallPlan factsGhcInfo factsCache
-  >>= tee printInstallPlan
-  >>= unless dryRun . realizeInstallPlan factsCache factsAddSourceCache
+installDependencies dryRun facts@Facts{..} = do
+  solveDependencies facts factsAddSourceCache >>= if factsUseNix
+  then Nix.createDerivations factsNixCache
+  else useCabal
   where
-    tee :: Monad m => (a -> m ()) -> a -> m a
-    tee action a = action a >> return a
+    useCabal =
+          createInstallPlan factsGhcInfo factsCache
+      >=> tee printInstallPlan
+      >=> unless dryRun . realizeInstallPlan factsCache factsAddSourceCache
 
 data InstallPlan = InstallPlan {
   _installPlanReusable :: [CachedPackage]
@@ -61,21 +64,21 @@ createInstallPlan ghcInfo cacheDir installPlan = do
       missing = installPlan \\ map cachedPackageName reusable
   return (InstallPlan reusable missing)
 
-solveDependencies :: Path AddSourceCache -> IO [Package]
-solveDependencies addSourceCache = do
+solveDependencies :: Facts -> Path AddSourceCache -> IO [Package]
+solveDependencies facts addSourceCache = do
   additionalDeps <- getAdditionalDependencies
   addSourceDependencies <- Hpack.extractAddSourceDependencies addSourceCache additionalDeps
-  cabalInstallPlan additionalDeps addSourceCache addSourceDependencies
+  cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies
 
-cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
-cabalInstallPlan additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
+cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => Facts -> [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
+cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
   liftIO $ copyFreezeFile dir
   cabalFile <- liftIO (generateCabalFile additionalDeps)
   constraints <- liftIO readFreezeFile
   withCurrentDirectory dir $ do
     liftIO $ uncurry writeFile cabalFile
     _ <- initSandbox (map (addSourcePath addSourceCache) addSourceDependencies) []
-    map addAddSourceHash <$> cabalDryInstall ["--only-dependencies", "--enable-tests"] constraints
+    map addAddSourceHash <$> cabalDryInstall facts ["--only-dependencies", "--enable-tests"] constraints
   where
     addAddSourceHash :: Package -> Package
     addAddSourceHash p@(Package name version) = case lookup name addSourceHashes of
@@ -84,10 +87,10 @@ cabalInstallPlan additionalDeps addSourceCache addSourceDependencies = withSyste
 
     addSourceHashes = [(name, rev) | AddSource name rev <- addSourceDependencies]
 
-cabalDryInstall :: (Fail m, Process m, MonadCatch m) => [String] -> [String] -> m [Package]
-cabalDryInstall args constraints = go >>= parseInstallPlan
+cabalDryInstall :: (MonadIO m, Fail m, Process m, MonadCatch m) => Facts -> [String] -> [String] -> m [Package]
+cabalDryInstall facts args constraints = go >>= parseInstallPlan
   where
-    install xs = readProcess "cabal" ("install" : "--dry-run" : xs) ""
+    install xs = uncurry readProcess (cabal facts ("install" : "--dry-run" : xs)) ""
 
     go = do
       r <- try $ install (args ++ constraints)
