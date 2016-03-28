@@ -27,3 +27,16 @@ results in a new updated sandbox.
 If `tinc` fails / terminates for some reason, it does not modify anything
 (neither the cache nor any existing sandboxes).  Interrupting a running `tinc`
 build is always safe.
+
+## Optionally use Nix for package caching
+By default, `tinc` maintains its own package cache under `~/.tinc/cache`.
+
+However, it can optionally use nixpkgs for package caching.
+If `tinc` is installed somewhere under `/nix`, this is the default.
+
+To change the default, you can set the environment variable
+`TINC_USE_NIX` to either `yes` or `no`, specifically:
+```bash
+export TINC_USE_NIX=yes  # use nix, even if not installed under /nix
+export TINC_USE_NIX=no   # do not use nix, even if installed under /nix
+```

@@ -2,6 +2,7 @@
 module Tinc.GhcPkgSpec (spec) where
 
 import           Control.Monad
+import           System.Environment
 import           Helper
 
 import           Tinc.Facts
@@ -45,7 +46,7 @@ globalPackages = [
 
 spec :: Spec
 spec = do
-  describe "listGlobalPackages" $ before_ (useNix >>= (`when` pending)) $ do
+  describe "listGlobalPackages" $ before_ (getExecutablePath >>= useNix >>= (`when` pending)) $ do
     it "lists packages from global package database" $ do
       packages <- listGlobalPackages
       map packageName packages `shouldMatchList` globalPackages

@@ -28,14 +28,18 @@ data Facts = Facts {
 , factsGhcInfo :: GhcInfo
 } deriving (Eq, Show)
 
-useNix :: IO Bool
-useNix = maybe False (const True) <$> lookupEnv "TINC_USE_NIX"
+useNix :: FilePath -> IO Bool
+useNix executablePath = do
+  maybe (isInNixStore executablePath) (`notElem` ["no", "0"]) <$> lookupEnv "TINC_USE_NIX"
 
-discoverFacts :: IO Facts
-discoverFacts = do
+isInNixStore :: FilePath -> Bool
+isInNixStore = ("/nix/" `isPrefixOf`)
+
+discoverFacts :: FilePath -> IO Facts
+discoverFacts executablePath = do
   ghcInfo <- getGhcInfo
   home <- getHomeDirectory
-  useNix_ <- useNix
+  useNix_ <- useNix executablePath
   let pluginsDir :: FilePath
       pluginsDir = home </> ".tinc" </> "plugins"
 

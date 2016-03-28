@@ -4,7 +4,7 @@ module Run where
 
 import           Control.Exception
 import           Development.GitRev
-import           System.Environment.Compat
+import           System.Environment
 import           System.FileLock
 import           System.FilePath
 import           System.Process
@@ -23,7 +23,7 @@ unsetEnvVars = do
 tinc :: [String] -> IO ()
 tinc args = do
   unsetEnvVars
-  facts@Facts{..} <- discoverFacts
+  facts@Facts{..} <- getExecutablePath >>= discoverFacts
   case args of
     [] -> withCacheLock factsCache $
       installDependencies False facts
