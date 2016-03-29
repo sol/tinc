@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 module Tinc.Freeze (
   writeFreezeFile
 , readFreezeFile
@@ -24,6 +25,7 @@ import           System.Directory
 
 import           Tinc.Fail
 import           Tinc.Package
+import           Tinc.Sandbox
 
 type Constraint = String
 
@@ -69,9 +71,11 @@ toDependency (Package n (Version v _)) = Dependency {name =  n, version = v}
 toConstraint :: Dependency -> Constraint
 toConstraint (Dependency n v) = "--constraint=" ++ n ++ " == " ++ v
 
-readFreezeFile :: IO [Constraint]
-readFreezeFile = do
+readFreezeFile :: [AddSource] -> IO [Constraint]
+readFreezeFile (map addSourcePackageName -> addSourceDependencies) = do
   exists <- doesFileExist freezeFile
   if exists
-    then decodeYaml freezeFile >>= either die (return . map toConstraint . dependencies)
+    then decodeYaml freezeFile >>= either die (return . map toConstraint . removeAddSourceDependencies . dependencies)
     else return []
+  where
+    removeAddSourceDependencies = filter ((`notElem` addSourceDependencies) . name)

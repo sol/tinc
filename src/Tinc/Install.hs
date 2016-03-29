@@ -86,7 +86,7 @@ cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => Facts -> [Hpa
 cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
   liftIO $ copyFreezeFile dir
   cabalFile <- liftIO (generateCabalFile additionalDeps)
-  constraints <- liftIO readFreezeFile
+  constraints <- liftIO (readFreezeFile addSourceDependencies)
   withCurrentDirectory dir $ do
     liftIO $ uncurry writeFile cabalFile
     _ <- initSandbox (map (addSourcePath addSourceCache) addSourceDependencies) []
