@@ -91,7 +91,7 @@ spec = do
                 ]
 
     it "disables tests" $ do
-            disableTests derivation `shouldBe` derivationWithoutTests
+      disableTests derivation `shouldBe` derivationWithoutTests
 
     context "when tests are already disabled" $ do
       it "does nothing" $ do
@@ -111,3 +111,12 @@ spec = do
       it "omits the Haskell dependency with that name" $ do
         let function = Function ["mkDerivation", "zlib"] "  librarySystemDepends = [ zlib ];"
         extractDependencies function knownHaskellDependencies `shouldBe` ([], ["zlib"])
+
+  describe "derivationFile" $ do
+    it "returns path to derivation file" $ do
+      derivationFile cache (Package "foo" "0.1.0") `shouldBe` "/path/to/nix/cache/foo-0.1.0.nix"
+
+    context "when package has a git revision" $ do
+      it "includes the git revision in the filename" $ do
+        let package = Package "foo" (Version "0.1.0" $ Just "some-git-rev")
+        derivationFile cache package `shouldBe` "/path/to/nix/cache/foo-0.1.0-some-git-rev.nix"

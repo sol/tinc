@@ -58,7 +58,7 @@ installDependencies dryRun facts@Facts{..} = do
           mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
     doNix =
           tee printInstallPlan
-      >=> unless dryRun . Nix.createDerivations factsNixCache
+      >=> unless dryRun . Nix.createDerivations factsAddSourceCache factsNixCache
       where
         printInstallPlan :: [Package] -> IO ()
         printInstallPlan packages = do

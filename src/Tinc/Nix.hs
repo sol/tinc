@@ -14,6 +14,7 @@ module Tinc.Nix (
 , parseNixFunction
 , disableTests
 , extractDependencies
+, derivationFile
 #endif
 ) where
 
@@ -30,6 +31,7 @@ import           System.IO
 
 import           Tinc.Package
 import           Tinc.Types
+import           Tinc.Sandbox
 import           Util
 
 data NixCache
@@ -60,9 +62,9 @@ cabal args = ("nix-shell", ["-p", "haskell.packages." ++ show defaultResolver ++
 nixShell :: String -> [String] -> (String, [String])
 nixShell command args = ("nix-shell", [shellFile, "--run", unwords $ command : map translate args])
 
-createDerivations :: Path NixCache -> [Package] -> IO ()
-createDerivations cache dependencies = do
-  mapM_ (populateCache cache) dependencies
+createDerivations :: Path AddSourceCache -> Path NixCache -> [Package] -> IO ()
+createDerivations addSourceCache cache dependencies = do
+  mapM_ (populateCache addSourceCache cache) dependencies
   pkgDerivation <- cabalToNix "."
 
   let knownHaskellDependencies = map packageName dependencies
@@ -71,10 +73,14 @@ createDerivations cache dependencies = do
   writeFile defaultFile defaultDerivation
   writeFile shellFile shellDerivation
 
-populateCache :: Path NixCache -> Package -> IO ()
-populateCache cache pkg = do
-  _ <- cachedIO (derivationFile cache pkg) $ disableDocumentation . disableTests <$> cabalToNix ("cabal://" ++ showPackage pkg)
+populateCache :: Path AddSourceCache -> Path NixCache -> Package -> IO ()
+populateCache addSourceCache cache pkg = do
+  _ <- cachedIO (derivationFile cache pkg) $ disableDocumentation . disableTests <$> go
   return ()
+  where
+    go = case pkg of
+      Package _ (Version _ Nothing) -> cabalToNix ("cabal://" ++ showPackage pkg)
+      Package name (Version _ (Just ref)) -> cabalToNix (path . addSourcePath addSourceCache $ AddSource name ref)
 
 disable :: String -> NixExpression -> NixExpression
 disable s xs = case lines xs of
@@ -138,7 +144,11 @@ readDependencies cache knownHaskellDependencies package = do
   (\(haskellDeps, systemDeps) -> (package, haskellDeps, systemDeps)) . (`extractDependencies` knownHaskellDependencies)  . parseNixFunction <$> readFile (derivationFile cache package)
 
 derivationFile :: Path NixCache -> Package -> FilePath
-derivationFile cache package = path cache </> showPackage package ++ ".nix"
+derivationFile cache package = path cache </> showPackage package ++ rev ++ ".nix"
+  where
+    rev = case packageVersion package of
+      Version _ (Just hash) -> "-" ++ hash
+      _ -> ""
 
 parseNixFunction :: NixExpression -> Function
 parseNixFunction xs = case break (== '}') xs of
