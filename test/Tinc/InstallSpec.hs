@@ -2,19 +2,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 module Tinc.InstallSpec (spec) where
 
 import           Prelude ()
-import           Prelude.Compat
+import           Prelude.Compat hiding (ioError)
 
 import           Helper
 import           MockedEnv
 import           MockedProcess
+import           Control.Exception hiding (ioError)
 
 import           Data.List
 import           System.Directory
 import           System.FilePath
 import           Test.Mockery.Directory
+
+import           Tinc.Env (runEnv)
+import qualified Tinc.Env as Env
 
 import           Tinc.Install
 import           Tinc.Package
@@ -42,10 +47,31 @@ createCachedAddSourceDependency addSourceCache AddSource{..} version = do
   where
     dependencyPath = path addSourceCache </> addSourcePackageName </> addSourceHash
 
+ioError :: String -> IO a
+ioError = throwIO . userError
+
 spec :: Spec
 spec = do
-  describe "cabalInstallPlan" $ do
+  describe "cabalDryInstall_" $ do
+    it "takes constraints into account" $ do
+      let
+        readCabal = stub (["install", "--dry-run", "hspec", "--constraint=hspec-core == 2.0.2"], return "hspec-core-2.0.2")
+        env = dummyEnv {Env.envReadCabal = readCabal}
+      installPlan <- runEnv env $ cabalDryInstall_ ["hspec"] ["--constraint=hspec-core == 2.0.2"]
+      installPlan `shouldBe` "hspec-core-2.0.2"
 
+    context "when constraints can not be satisfied" $ do
+      it "retries without constraints" $ do
+        let
+          readCabal = stub [
+              (["install", "--dry-run", "hspec-2.2.0", "--constraint=hspec-core == 2.0.2"], ioError "no install plan")
+            , (["install", "--dry-run", "hspec-2.2.0"], return "hspec-core-2.2.0")
+            ]
+          env = dummyEnv {Env.envReadCabal = readCabal}
+        installPlan <- runEnv env $ cabalDryInstall_ ["hspec-2.2.0"] ["--constraint=hspec-core == 2.0.2"]
+        installPlan `shouldBe` "hspec-core-2.2.0"
+
+  describe "cabalInstallPlan" $ do
     let cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
 
         withCabalFile action = inTempDirectory $ do

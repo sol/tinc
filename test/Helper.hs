@@ -35,7 +35,13 @@ dummyEnv :: WithLocation (Env IO)
 dummyEnv = Env {
   envDoesFileExist = dummy "envDoesFileExist"
 , envCopyFile = dummy "envCopyFile"
+, envWithSystemTempDirectory = dummy "envWithSystemTempDirectory"
+, envWithCurrentDirectory = dummy "envWithCurrentDirectory"
+
 , envReadCabal = dummy "envReadCabal"
+
+, envInitSandbox = dummy "envInitSandbox"
+
 , envTry = Exception.try
 , envThrowM = Exception.throwIO
 }
