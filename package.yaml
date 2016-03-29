@@ -54,14 +54,3 @@ tests:
       - safe
       - unix
     cpp-options: -DTEST
-
-  acceptance:
-    main: AcceptanceSpec
-    source-dirs:
-      - acceptance
-      - test
-    dependencies:
-      - hspec
-      - hspec-expectations
-      - mockery
-      - stringbuilder
