@@ -44,13 +44,25 @@ import           Util
 installDependencies :: Bool -> Facts -> IO ()
 installDependencies dryRun facts@Facts{..} = do
   solveDependencies facts factsAddSourceCache >>= if factsUseNix
-  then Nix.createDerivations factsNixCache
-  else useCabal
+  then doNix
+  else doCabal
   where
-    useCabal =
+    doCabal =
           createInstallPlan factsGhcInfo factsCache
       >=> tee printInstallPlan
       >=> unless dryRun . realizeInstallPlan factsCache factsAddSourceCache
+      where
+        printInstallPlan :: InstallPlan -> IO ()
+        printInstallPlan (InstallPlan reusable missing) = do
+          mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map cachedPackageName reusable)
+          mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
+    doNix =
+          tee printInstallPlan
+      >=> unless dryRun . Nix.createDerivations factsNixCache
+      where
+        printInstallPlan :: [Package] -> IO ()
+        printInstallPlan packages = do
+          mapM_ (putStrLn . ("Installing " ++) . showPackage) packages
 
 data InstallPlan = InstallPlan {
   _installPlanReusable :: [CachedPackage]
@@ -128,11 +140,6 @@ generateCabalFile additionalDeps = do
 
     reuseExisting :: FilePath -> IO (FilePath, String)
     reuseExisting file = (,) file <$> readFile file
-
-printInstallPlan :: InstallPlan -> IO ()
-printInstallPlan (InstallPlan reusable missing) = do
-  mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map cachedPackageName reusable)
-  mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
 
 realizeInstallPlan :: Path CacheDir -> Path AddSourceCache -> InstallPlan -> IO ()
 realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) = do
