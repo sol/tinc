@@ -35,7 +35,7 @@ withUseNix value action = do
     tincUseNix = maybe [] (return . (,) "TINC_USE_NIX") value
 
 spec :: Spec
-spec = do
+spec = before_ pending $ do
   describe "discoverFacts" $ around_ withTempHome $ do
     it "includes GHC version in cache directory" $ do
       Facts{..} <- discoverFacts "/some/path/to/tinc"

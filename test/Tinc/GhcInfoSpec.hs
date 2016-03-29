@@ -18,7 +18,7 @@ arch = "x86_64"
 spec :: Spec
 spec = do
   describe "getGhcInfo" $ do
-    beforeAll getGhcInfo $ do
+    beforeAll (pendingWith "slow" >> getGhcInfo) $ do
       it "includes the target platform" $ \ ghcInfo -> do
         ghcInfoPlatform ghcInfo `shouldSatisfy` (arch `isPrefixOf`)
 
