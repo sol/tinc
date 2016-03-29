@@ -9,7 +9,6 @@ import           Prelude.Compat
 import           Helper
 import           MockedEnv
 import           MockedProcess
-import           Test.Mockery.Action
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Reader

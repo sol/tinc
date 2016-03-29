@@ -26,7 +26,8 @@ import           Control.Exception (IOException)
 
 import qualified Hpack.Config as Hpack
 import           Tinc.Cabal
-import           Tinc.Env
+import           Tinc.Env hiding (try, throwM)
+import           Tinc.RunEnv
 import           Tinc.Cache
 import           Tinc.Config
 import           Tinc.Fail
@@ -84,7 +85,7 @@ solveDependencies facts addSourceCache = do
 
 cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => Facts -> [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
 cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
-  liftIO $ run (copyFreezeFile dir)
+  liftIO $ run facts (copyFreezeFile dir)
   cabalFile <- liftIO (generateCabalFile additionalDeps)
   constraints <- liftIO readFreezeFile
   withCurrentDirectory dir $ do

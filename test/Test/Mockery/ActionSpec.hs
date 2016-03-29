@@ -24,7 +24,7 @@ spec = do
       context "when receiving unexpected parameters" $ do
         it "throws an exception" $ do
           stub ("foo", return "r") "bar" `shouldThrow` (hUnitFailure . unlines) [
-              "Unexected parameter to mocked action!"
+              "Unexected parameter to stub action!"
             , "expected: " ++ show "foo"
             , " but got: " ++ show "bar"
             ]
@@ -37,7 +37,7 @@ spec = do
       context "when receiving unexpected parameters" $ do
         it "throws an exception" $ do
           stub ("foo", "bar", return "r") "23" "42" `shouldThrow` (hUnitFailure . unlines) [
-              "Unexected parameters to mocked action!"
+              "Unexected parameters to stub action!"
             , "expected: " ++ show ("foo", "bar")
             , " but got: " ++ show ("23", "42")
             ]
@@ -50,7 +50,7 @@ spec = do
       context "when receiving unexpected parameters" $ do
         it "throws an exception" $ do
           stub ("foo", "bar", "baz", return "r") "23" "42" "65" `shouldThrow` (hUnitFailure . unlines) [
-              "Unexected parameters to mocked action!"
+              "Unexected parameters to stub action!"
             , "expected: " ++ show ("foo", "bar", "baz")
             , " but got: " ++ show ("23", "42", "65")
             ]
@@ -64,7 +64,7 @@ spec = do
         context "when receiving unexpected parameters" $ do
           it "throws an exception" $ do
             stub [(10, 20, return ()), (23, 42, return ())] (23 :: Int) (65 :: Int) `shouldThrow` (hUnitFailure . unlines) [
-                "Unexected parameters to mocked action!"
+                "Unexected parameters to stub action!"
               , "expected one of: (10,20), (23,42)"
               , "        but got: (23,65)"
               ]

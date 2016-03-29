@@ -10,7 +10,6 @@ import           Prelude.Compat
 import           Helper
 import           MockedEnv
 import           MockedProcess
-import           Test.Mockery.Action
 
 import           Data.List
 import           System.Directory

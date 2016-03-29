@@ -100,8 +100,8 @@ unexpectedParameters pluralize expected actual = do
     ]
   where
     message
-      | pluralize = "Unexected parameters to mocked action!"
-      | otherwise = "Unexected parameter to mocked action!"
+      | pluralize = "Unexected parameters to stub action!"
+      | otherwise = "Unexected parameter to stub action!"
 
     expectedMessage = case expected of
       [x] -> "expected: " ++ show x

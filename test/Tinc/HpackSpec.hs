@@ -13,7 +13,6 @@ import           Test.Mockery.Directory
 
 import           MockedEnv
 import           MockedProcess
-import           Test.Mockery.Action
 import           Tinc.Hpack
 import           Tinc.Sandbox as Sandbox
 
