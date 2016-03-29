@@ -1,7 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Helper (
   module Test.Hspec
 , facts
+, skipForGhc78
 ) where
 
 import           Test.Hspec
@@ -23,3 +25,10 @@ facts = Facts {
 , factsPlugins = []
 , factsGhcInfo = error "factsGhcInfo"
 }
+
+skipForGhc78 :: Expectation -> Expectation
+#if __GLASGOW_HASKELL__ < 710
+skipForGhc78 _ = pending
+#else
+skipForGhc78 = id
+#endif

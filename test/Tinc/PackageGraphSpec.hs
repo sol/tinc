@@ -60,10 +60,12 @@ spec = do
 
     context "when it encounters an outgoing node with a missing value" $ do
       it "returns an error" $ do
-        fromDot (drop 1 values) dot `shouldThrow`
-          errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (Package "a" ""))
+        skipForGhc78 $ do
+          fromDot (drop 1 values) dot `shouldThrow`
+            errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (Package "a" ""))
 
     context "when it encounters an ingoing node with a missing value" $ do
       it "returns an error" $ do
-        fromDot (init values) dot `shouldThrow`
-          errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (Package "c" ""))
+        skipForGhc78 $ do
+          fromDot (init values) dot `shouldThrow`
+            errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (Package "c" ""))

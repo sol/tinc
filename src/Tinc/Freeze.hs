@@ -14,7 +14,7 @@ import           Data.Aeson
 import qualified Data.ByteString as B
 import           Data.Char
 import           Data.Ord
-import           Data.List
+import           Data.List.Compat
 import qualified Data.Yaml as Yaml
 import           Hpack.Yaml
 import           GHC.Generics
