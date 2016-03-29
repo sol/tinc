@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 module Tinc.Package (
   Package(..)
 , setAddSourceHash
@@ -45,7 +44,7 @@ parseInstallPlan :: Fail m => String -> m [Package]
 parseInstallPlan input = case lines input of
   "Resolving dependencies..." : what : packages | needsInstalls what -> return (parse packages)
   "Resolving dependencies..." : what : _ | alreadyInstalled what -> return []
-  _ -> bug __FILE__ ("unexpected output from `cabal install --dry-run':\n\n  " ++ show input ++ "\n")
+  _ -> bug ("unexpected output from `cabal install --dry-run':\n\n  " ++ show input ++ "\n")
   where
     needsInstalls = ("the following would be installed" `isInfixOf`)
     alreadyInstalled = (== "All the requested packages are already installed:")

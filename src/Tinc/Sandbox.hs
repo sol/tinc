@@ -71,7 +71,7 @@ findPackageDb sandbox = do
   xs <- liftIO $ getDirectoryContents sandboxDir
   case listToMaybe (filter isPackageDb xs) of
     Just p -> liftIO $ Path <$> canonicalizePath (sandboxDir </> p)
-    Nothing -> dieLoc __FILE__ ("No package database found in " ++ show sandboxDir)
+    Nothing -> dieLoc ("No package database found in " ++ show sandboxDir)
   where
     sandboxDir = path sandbox </> cabalSandboxDirectory
 

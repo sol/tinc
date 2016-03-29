@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.PackageGraph (
@@ -51,7 +50,7 @@ fromDot values dot = case parseDot "<input>" dot of
   Right (Dot.Graph _ _ _ statements) ->
     fmap fromMap $
     foldM collectStatements (Map.fromList $ map (fmap (,[])) values) statements
-  Left parseError -> dieLoc __FILE__ $ unlines $ map messageString $ errorMessages parseError
+  Left parseError -> dieLoc $ unlines $ map messageString $ errorMessages parseError
 
 type PackageMap v = Map Package (v, [Package])
 
@@ -60,11 +59,11 @@ collectStatements packageMap s = case s of
   NodeStatement (toPackage -> a) _ -> addDependencies a [] packageMap
   EdgeStatement [ENodeId _ (toPackage -> a), ENodeId _ (toPackage -> b)] _ ->
     addDependencies b [] packageMap >>= addDependencies a [b]
-  x -> dieLoc __FILE__ ("Unsupported dot statements: " ++ show x)
+  x -> dieLoc ("Unsupported dot statements: " ++ show x)
 
 addDependencies :: Fail m => (Ord i, Show i) => i -> [dep] -> Map i (v, [dep]) -> m (Map i (v, [dep]))
 addDependencies package dependencies graph = case Map.lookup package graph of
-  Nothing -> dieLoc __FILE__ ("No value for package: " ++ show package)
+  Nothing -> dieLoc ("No value for package: " ++ show package)
   Just (v, xs) -> return (Map.insert package (v, dependencies ++ xs) graph)
 
 fromMap :: Ord i => Map i (v, [i]) -> Graph i v

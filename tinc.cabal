@@ -50,6 +50,7 @@ executable tinc
     , Cabal == 1.22.*
     , gitrev
     , unix-compat
+    , with-location
   other-modules:
       Run
       Tinc.Cabal
@@ -100,6 +101,7 @@ test-suite acceptance
     , Cabal == 1.22.*
     , gitrev
     , unix-compat
+    , with-location
     , hspec
     , hspec-expectations
     , mockery
@@ -176,12 +178,12 @@ test-suite spec
     , Cabal == 1.22.*
     , gitrev
     , unix-compat
+    , with-location
     , hspec
     , mockery >= 0.3.3
     , HUnit >= 1.3
     , safe
     , unix
-    , with-location
   other-modules:
       Run
       Tinc.Cabal

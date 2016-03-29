@@ -1,18 +1,20 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Tinc.Fail where
 
 import           Prelude ()
 import           Prelude.Compat
 
+import           Data.WithLocation
 import           Control.Exception
 
 class (Functor m, Applicative m, Monad m) => Fail m where
   die :: String -> m a
 
-  dieLoc :: Fail m => String -> String -> m a
-  dieLoc loc message = die $ loc ++ ": " ++ message
+  dieLoc :: WithLocation(Fail m => String -> m a)
+  dieLoc message = die (maybe "" ((++ ": ") . locationFile) location ++ message)
 
-  bug :: Fail m => String -> String -> m a
-  bug loc message = (dieLoc loc . unlines) [
+  bug :: WithLocation (Fail m => String -> m a)
+  bug message = (dieLoc . unlines) [
       message
     , "This is most likely a bug.  Please report an issue at:"
     , ""

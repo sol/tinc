@@ -106,7 +106,7 @@ readAddSourceHashes packageDb = do
   let file = path packageDb </> addSourceHashesFile
   exists <- doesFileExist file
   if exists
-    then B.readFile file >>= either (dieLoc __FILE__) return . decodeEither
+    then B.readFile file >>= either dieLoc return . decodeEither
     else return []
 
 writeAddSourceHashes :: Path PackageDb -> [AddSource] -> IO ()

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 module Tinc.GhcInfo where
 
 import           Prelude ()
@@ -22,7 +21,7 @@ getGhcInfo = do
   let lookupField :: String -> IO String
       lookupField name = do
         let err = "Output from `ghc --info` does not contain the field " ++ show name
-        maybe (dieLoc __FILE__ err) return (lookup name fields)
+        maybe (dieLoc err) return (lookup name fields)
   GhcInfo
     <$> lookupField "Target platform"
     <*> lookupField "Project version"
