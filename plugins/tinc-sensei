@@ -1,2 +1,2 @@
 #!/bin/sh
-cabal exec -- sensei "$@"
+exec cabal exec -- sensei "$@"
