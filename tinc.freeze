@@ -9,8 +9,6 @@ dependencies:
   version: '0.13.0.1'
 - name: base-compat
   version: '0.9.0'
-- name: Cabal
-  version: '1.22.8.0'
 - name: conduit
   version: '1.2.6.4'
 - name: dlist
@@ -57,8 +55,6 @@ dependencies:
   version: '1.0.0.5'
 - name: mtl
   version: '2.2.1'
-- name: nats
-  version: '1'
 - name: parsec
   version: '3.1.9'
 - name: primitive
@@ -91,8 +87,6 @@ dependencies:
   version: '1.2.2.1'
 - name: tf-random
   version: '0.5'
-- name: transformers
-  version: '0.5.2.0'
 - name: transformers-base
   version: '0.4.4'
 - name: transformers-compat
@@ -103,8 +97,6 @@ dependencies:
   version: '0.2.7.0'
 - name: vector
   version: '0.11.0.0'
-- name: void
-  version: '0.7.1'
 - name: with-location
   version: '0.1.0'
 - name: yaml
