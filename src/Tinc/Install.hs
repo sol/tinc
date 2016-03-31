@@ -39,6 +39,7 @@ import           Tinc.Sandbox
 import           Tinc.Facts
 import           Tinc.Types
 import qualified Tinc.Nix as Nix
+import           Tinc.RecentCheck
 import           Util
 
 installDependencies :: Bool -> Facts -> IO ()
@@ -50,7 +51,10 @@ installDependencies dryRun facts@Facts{..} = do
     doCabal =
           createInstallPlan factsGhcInfo factsCache
       >=> tee printInstallPlan
-      >=> unless dryRun . realizeInstallPlan factsCache factsAddSourceCache
+      >=> unless dryRun . (
+          realizeInstallPlan factsCache factsAddSourceCache
+      >=> \() -> markRecent factsGhcInfo
+          )
       where
         printInstallPlan :: InstallPlan -> IO ()
         printInstallPlan (InstallPlan reusable missing) = do
@@ -58,7 +62,10 @@ installDependencies dryRun facts@Facts{..} = do
           mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
     doNix =
           tee printInstallPlan
-      >=> unless dryRun . Nix.createDerivations factsAddSourceCache factsNixCache
+      >=> unless dryRun . (
+          tee writeFreezeFile  -- Write the freeze file before generating the nix expressions, so that our recency check works properly
+      >=> Nix.createDerivations factsAddSourceCache factsNixCache
+          )
       where
         printInstallPlan :: [Package] -> IO ()
         printInstallPlan packages = do
@@ -122,7 +129,7 @@ copyFreezeFile dst = do
 generateCabalFile :: [Hpack.Dependency] -> IO (FilePath, String)
 generateCabalFile additionalDeps = do
   hasHpackConfig <- Hpack.doesConfigExist
-  cabalFiles <- filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
+  cabalFiles <- getCabalFiles
   case cabalFiles of
     _ | hasHpackConfig -> renderHpack
     [] | not (null additionalDeps) -> generate
@@ -144,9 +151,9 @@ generateCabalFile additionalDeps = do
 realizeInstallPlan :: Path CacheDir -> Path AddSourceCache -> InstallPlan -> IO ()
 realizeInstallPlan cacheDir addSourceCache (InstallPlan reusable missing) = do
   packages <- populateCache cacheDir addSourceCache missing reusable
+  writeFreezeFile (missing ++ map cachedPackageName reusable) -- Write the freeze file before creating the sandbox, so that our recency check works properly
   void . initSandbox [] $ map cachedPackageConfig packages
   mapM cachedExecutables packages >>= mapM_ linkExecutable . concat
-  writeFreezeFile (missing ++ map cachedPackageName reusable)
   where
     linkExecutable :: FilePath -> IO ()
     linkExecutable name = linkFile name cabalSandboxBinDirectory

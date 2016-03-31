@@ -2,7 +2,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Run where
 
+import           Prelude ()
+import           Prelude.Compat
+
 import           Control.Exception
+import           Control.Monad.Compat
 import           Development.GitRev
 import           System.Environment
 import           System.FileLock
@@ -13,6 +17,7 @@ import           Tinc.Install
 import           Tinc.Facts
 import           Tinc.Types
 import           Tinc.Nix
+import           Tinc.RecentCheck
 
 unsetEnvVars :: IO ()
 unsetEnvVars = do
@@ -25,14 +30,16 @@ tinc args = do
   unsetEnvVars
   facts@Facts{..} <- getExecutablePath >>= discoverFacts
   case args of
-    [] -> withCacheLock factsCache $
-      installDependencies False facts
+    [] -> do
+      recent <- tincEnvCreationTime facts >>= isRecent
+      unless recent $ do
+        withCacheLock factsCache $ do
+          installDependencies False facts
     ["--dry-run"] -> withCacheLock factsCache $
       installDependencies True facts
     ["--version"] -> putStrLn $(gitHash)
     name : rest | Just plugin <- lookup name factsPlugins -> callPlugin facts plugin rest
     _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)
-
 
 callPlugin :: Facts -> String -> [String] -> IO ()
 callPlugin Facts{..} name args = do

@@ -1,5 +1,8 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Tinc.Config (getAdditionalDependencies) where
+module Tinc.Config (
+  getAdditionalDependencies
+, configFile
+) where
 
 import           Data.Aeson
 import           GHC.Generics

@@ -15,7 +15,6 @@ import           Test.Mockery.Action
 import           Data.List
 import           System.Directory
 import           System.FilePath
-import           Test.Mockery.Directory
 
 import           Tinc.Install
 import           Tinc.Package
