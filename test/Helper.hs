@@ -2,11 +2,13 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Helper (
   module Test.Hspec
+, module Test.Mockery.Directory
 , facts
 , skipForGhc78
 ) where
 
 import           Test.Hspec
+import           Test.Mockery.Directory
 
 import qualified Data.Graph.Wrapper as G
 import           Data.List

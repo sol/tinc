@@ -4,7 +4,6 @@ module Tinc.SandboxSpec where
 import Helper
 
 import           System.Directory
-import           Test.Mockery.Directory
 import           System.FilePath
 import           System.IO.Temp
 

@@ -9,7 +9,6 @@ import           System.Directory
 import           System.FilePath
 import           System.IO.Error
 import           System.IO.Temp
-import           Test.Mockery.Directory
 
 import           MockedEnv
 import           MockedProcess

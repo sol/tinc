@@ -9,7 +9,7 @@ module Tinc.Nix (
 , Function (..)
 , defaultDerivation
 , shellDerivation
-, projectDerivation
+, resolverDerivation
 , pkgImport
 , parseNixFunction
 , disableTests
@@ -50,6 +50,9 @@ defaultResolver = "ghc7103"
 packageFile :: FilePath
 packageFile = "package.nix"
 
+resolverFile :: FilePath
+resolverFile = "resolver.nix"
+
 defaultFile :: FilePath
 defaultFile = "default.nix"
 
@@ -68,8 +71,9 @@ createDerivations addSourceCache cache dependencies = do
   pkgDerivation <- cabalToNix "."
 
   let knownHaskellDependencies = map packageName dependencies
-  derivation <- projectDerivation cache pkgDerivation <$> mapM (readDependencies cache knownHaskellDependencies) dependencies
-  writeFile packageFile derivation
+  resDerivation <- resolverDerivation cache <$> mapM (readDependencies cache knownHaskellDependencies) dependencies
+  writeFile packageFile pkgDerivation
+  writeFile resolverFile resDerivation
   writeFile defaultFile defaultDerivation
   writeFile shellFile shellDerivation
 
@@ -102,30 +106,52 @@ cabalToNix uri = do
 
 defaultDerivation :: NixExpression
 defaultDerivation = unlines [
-    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show defaultResolver ++ " }:"
-  , "nixpkgs.pkgs.haskell.packages.${compiler}.callPackage ./package.nix { }"
+    "let"
+  , "  config = if builtins.pathExists ./config.nix then import ./config.nix else { };"
+  , "  defaultConfig = attr: default: if builtins.hasAttr attr config then builtins.getAttr attr config else default;"
+  , "  compiler_ = defaultConfig \"compiler\" \"ghc7103\";"
+  , "in"
+  , "{ compiler ? compiler_ }:"
+  , "(import ./resolver.nix { inherit compiler; }).callPackage ./package.nix { }"
   ]
 
 shellDerivation :: NixExpression
 shellDerivation = unlines [
-    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show defaultResolver ++ " }:"
-  , "(import ./default.nix { inherit nixpkgs compiler; }).env"
+    "let"
+  , "  config = if builtins.pathExists ./config.nix then import ./config.nix else { };"
+  , "  defaultConfig = attr: default: if builtins.hasAttr attr config then builtins.getAttr attr config else default;"
+  , "  compiler_ = defaultConfig \"compiler\" \"ghc7103\";"
+  , "in"
+  , "{ compiler ? compiler_ }:"
+  , "(import ./default.nix { inherit compiler; }).env"
   ]
 
-projectDerivation :: Path NixCache -> NixExpression -> [(Package, [HaskellDependency], [SystemDependency])] -> NixExpression
-projectDerivation cache pkgDerivation dependencies = renderNixFunction pkg
+resolverDerivation :: Path NixCache -> [(Package, [HaskellDependency], [SystemDependency])] -> NixExpression
+resolverDerivation cache dependencies = unlines $ [
+    "let"
+  , "  defaultConfig = attr: default: if builtins.hasAttr attr config then builtins.getAttr attr config else default;"
+  , "  config = if builtins.pathExists ./config.nix then import ./config.nix else { };"
+  , "  compiler_ = defaultConfig \"compiler\" \"ghc7103\";"
+  , "in"
+  , "{ compiler ? compiler_ }:"
+  , "let"
+  , "  pkgs = import <nixpkgs> {};"
+  , "  oldResolver = builtins.getAttr compiler pkgs.haskell.packages;"
+  , "  callPackage = oldResolver.callPackage;"
+  , ""
+  , "  overrideFunction = self: super: rec {"
+  ] ++ indent overrides ++ [
+    "  };"
+  , ""
+  , "  newResolver = oldResolver.override {"
+  , "    overrides = overrideFunction;"
+  , "  };"
+  , ""
+  , "in newResolver"
+  ]
   where
-    function = parseNixFunction pkgDerivation
-    knownHaskellDependencies = map (packageName . (\(p, _, _) -> p)) dependencies
-    addLetBindings body = unlines $ "let" : indent pkgImports ++ ["in " ++ body]
-    nixPkgImport = "pkgs = (import <nixpkgs> {}).pkgs;"
-    pkgImports = nixPkgImport : map (pkgImport cache) dependencies
-    indent = map ("  " ++)
-    pkg = case function of
-      Function args body -> Function ("callPackage" : filter (`notElem` knownHaskellDependencies) args) $ addLetBindings body
-
-renderNixFunction :: Function -> NixExpression
-renderNixFunction (Function args body) = "{ " ++ intercalate ", " args ++ " }:\n" ++ body
+    overrides = map (pkgImport cache) dependencies
+    indent = map ("    " ++)
 
 pkgImport :: Path NixCache -> (Package, [HaskellDependency], [SystemDependency]) -> String
 pkgImport cache (package@(Package name _), haskellDependencies, systemDependencies) =

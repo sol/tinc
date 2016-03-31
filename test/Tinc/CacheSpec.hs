@@ -19,7 +19,6 @@ import           Safe
 import           System.FilePath
 import           System.IO.Temp
 import           System.Directory
-import           Test.Mockery.Directory
 
 import           Tinc.Cache
 import           Tinc.GhcPkg
