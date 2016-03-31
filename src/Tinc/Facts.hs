@@ -43,11 +43,8 @@ discoverFacts executablePath = do
   let pluginsDir :: FilePath
       pluginsDir = home </> ".tinc" </> "plugins"
 
-      ghcFlavor :: String
-      ghcFlavor = ghcInfoPlatform ghcInfo ++ "-ghc-" ++ ghcInfoVersion ghcInfo
-
       cacheDir :: Path CacheDir
-      cacheDir = Path (home </> ".tinc" </> "cache" </> ghcFlavor)
+      cacheDir = Path (home </> ".tinc" </> "cache" </> ghcFlavor ghcInfo)
 
       addSourceCache :: Path AddSourceCache
       addSourceCache = Path (home </> ".tinc" </> "cache" </> "add-source")

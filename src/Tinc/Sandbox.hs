@@ -14,6 +14,7 @@ module Tinc.Sandbox (
 , AddSource(..)
 , AddSourceCache
 , addSourcePath
+, cabalSandboxDirectory
 , cabalSandboxBinDirectory
 
 , listPackages

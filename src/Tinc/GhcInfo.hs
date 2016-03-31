@@ -26,3 +26,6 @@ getGhcInfo = do
     <$> lookupField "Target platform"
     <*> lookupField "Project version"
     <*> (Path <$> lookupField "Global Package DB")
+
+ghcFlavor :: GhcInfo -> String
+ghcFlavor ghcInfo = ghcInfoPlatform ghcInfo ++ "-ghc-" ++ ghcInfoVersion ghcInfo

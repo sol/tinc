@@ -35,6 +35,7 @@ dependencies:
   - gitrev
   - unix-compat
   - with-location
+  - time
 
 source-dirs: src
 
