@@ -31,6 +31,9 @@ tinc args = do
   facts@Facts{..} <- getExecutablePath >>= discoverFacts
   case args of
     [] -> do
+      withCacheLock factsCache $ do
+        installDependencies False facts
+    ["--fast"] -> do
       recent <- tincEnvCreationTime facts >>= isRecent
       unless recent $ do
         withCacheLock factsCache $ do

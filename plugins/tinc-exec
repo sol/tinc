@@ -2,5 +2,5 @@
 set -o nounset
 set -o errexit
 
-tinc
+tinc --fast
 exec cabal exec -- "$@"
