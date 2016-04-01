@@ -57,7 +57,7 @@ shellFile :: FilePath
 shellFile = "shell.nix"
 
 cabal :: [String] -> (String, [String])
-cabal args = ("nix-shell", ["-p", "haskell.packages." ++ show defaultResolver ++ ".ghcWithPackages (p: [ ])", "--run", unwords $ "cabal" : map translate args])
+cabal args = ("nix-shell", ["-p", "haskell.packages." ++ show defaultResolver ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
 
 nixShell :: String -> [String] -> (String, [String])
 nixShell command args = ("nix-shell", [shellFile, "--run", unwords $ command : map translate args])

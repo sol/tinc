@@ -16,10 +16,10 @@ spec = do
 
   describe "cabal" $ do
     it "executes cabal in an empty ghc environment" $ do
-      cabal ["sandbox", "init"] `shouldBe` ("nix-shell", ["-p", "haskell.packages.\"ghc7103\".ghcWithPackages (p: [ ])", "--run", "cabal sandbox init"])
+      cabal ["sandbox", "init"] `shouldBe` ("nix-shell", ["-p", "haskell.packages.\"ghc7103\".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal sandbox init"])
 
     it "escapes arguments" $ do
-      cabal ["sandbox init"] `shouldBe` ("nix-shell", ["-p", "haskell.packages.\"ghc7103\".ghcWithPackages (p: [ ])", "--run", "cabal 'sandbox init'"])
+      cabal ["sandbox init"] `shouldBe` ("nix-shell", ["-p", "haskell.packages.\"ghc7103\".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal 'sandbox init'"])
 
   describe "nixShell" $ do
     it "executes command in project environment" $ do
