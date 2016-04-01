@@ -74,4 +74,4 @@ tee :: Monad m => (a -> m ()) -> a -> m a
 tee action a = action a >> return a
 
 getCabalFiles :: IO [FilePath]
-getCabalFiles = filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
+getCabalFiles = filter (not . ("." `isPrefixOf`)) . filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
