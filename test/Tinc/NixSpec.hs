@@ -43,55 +43,31 @@ spec = do
   describe "defaultDerivation" $ do
     it "generates default derivation" $ do
       defaultDerivation `shouldBe` unlines [
-          "let"
-        , "  config = if builtins.pathExists ./config.nix then import ./config.nix else { };"
-        , "  defaultConfig = attr: default: if builtins.hasAttr attr config then builtins.getAttr attr config else default;"
-        , "  compiler_ = defaultConfig \"compiler\" \"ghc7103\";"
-        , "in"
-        , "{ compiler ? compiler_ }:"
-        , "(import ./resolver.nix { inherit compiler; }).callPackage ./package.nix { }"
+          "{ nixpkgs ? import <nixpkgs> {}, compiler ? \"ghc7103\" }:"
+        , "nixpkgs.pkgs.haskell.packages.${compiler}.callPackage ./package.nix { }"
         ]
 
   describe "shellDerivation" $ do
     it "generates shell derivation" $ do
       shellDerivation `shouldBe` unlines [
-          "let"
-        , "  config = if builtins.pathExists ./config.nix then import ./config.nix else { };"
-        , "  defaultConfig = attr: default: if builtins.hasAttr attr config then builtins.getAttr attr config else default;"
-        , "  compiler_ = defaultConfig \"compiler\" \"ghc7103\";"
-        , "in"
-        , "{ compiler ? compiler_ }:"
-        , "(import ./default.nix { inherit compiler; }).env"
+          "{ nixpkgs ? import <nixpkgs> {}, compiler ? \"ghc7103\" }:"
+        , "(import ./default.nix { inherit nixpkgs compiler; }).env"
         ]
 
-  describe "resolverDerivation" $ do
-    it "generates resolver derivation" $ do
+  describe "projectDerivation" $ do
+    it "generates project derivation" $ do
       let dependencies = [
               (Package "foo" "0.1.0", [], [])
             , (Package "bar" "0.1.0", ["foo"], ["baz"])
             ]
-      resolverDerivation cache dependencies `shouldBe` unlines [
-          "let"
-        , "  defaultConfig = attr: default: if builtins.hasAttr attr config then builtins.getAttr attr config else default;"
-        , "  config = if builtins.pathExists ./config.nix then import ./config.nix else { };"
-        , "  compiler_ = defaultConfig \"compiler\" \"ghc7103\";"
-        , "in"
-        , "{ compiler ? compiler_ }:"
+          pkgDerivation = "{ mkDerivation, base, foo }: { someDerivation }"
+      projectDerivation cache pkgDerivation dependencies `shouldBe` unlines [
+          "{ callPackage, mkDerivation, base }:"
         , "let"
-        , "  pkgs = import <nixpkgs> {};"
-        , "  oldResolver = builtins.getAttr compiler pkgs.haskell.packages;"
-        , "  callPackage = oldResolver.callPackage;"
-        , ""
-        , "  overrideFunction = self: super: rec {"
-        , "    foo = callPackage /path/to/nix/cache/foo-0.1.0.nix { };"
-        , "    bar = callPackage /path/to/nix/cache/bar-0.1.0.nix { inherit foo; inherit (pkgs) baz; };"
-        , "  };"
-        , ""
-        , "  newResolver = oldResolver.override {"
-        , "    overrides = overrideFunction;"
-        , "  };"
-        , ""
-        , "in newResolver"
+        , "  pkgs = (import <nixpkgs> {}).pkgs;"
+        , "  foo = callPackage /path/to/nix/cache/foo-0.1.0.nix { };"
+        , "  bar = callPackage /path/to/nix/cache/bar-0.1.0.nix { inherit foo; inherit (pkgs) baz; };"
+        , "in { someDerivation }"
         ]
 
   describe "parseNixFunction" $ do

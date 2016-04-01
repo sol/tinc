@@ -31,6 +31,7 @@ epochToUTCTime t = inTempDirectory $ do
 spec :: Spec
 spec = do
   describe "isRecent" $ around_ inTempDirectory $ do
+
     context "with existing tinc environment" $ do
       let envCreationTime = Just <$> epochToUTCTime 1
 
