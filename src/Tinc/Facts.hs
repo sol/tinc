@@ -28,9 +28,12 @@ data Facts = Facts {
 , factsGhcInfo :: GhcInfo
 } deriving (Eq, Show)
 
+tincEnvVar :: String
+tincEnvVar = "TINC_USE_NIX"
+
 useNix :: FilePath -> IO Bool
 useNix executablePath = do
-  maybe (isInNixStore executablePath) (`notElem` ["no", "0"]) <$> lookupEnv "TINC_USE_NIX"
+  maybe (isInNixStore executablePath) (`notElem` ["no", "0"]) <$> lookupEnv tincEnvVar
 
 isInNixStore :: FilePath -> Bool
 isInNixStore = ("/nix/" `isPrefixOf`)
@@ -56,6 +59,9 @@ discoverFacts executablePath = do
   createDirectoryIfMissing True (path nixCache)
   createDirectoryIfMissing True pluginsDir
   plugins <- listAllPlugins pluginsDir
+  if useNix_
+     then setEnv tincEnvVar "yes"
+     else setEnv tincEnvVar "no"
   return Facts {
     factsCache = cacheDir
   , factsAddSourceCache = addSourceCache

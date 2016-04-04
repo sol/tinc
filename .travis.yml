@@ -17,7 +17,7 @@ addons:
 
 before_install:
   - export PATH=$HOME/.tinc/bin:/opt/ghc/$GHCVER/bin:/opt/cabal/1.22/bin:$PATH
-  - curl -sSL https://github.com/sol/tinc/raw/get-tinc/get-tinc.sh | bash
+  - curl -sSL https://github.com/sol/tinc/raw/master/get-tinc.sh | bash
   - tinc --version
   - ghc --version
   - cabal --version

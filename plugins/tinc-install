@@ -20,4 +20,18 @@ fi
 
 cd *
 tinc
-cabal install --prefix ~/.tinc
+
+
+# NOTE: This is technically not necessary as we already ensure in Tinc.Facts
+# that TINC_USE_NIX is always set.  We default TINC_USE_NIX to "no" here anyway
+# to give a smoother upgrade path, but it can and should be removed eventually.
+TINC_USE_NIX=${TINC_USE_NIX:-no}
+
+
+if [ "$TINC_USE_NIX" = "yes" ]; then
+  find . -exec touch -d "1970-01-01 00:00:00 UTC" {} \;
+  NAME=`sed -rn '/pname/ s/.*"(.*)";/\1/p' package.nix`
+  nix-env -i "$NAME" -f default.nix
+else
+  cabal install --prefix ~/.tinc
+fi
