@@ -3,4 +3,4 @@ set -o nounset
 set -o errexit
 
 tinc --fast
-exec cabal exec -- sensei "$@"
+exec tinc exec sensei "$@"

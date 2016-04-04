@@ -9,7 +9,7 @@ spec :: Spec
 spec = do
   describe "callPlugin" $ do
     it "propagates success" $ do
-      callPlugin facts "true" [] `shouldThrow` (== ExitSuccess)
+      callPlugin "true" [] `shouldThrow` (== ExitSuccess)
 
     it "propagates error" $ do
-      callPlugin facts "false" [] `shouldThrow` (== ExitFailure 1)
+      callPlugin "false" [] `shouldThrow` (== ExitFailure 1)

@@ -2,4 +2,4 @@
 set -o nounset
 set -o errexit
 
-exec cabal exec -- ghc-pkg "$@"
+exec tinc exec ghc-pkg "$@"

@@ -41,14 +41,20 @@ tinc args = do
     ["--dry-run"] -> withCacheLock factsCache $
       installDependencies True facts
     ["--version"] -> putStrLn $(gitHash)
-    name : rest | Just plugin <- lookup name factsPlugins -> callPlugin facts plugin rest
+    "exec" : name : rest -> callExec facts name rest
+    name : rest | Just plugin <- lookup name factsPlugins -> callPlugin plugin rest
     _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)
 
-callPlugin :: Facts -> String -> [String] -> IO ()
-callPlugin Facts{..} name args = do
+callExec :: Facts -> String -> [String] -> IO ()
+callExec Facts{..} name args = do
   pid <- if factsUseNix
     then uncurry spawnProcess $ nixShell name args
     else spawnProcess name args
+  waitForProcess pid >>= throwIO
+
+callPlugin :: String -> [String] -> IO ()
+callPlugin name args = do
+  pid <- spawnProcess name args
   waitForProcess pid >>= throwIO
 
 withCacheLock :: Path CacheDir -> IO a -> IO a
