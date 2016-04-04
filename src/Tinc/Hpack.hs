@@ -64,8 +64,8 @@ mkExecutable :: [Hpack.Dependency] -> Hpack.Section Hpack.Executable
 mkExecutable deps = (Hpack.section $ Hpack.Executable "tinc-generated" "Generated.hs" []){Hpack.sectionDependencies = deps}
 
 extractAddSourceDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [Sandbox.AddSource]
-extractAddSourceDependencies addSourceCache addSourceDeps =
-  parseAddSourceDependencies addSourceDeps >>= mapM (uncurry (cacheAddSourceDep addSourceCache))
+extractAddSourceDependencies addSourceCache additionalDeps =
+  parseAddSourceDependencies additionalDeps >>= mapM (uncurry (cacheAddSourceDep addSourceCache))
 
 parseAddSourceDependencies :: [Hpack.Dependency] ->  IO [(String, Hpack.AddSource)]
 parseAddSourceDependencies additionalDeps = do
