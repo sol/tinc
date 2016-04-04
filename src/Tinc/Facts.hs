@@ -14,8 +14,8 @@ import           Data.Function
 import           Tinc.GhcInfo
 import           Tinc.Sandbox
 import           Tinc.Types
-import           Tinc.Nix (NixCache)
 
+data NixCache
 type Plugins = [Plugin]
 type Plugin = (String, FilePath)
 
@@ -24,6 +24,7 @@ data Facts = Facts {
 , factsAddSourceCache :: Path AddSourceCache
 , factsNixCache :: Path NixCache
 , factsUseNix :: Bool
+, factsNixResolver :: String
 , factsPlugins :: Plugins
 , factsGhcInfo :: GhcInfo
 } deriving (Eq, Show)
@@ -38,11 +39,18 @@ useNix executablePath = do
 isInNixStore :: FilePath -> Bool
 isInNixStore = ("/nix/" `isPrefixOf`)
 
+defaultNixResolver :: String
+defaultNixResolver = "ghc7103"
+
+getNixResolver :: IO String
+getNixResolver = fromMaybe defaultNixResolver <$> lookupEnv "TINC_NIX_RESOLVER"
+
 discoverFacts :: FilePath -> IO Facts
 discoverFacts executablePath = do
   ghcInfo <- getGhcInfo
   home <- getHomeDirectory
   useNix_ <- useNix executablePath
+  nixResolver <- getNixResolver
   let pluginsDir :: FilePath
       pluginsDir = home </> ".tinc" </> "plugins"
 
@@ -67,6 +75,7 @@ discoverFacts executablePath = do
   , factsAddSourceCache = addSourceCache
   , factsNixCache = nixCache
   , factsUseNix = useNix_
+  , factsNixResolver = nixResolver
   , factsPlugins = plugins
   , factsGhcInfo = ghcInfo
   }

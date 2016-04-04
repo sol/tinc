@@ -16,10 +16,10 @@ spec = do
 
   describe "cabal" $ do
     it "executes cabal in an empty ghc environment" $ do
-      cabal ["sandbox", "init"] `shouldBe` ("nix-shell", ["-p", "haskell.packages.\"ghc7103\".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal sandbox init"])
+      cabal facts ["sandbox", "init"] `shouldBe` ("nix-shell", ["-p", "haskell.packages.\"ghc7103\".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal sandbox init"])
 
     it "escapes arguments" $ do
-      cabal ["sandbox init"] `shouldBe` ("nix-shell", ["-p", "haskell.packages.\"ghc7103\".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal 'sandbox init'"])
+      cabal facts ["sandbox init"] `shouldBe` ("nix-shell", ["-p", "haskell.packages.\"ghc7103\".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal 'sandbox init'"])
 
   describe "nixShell" $ do
     it "executes command in project environment" $ do
@@ -42,14 +42,14 @@ spec = do
 
   describe "defaultDerivation" $ do
     it "generates default derivation" $ do
-      defaultDerivation `shouldBe` unlines [
+      defaultDerivation facts `shouldBe` unlines [
           "{ nixpkgs ? import <nixpkgs> {}, compiler ? \"ghc7103\" }:"
         , "nixpkgs.pkgs.haskell.packages.${compiler}.callPackage ./package.nix { }"
         ]
 
   describe "shellDerivation" $ do
     it "generates shell derivation" $ do
-      shellDerivation `shouldBe` unlines [
+      shellDerivation facts `shouldBe` unlines [
           "{ nixpkgs ? import <nixpkgs> {}, compiler ? \"ghc7103\" }:"
         , "(import ./default.nix { inherit nixpkgs compiler; }).env"
         ]

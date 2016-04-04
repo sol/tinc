@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
 module Tinc.Nix (
   NixCache
 , cabal
@@ -29,12 +30,12 @@ import           System.Process.Internals (translate)
 import           System.Process
 import           System.IO
 
+import           Tinc.Facts
 import           Tinc.Package
 import           Tinc.Types
 import           Tinc.Sandbox
 import           Util
 
-data NixCache
 type NixExpression = String
 type Argument = String
 type HaskellDependency = String
@@ -43,9 +44,6 @@ data Function = Function {
   _functionArguments :: [Argument]
 , _functionBody :: NixExpression
 } deriving (Eq, Show)
-
-defaultResolver :: String
-defaultResolver = "ghc7103"
 
 packageFile :: FilePath
 packageFile = "package.nix"
@@ -56,22 +54,22 @@ defaultFile = "default.nix"
 shellFile :: FilePath
 shellFile = "shell.nix"
 
-cabal :: [String] -> (String, [String])
-cabal args = ("nix-shell", ["-p", "haskell.packages." ++ show defaultResolver ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
+cabal :: Facts -> [String] -> (String, [String])
+cabal Facts{..} args = ("nix-shell", ["-p", "haskell.packages." ++ show factsNixResolver ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
 
 nixShell :: String -> [String] -> (String, [String])
 nixShell command args = ("nix-shell", [shellFile, "--run", unwords $ command : map translate args])
 
-createDerivations :: Path AddSourceCache -> Path NixCache -> [Package] -> IO ()
-createDerivations addSourceCache cache dependencies = do
-  mapM_ (populateCache addSourceCache cache) dependencies
+createDerivations :: Facts -> [Package] -> IO ()
+createDerivations facts@Facts{..} dependencies = do
+  mapM_ (populateCache factsAddSourceCache factsNixCache) dependencies
   pkgDerivation <- cabalToNix "."
 
   let knownHaskellDependencies = map packageName dependencies
-  derivation <- projectDerivation cache pkgDerivation <$> mapM (readDependencies cache knownHaskellDependencies) dependencies
+  derivation <- projectDerivation factsNixCache pkgDerivation <$> mapM (readDependencies factsNixCache knownHaskellDependencies) dependencies
   writeFile packageFile derivation
-  writeFile defaultFile defaultDerivation
-  writeFile shellFile shellDerivation
+  writeFile defaultFile (defaultDerivation facts)
+  writeFile shellFile (shellDerivation facts)
 
 populateCache :: Path AddSourceCache -> Path NixCache -> Package -> IO ()
 populateCache addSourceCache cache pkg = do
@@ -100,15 +98,15 @@ cabalToNix uri = do
   hPutStrLn stderr $ "cabal2nix " ++ uri
   readProcess "cabal2nix" [uri] ""
 
-defaultDerivation :: NixExpression
-defaultDerivation = unlines [
-    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show defaultResolver ++ " }:"
+defaultDerivation :: Facts -> NixExpression
+defaultDerivation Facts{..} = unlines [
+    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
   , "nixpkgs.pkgs.haskell.packages.${compiler}.callPackage ./package.nix { }"
   ]
 
-shellDerivation :: NixExpression
-shellDerivation = unlines [
-    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show defaultResolver ++ " }:"
+shellDerivation :: Facts -> NixExpression
+shellDerivation Facts{..} = unlines [
+    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
   , "(import ./default.nix { inherit nixpkgs compiler; }).env"
   ]
 

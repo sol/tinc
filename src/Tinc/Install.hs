@@ -64,7 +64,7 @@ installDependencies dryRun facts@Facts{..} = do
           tee printInstallPlan
       >=> unless dryRun . (
           tee writeFreezeFile  -- Write the freeze file before generating the nix expressions, so that our recency check works properly
-      >=> Nix.createDerivations factsAddSourceCache factsNixCache
+      >=> Nix.createDerivations facts
           )
       where
         printInstallPlan :: [Package] -> IO ()
