@@ -2,7 +2,9 @@ name: tinc
 version: 0.1.0
 category: Development
 license: MIT
-copyright: (c) 2015-2016 Simon Hengel
+copyright:
+  - (c) 2015 Sönke Hahn
+  - (c) 2015-2016 Simon Hengel
 author: Simon Hengel <sol@typeful.net>
 maintainer: Simon Hengel <sol@typeful.net>
 
@@ -46,7 +48,7 @@ executables:
 
 tests:
   spec:
-    main: "Spec.hs"
+    main: Spec.hs
     source-dirs: test
     dependencies:
       - hspec

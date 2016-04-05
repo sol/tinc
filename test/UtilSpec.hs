@@ -95,8 +95,8 @@ spec = do
     it "returns all cabal files in the current directory" $ do
       touch "foo.cabal"
       touch "bar.cabal"
-      getCabalFiles >>= (`shouldMatchList` ["bar.cabal", "foo.cabal"])
+      getCabalFiles "." >>= (`shouldMatchList` ["bar.cabal", "foo.cabal"])
 
     it "ignores dot files" $ do
       touch ".foo.cabal"
-      getCabalFiles `shouldReturn` []
+      getCabalFiles "." `shouldReturn` []

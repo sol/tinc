@@ -73,5 +73,5 @@ cachedIOAfter actionAfter file action = do
 tee :: Monad m => (a -> m ()) -> a -> m a
 tee action a = action a >> return a
 
-getCabalFiles :: IO [FilePath]
-getCabalFiles = filter (not . ("." `isPrefixOf`)) . filter (".cabal" `isSuffixOf`) <$> getDirectoryContents "."
+getCabalFiles :: FilePath -> IO [FilePath]
+getCabalFiles dir = filter (not . ("." `isPrefixOf`)) . filter (".cabal" `isSuffixOf`) <$> getDirectoryContents dir

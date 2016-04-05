@@ -129,7 +129,7 @@ copyFreezeFile dst = do
 generateCabalFile :: [Hpack.Dependency] -> IO (FilePath, String)
 generateCabalFile additionalDeps = do
   hasHpackConfig <- Hpack.doesConfigExist
-  cabalFiles <- getCabalFiles
+  cabalFiles <- getCabalFiles "."
   case cabalFiles of
     _ | hasHpackConfig -> renderHpack
     [] | not (null additionalDeps) -> generate

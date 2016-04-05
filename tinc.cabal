@@ -9,7 +9,8 @@ homepage:       https://github.com/sol/tinc#readme
 bug-reports:    https://github.com/sol/tinc/issues
 author:         Simon Hengel <sol@typeful.net>
 maintainer:     Simon Hengel <sol@typeful.net>
-copyright:      (c) 2015-2016 Simon Hengel
+copyright:      (c) 2015 Sönke Hahn,
+                (c) 2015-2016 Simon Hengel
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple

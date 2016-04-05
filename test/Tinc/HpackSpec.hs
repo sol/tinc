@@ -139,7 +139,7 @@ spec = do
         writeFile cabalFile "library\n  build-depends: foo bar"
         determinePackageName dir (Hpack.GitRef "<repo>" "<ref>") `shouldThrow` isUserError
 
-  describe "getCabalFile" $ do
+  describe "findCabalFile" $ do
     it "finds cabal files in given directory" $ do
       withSystemTempDirectory "tinc" $ \ dir -> do
         let cabalFile = dir </> "foo.cabal"

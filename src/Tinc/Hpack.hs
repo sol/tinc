@@ -146,7 +146,7 @@ determinePackageName directory dep = do
 
 findCabalFile :: (Fail m, MonadIO m) => FilePath -> Hpack.AddSource -> m FilePath
 findCabalFile dir addSource = do
-  cabalFiles <- liftIO $ filter (".cabal" `isSuffixOf`) <$> getDirectoryContents dir
+  cabalFiles <- liftIO $ getCabalFiles dir
   case cabalFiles of
     [cabalFile] -> return (dir </> cabalFile)
     [] -> die ("Couldn't find .cabal file in " ++ subject addSource)

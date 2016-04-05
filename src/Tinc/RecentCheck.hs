@@ -26,7 +26,7 @@ isRecent :: Maybe UTCTime -> IO Bool
 isRecent envCreationTime = case envCreationTime of
   Just packageMTime -> modificationTime freezeFile >>= \case
     Just freezeMTime -> do
-      cabalFiles <- getCabalFiles
+      cabalFiles <- getCabalFiles "."
       xs <- mapM modificationTime (Tinc.configFile : Hpack.packageConfig : cabalFiles)
       return $ maximum (freezeMTime : catMaybes xs) < packageMTime
     Nothing -> return False
