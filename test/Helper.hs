@@ -22,6 +22,7 @@ import           Data.List
 
 import           Tinc.Facts
 import           Tinc.Process hiding (process)
+import           Tinc.Types
 
 instance (Ord a, Ord v) => Eq (G.Graph a v) where
   a == b = sort (G.toList a) == sort (G.toList b)
@@ -35,6 +36,7 @@ facts = Facts {
 , factsNixResolver = defaultNixResolver
 , factsPlugins = []
 , factsGhcInfo = error "factsGhcInfo"
+, factsRemoteRepoCache = Path "/some/path/to/remote-repo-cache"
 }
 
 process :: WithLocation (Process IO)

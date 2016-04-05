@@ -34,6 +34,9 @@ getDirectoryContents dir = filter (`notElem` [".", ".."]) <$> Directory.getDirec
 listDirectoryContents :: FilePath -> IO [FilePath]
 listDirectoryContents dir = sort . map (dir </>) <$> getDirectoryContents dir
 
+getDirectories :: FilePath -> IO [FilePath]
+getDirectories dir = getDirectoryContents dir >>= filterM (doesDirectoryExist . (dir </>))
+
 listDirectories :: FilePath -> IO [FilePath]
 listDirectories dir = listDirectoryContents dir >>= filterM doesDirectoryExist
 

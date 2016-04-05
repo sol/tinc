@@ -61,7 +61,7 @@ spec = do
         mockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => Env
         mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = ?mockedCallProcess}
           where
-            mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests"], "", ?cabalInstallResult)
+            mockedReadProcess = stub ("cabal", ["--remote-repo-cache", "/some/path/to/remote-repo-cache", "install", "--dry-run", "--only-dependencies", "--enable-tests"], "", ?cabalInstallResult)
 
         withMockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => WithEnv Env a -> IO a
         withMockedEnv = withEnv mockedEnv
@@ -182,3 +182,35 @@ spec = do
       it "fails" $ do
         inTempDirectory $ do
           generateCabalFile [] `shouldThrow` errorCall "No cabal file found."
+
+  describe "cloneRemoteRepoCache" $ do
+    let
+      remote = "some-remote"
+      tarFile = "00-index.tar"
+      cacheFile = "00-index.cache"
+      cacheFileContents = "index cache"
+      setup = do
+        touch ("src" </> remote </> tarFile)
+        writeFile ("src" </> remote </> cacheFile) cacheFileContents
+        cloneRemoteRepoCache "src" "dst"
+
+    around_ inTempDirectory $ before_ setup $ do
+      it "symlinks 00-index.tar" $ do
+        srcTarFile <- canonicalizePath ("src" </> remote </> tarFile)
+        canonicalizePath ("dst" </> remote </> tarFile) `shouldReturn` srcTarFile
+
+      it "copies 00-index.cache" $ do
+        readFile ("dst" </> remote </> cacheFile) `shouldReturn` cacheFileContents
+
+    describe "listRemoteRepos" $ around_ inTempDirectory $ do
+      it "list remotes" $ do
+        touch "cache/foo/00-index.tar"
+        listRemoteRepos "cache" `shouldReturn` ["foo"]
+
+      it "ignores regular files" $ do
+        touch "cache/foo"
+        listRemoteRepos "cache" `shouldReturn` []
+
+      it "ignores other directories" $ do
+        touch "cache/foo/.placeholder"
+        listRemoteRepos "cache" `shouldReturn` []
