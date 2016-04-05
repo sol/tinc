@@ -12,6 +12,7 @@ module Tinc.Install (
 , generateCabalFile
 , cloneRemoteRepoCache
 , listRemoteRepos
+, removeAddSourceDependencies
 #endif
 ) where
 
@@ -90,7 +91,7 @@ solveDependencies facts addSourceCache = do
   additionalDeps <- getAdditionalDependencies
   addSourceDependencies <- Hpack.extractAddSourceDependencies addSourceCache additionalDeps
   withSystemTempDirectory "tinc-remote-repo-cache" $ \(Path -> remoteRepoCache) -> do
-    cloneRemoteRepoCache (factsRemoteRepoCache facts) remoteRepoCache
+    cloneRemoteRepoCache addSourceDependencies (factsRemoteRepoCache facts) remoteRepoCache
     cabalInstallPlan facts{ factsRemoteRepoCache = remoteRepoCache } additionalDeps addSourceCache addSourceDependencies
 
 remoteRepoTarFile :: FilePath
@@ -99,13 +100,25 @@ remoteRepoTarFile = "00-index.tar"
 remoteRepoCacheFile :: FilePath
 remoteRepoCacheFile = "00-index.cache"
 
-cloneRemoteRepoCache :: Path RemoteRepoCache -> Path RemoteRepoCache -> IO ()
-cloneRemoteRepoCache src (Path dst) = do
+cloneRemoteRepoCache :: [AddSource] -> Path RemoteRepoCache -> Path RemoteRepoCache -> IO ()
+cloneRemoteRepoCache addSourceDependencies src dst = do
   remotes <- listRemoteRepos src
   forM_ remotes $ \remote -> do
-    createDirectoryIfMissing True $ dst </> remote
-    linkFile (path src </> remote </> remoteRepoTarFile) (dst </> remote </> remoteRepoTarFile)
-    copyFile (path src </> remote </> remoteRepoCacheFile) (dst </> remote </> remoteRepoCacheFile)
+    createDirectoryIfMissing True $ path dst </> remote
+    linkFile (path src </> remote </> remoteRepoTarFile) (path dst </> remote </> remoteRepoTarFile)
+    let cacheFile dir = path dir </> remote </> remoteRepoCacheFile
+        remove = unlines . removeAddSourceDependencies addSourceDependencies . lines
+    contents <- readFile (cacheFile src)
+    writeFile (cacheFile dst) $ remove contents
+
+removeAddSourceDependencies :: [AddSource] -> [String] -> [String]
+removeAddSourceDependencies addSourceDependencies = filter (not . isAddSourceDependency)
+  where
+    names :: [String]
+    names = ["pkg: " ++ name ++ " "| AddSource name _ <- addSourceDependencies]
+
+    isAddSourceDependency :: String -> Bool
+    isAddSourceDependency xs = any (`isPrefixOf` xs) names
 
 listRemoteRepos :: Path RemoteRepoCache -> IO [FilePath]
 listRemoteRepos (Path dir) = do
