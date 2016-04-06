@@ -10,7 +10,7 @@ module Tinc.Nix (
 , Function (..)
 , defaultDerivation
 , shellDerivation
-, projectDerivation
+, resolverDerivation
 , pkgImport
 , parseNixFunction
 , disableTests
@@ -45,6 +45,9 @@ data Function = Function {
 packageFile :: FilePath
 packageFile = "package.nix"
 
+resolverFile :: FilePath
+resolverFile = "resolver.nix"
+
 defaultFile :: FilePath
 defaultFile = "default.nix"
 
@@ -63,8 +66,8 @@ createDerivations facts@Facts{..} dependencies = do
   pkgDerivation <- cabalToNix "."
 
   let knownHaskellDependencies = map packageName dependencies
-  derivation <- projectDerivation factsNixCache pkgDerivation <$> mapM (readDependencies factsNixCache knownHaskellDependencies) dependencies
-  writeFile packageFile derivation
+  mapM (readDependencies factsNixCache knownHaskellDependencies) dependencies >>= resolverDerivation facts >>= writeFile resolverFile
+  writeFile packageFile pkgDerivation
   writeFile defaultFile (defaultDerivation facts)
   writeFile shellFile (shellDerivation facts)
 
@@ -98,7 +101,7 @@ cabalToNix uri = do
 defaultDerivation :: Facts -> NixExpression
 defaultDerivation Facts{..} = unlines [
     "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
-  , "nixpkgs.pkgs.haskell.packages.${compiler}.callPackage ./package.nix { }"
+  , "(import ./resolver.nix { inherit nixpkgs compiler; }).callPackage ./package.nix { }"
   ]
 
 shellDerivation :: Facts -> NixExpression
@@ -107,26 +110,39 @@ shellDerivation Facts{..} = unlines [
   , "(import ./default.nix { inherit nixpkgs compiler; }).env"
   ]
 
-projectDerivation :: Path NixCache -> NixExpression -> [(Package, [HaskellDependency], [SystemDependency])] -> NixExpression
-projectDerivation cache pkgDerivation dependencies = renderNixFunction pkg
-  where
-    function = parseNixFunction pkgDerivation
-    knownHaskellDependencies = map (packageName . (\(p, _, _) -> p)) dependencies
-    addLetBindings body = unlines $ "let" : indent pkgImports ++ ["in " ++ body]
-    nixPkgImport = "pkgs = (import <nixpkgs> {}).pkgs;"
-    pkgImports = nixPkgImport : map (pkgImport cache) dependencies
-    indent = map ("  " ++)
-    pkg = case function of
-      Function args body -> Function ("callPackage" : filter (`notElem` knownHaskellDependencies) args) $ addLetBindings body
+indent :: Int -> [String] -> [String]
+indent n = map ((replicate n ' ') ++)
 
-renderNixFunction :: Function -> NixExpression
-renderNixFunction (Function args body) = "{ " ++ intercalate ", " args ++ " }:\n" ++ body
-
-pkgImport :: Path NixCache -> (Package, [HaskellDependency], [SystemDependency]) -> String
-pkgImport cache (package@(Package name _), haskellDependencies, systemDependencies) =
-  name ++ " = callPackage " ++ derivationFile cache package ++ " " ++ args ++ ";"
+resolverDerivation :: Facts -> [(Package, [HaskellDependency], [SystemDependency])] -> IO NixExpression
+resolverDerivation Facts{..} dependencies = do
+  overrides <- concat <$> mapM getPkgDerivation dependencies
+  return . unlines $ [
+      "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
+    , "let"
+    , "  oldResolver = builtins.getAttr compiler nixpkgs.haskell.packages;"
+    , "  callPackage = oldResolver.callPackage;"
+    , ""
+    , "  overrideFunction = self: super: rec {"
+    ] ++ indent 4 overrides ++ [
+      "  };"
+    , ""
+    , "  newResolver = oldResolver.override {"
+    , "    overrides = overrideFunction;"
+    , "  };"
+    , ""
+    , "in newResolver"
+    ]
   where
-    args = "{ " ++ inheritHaskellDependencies ++ inheritSystemDependencies ++ "}"
+    getPkgDerivation packageDeps@(package, _, _) = pkgImport packageDeps <$> readFile (derivationFile factsNixCache package)
+
+pkgImport :: (Package, [HaskellDependency], [SystemDependency]) -> NixExpression -> [String]
+pkgImport ((Package name _), haskellDependencies, systemDependencies) derivation = begin : indent 2 definition
+  where
+    begin = name ++ " = callPackage"
+    derivationLines = lines derivation
+    inlineDerivation = ["("] ++ indent 2 derivationLines ++ [")"]
+    args = "{ " ++ inheritHaskellDependencies ++ inheritSystemDependencies ++ "};"
+    definition = inlineDerivation ++ [args]
     inheritHaskellDependencies
       | null haskellDependencies = ""
       | otherwise = "inherit " ++ intercalate " " haskellDependencies ++ "; "
