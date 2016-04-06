@@ -89,7 +89,7 @@ solveDependencies facts addSourceCache = do
   addSourceDependencies <- Hpack.extractAddSourceDependencies addSourceCache additionalDeps
   cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies
 
-cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, Process m) => Facts -> [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
+cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Facts -> [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
 cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
   liftIO $ copyFreezeFile dir
   cabalFile <- liftIO (generateCabalFile additionalDeps)
@@ -106,7 +106,7 @@ cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies = wit
 
     addSourceHashes = [(name, rev) | AddSource name rev <- addSourceDependencies]
 
-cabalDryInstall :: (MonadIO m, Fail m, Process m, MonadCatch m) => Facts -> [String] -> [String] -> m [Package]
+cabalDryInstall :: (MonadIO m, Fail m, MonadProcess m, MonadCatch m) => Facts -> [String] -> [String] -> m [Package]
 cabalDryInstall facts args constraints = go >>= parseInstallPlan
   where
     install xs = uncurry readProcess (cabal facts ("install" : "--dry-run" : xs)) ""

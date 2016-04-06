@@ -19,6 +19,6 @@ data Env = Env {
 env :: Env
 env = Env readProcess callProcess
 
-instance Process (WithEnv Env) where
+instance MonadProcess (WithEnv Env) where
   readProcess command args input = WithEnv $ asks envReadProcess >>= liftIO . ($ input) . ($ args) . ($ command)
   callProcess command args = WithEnv $ asks envCallProcess >>= liftIO . ($ args) . ($ command)

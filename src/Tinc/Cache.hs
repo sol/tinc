@@ -171,7 +171,7 @@ populateCacheAction addSourceCache missing reusable
     addSource :: [Path AddSource]
     addSource = map (addSourcePath addSourceCache) [AddSource name hash | Package name (Version _ (Just hash)) <- missing]
 
-populateCache :: (MonadIO m, MonadMask m, Fail m, Process m) => Path CacheDir -> Path AddSourceCache -> [Package] -> [CachedPackage] -> m [CachedPackage]
+populateCache :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Path CacheDir -> Path AddSourceCache -> [Package] -> [CachedPackage] -> m [CachedPackage]
 populateCache cacheDir addSourceCache missing reusable = either return populate (populateCacheAction addSourceCache missing reusable)
   where
     populate PopulateCacheAction{..} = do

@@ -85,7 +85,7 @@ parseAddSourceDependencies additionalDeps = do
   let deps = nubBy ((==) `on` Hpack.dependencyName) (additionalDeps ++ packageDeps)
   return [(name, addSource) | Hpack.Dependency name (Just addSource) <- deps]
 
-cacheAddSourceDep :: (Fail m, Process m, MonadIO m, MonadMask m) => Path AddSourceCache -> String -> Hpack.AddSource -> m Sandbox.AddSource
+cacheAddSourceDep :: (Fail m, MonadProcess m, MonadIO m, MonadMask m) => Path AddSourceCache -> String -> Hpack.AddSource -> m Sandbox.AddSource
 cacheAddSourceDep cache name dep = do
   liftIO $ createDirectoryIfMissing True (path cache)
   withTempDirectory (path cache) "tmp" $ \ sandbox -> do
@@ -106,7 +106,7 @@ cacheAddSourceDep cache name dep = do
         moveToAddSourceCache cache tmp dep addSource
         return addSource
 
-gitRefToRev :: (Fail m, Process m) => String -> String -> m String
+gitRefToRev :: (Fail m, MonadProcess m) => String -> String -> m String
 gitRefToRev repo ref
   | isGitRev ref = return ref
   | otherwise = do
@@ -118,7 +118,7 @@ gitRefToRev repo ref
 isGitRev :: String -> Bool
 isGitRev ref = length ref == 40 && all (`elem` "0123456789abcdef") ref
 
-cloneGit :: (Process m, MonadIO m, MonadMask m) => String -> String -> FilePath -> m ()
+cloneGit :: (MonadProcess m, MonadIO m, MonadMask m) => String -> String -> FilePath -> m ()
 cloneGit url rev dst = do
   callProcess "git" ["clone", url, dst]
   withCurrentDirectory dst $ do
