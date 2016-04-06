@@ -49,7 +49,7 @@ callExec :: Facts -> String -> [String] -> IO ()
 callExec Facts{..} name args = do
   pid <- if factsUseNix
     then uncurry spawnProcess $ nixShell name args
-    else spawnProcess "cabal" ("exec" : name : args)
+    else spawnProcess "cabal" ("exec" : "--" : name : args)
   waitForProcess pid >>= throwIO
 
 callPlugin :: String -> [String] -> IO ()
