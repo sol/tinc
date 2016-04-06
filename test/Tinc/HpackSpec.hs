@@ -81,40 +81,70 @@ spec = do
         cachedGitDependency = AddSource "hpack" rev
 
         mockedCallProcess command args = do
-          let dst = atDef "/path/to/some/tmp/dir" args 2
-              gitClone = ("git", ["clone", url, dst], ) $ do
-                createDirectory $ dst </> ".git"
-                writeFile (dst </> "hpack.cabal") "name: hpack"
-              gitCheckout = ("git", ["reset", "--hard", "0.1.0"], writeFile "rev" (rev ++ "\n"))
-          stub [gitClone, gitCheckout] command args
+          let
+            dst = atDef "/path/to/some/tmp/dir" args 2
 
-        mockedReadProcess = stub ("git", ["rev-parse", "HEAD"], "", readFile "rev")
+            gitClone = ("git", ["clone", url, dst], ) $ do
+              createDirectory $ dst </> ".git"
+              writeFile (dst </> "hpack.cabal") "name: hpack"
 
-        mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = mockedCallProcess}
+            gitReset = ("git", ["reset", "--hard", rev], return ())
 
-    context "with a tag" $ do
-      let action = cacheAddSourceDep "git-cache" "hpack" (Hpack.GitRef url "0.1.0")
+          stub [gitClone, gitReset] command args
 
-      it "adds specified git ref to cache" $ do
+        mockedEnv = env {envCallProcess = mockedCallProcess}
+
+    let action = cacheAddSourceDep "git-cache" "hpack" (Hpack.GitRef url rev)
+
+    it "adds specified git ref to cache" $ do
+      inTempDirectory $ do
+        actualRev <- withEnv mockedEnv action
+        actualRev `shouldBe` cachedGitDependency
+        doesDirectoryExist ("git-cache" </> "hpack" </> rev) `shouldReturn` True
+        doesDirectoryExist ("git-cache" </> "hpack" </> rev </> ".git") `shouldReturn` False
+
+    it "is idempotent" $ do
+      inTempDirectory $ do
+        withEnv mockedEnv (action >> action) `shouldReturn` cachedGitDependency
+
+    context "when a revision is already in the cache" $ do
+      it "does nothing" $ do
         inTempDirectory $ do
-          actualRev <- withEnv mockedEnv action
-          actualRev `shouldBe` cachedGitDependency
-          doesDirectoryExist ("git-cache" </> "hpack" </> rev) `shouldReturn` True
-          doesDirectoryExist ("git-cache" </> "hpack" </> rev </> ".git") `shouldReturn` False
+          createDirectoryIfMissing True ("git-cache" </> "hpack" </> rev)
+          withEnv env {envReadProcess = undefined, envCallProcess = undefined} action
+            `shouldReturn` cachedGitDependency
 
-      it "is idempotent" $ do
-        inTempDirectory $ do
-          withEnv mockedEnv (action >> action) `shouldReturn` cachedGitDependency
+  describe "gitRefToRev" $ do
+    let
+      repo = "http://github.com/sol/with-location"
 
-    context "with a git revision" $ do
-      let action = cacheAddSourceDep "git-cache" "hpack" (Hpack.GitRef url rev)
+    it "resolves git references" $ do
+      let
+        ref = "master"
+        output = "517c35a825cbb8eb53fadf4a24654f1227466155        refs/heads/master\n"
+        mockedEnv = env {envReadProcess = stub ("git", ["ls-remote", repo, ref], "", return output)}
+      withEnv mockedEnv (gitRefToRev repo ref) `shouldReturn` "517c35a825cbb8eb53fadf4a24654f1227466155"
 
-      context "when the revision is already cached" $ do
-        it "does nothing" $ do
-          inTempDirectory $ do
-            createDirectoryIfMissing True ("git-cache" </> "hpack" </> rev)
-            withEnv env {envReadProcess = undefined, envCallProcess = undefined} action
-              `shouldReturn` cachedGitDependency
+    context "when git reference does not exist" $ do
+      it "returns an error" $ do
+        let
+          ref = "master"
+          output = ""
+          mockedEnv = env {envReadProcess = stub ("git", ["ls-remote", repo, ref], "", return output)}
+        withEnv mockedEnv (gitRefToRev repo ref) `shouldThrow` errorCall ("invalid reference " ++ show ref ++ " for git repository " ++ repo)
+
+  describe "isGitRev" $ do
+    context "when given a git revision" $ do
+      it "it returns True" $ do
+        isGitRev "cf3968b8c54a7204e4e73c04816d49317bad433d" `shouldBe` True
+
+    context "when given a git reference" $ do
+      it "it returns False" $ do
+        isGitRev "master" `shouldBe` False
+
+    context "when given a 40 character (160 bit) git reference" $ do
+      it "it returns False" $ do
+        isGitRev "very-long-branch-name-that-is-not-a-revi" `shouldBe` False
 
   describe "checkCabalName" $ do
     context "when git dependency name and cabal package name match" $ do

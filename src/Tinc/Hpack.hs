@@ -10,6 +10,8 @@ module Tinc.Hpack (
 #ifdef TEST
 , parseAddSourceDependencies
 , cacheAddSourceDep
+, gitRefToRev
+, isGitRev
 , checkCabalName
 , determinePackageName
 , findCabalFile
@@ -65,7 +67,12 @@ mkExecutable deps = (Hpack.section $ Hpack.Executable "tinc-generated" "Generate
 
 extractAddSourceDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [Sandbox.AddSource]
 extractAddSourceDependencies addSourceCache additionalDeps =
-  parseAddSourceDependencies additionalDeps >>= mapM (uncurry (cacheAddSourceDep addSourceCache))
+  parseAddSourceDependencies additionalDeps >>= mapM resolveGitReferences >>= mapM (uncurry (cacheAddSourceDep addSourceCache))
+
+resolveGitReferences :: (String, Hpack.AddSource) -> IO (String, Hpack.AddSource)
+resolveGitReferences (name, addSource) = (,) name <$> case addSource of
+  Hpack.GitRef url ref -> Hpack.GitRef url <$> gitRefToRev url ref
+  Hpack.Local _ -> return addSource
 
 parseAddSourceDependencies :: [Hpack.Dependency] ->  IO [(String, Hpack.AddSource)]
 parseAddSourceDependencies additionalDeps = do
@@ -85,16 +92,13 @@ cacheAddSourceDep cache name dep = do
     let tmp = sandbox </> name
     liftIO $ createDirectory tmp
     case dep of
-      Hpack.GitRef url hashCandidate -> do
-        let addSourceCandidate = AddSource name hashCandidate
-        alreadyInCache <- liftIO $ doesDirectoryExist (path $ addSourcePath cache addSourceCandidate)
-        if alreadyInCache
-          then return addSourceCandidate
-          else do
-            rev <- cloneGit url hashCandidate tmp
-            let addSource = AddSource name rev
-            moveToAddSourceCache cache tmp dep addSource
-            return addSource
+      Hpack.GitRef url rev -> do
+        let addSource = AddSource name rev
+        alreadyInCache <- liftIO $ doesDirectoryExist (path $ addSourcePath cache addSource)
+        unless alreadyInCache $ do
+          cloneGit url rev tmp
+          moveToAddSourceCache cache tmp dep addSource
+        return addSource
       Hpack.Local dir -> liftIO $ do
         cabalSdist dir tmp
         fp <- fingerprint tmp
@@ -102,14 +106,24 @@ cacheAddSourceDep cache name dep = do
         moveToAddSourceCache cache tmp dep addSource
         return addSource
 
-cloneGit :: (Process m, MonadIO m, MonadMask m) => String -> String -> FilePath -> m String
-cloneGit url ref dst = do
+gitRefToRev :: (Fail m, Process m) => String -> String -> m String
+gitRefToRev repo ref
+  | isGitRev ref = return ref
+  | otherwise = do
+      r <- readProcess "git" ["ls-remote", repo, ref] ""
+      case words r of
+        rev : _ | isGitRev rev -> return rev
+        _ -> die ("invalid reference " ++ show ref ++ " for git repository " ++ repo)
+
+isGitRev :: String -> Bool
+isGitRev ref = length ref == 40 && all (`elem` "0123456789abcdef") ref
+
+cloneGit :: (Process m, MonadIO m, MonadMask m) => String -> String -> FilePath -> m ()
+cloneGit url rev dst = do
   callProcess "git" ["clone", url, dst]
   withCurrentDirectory dst $ do
-    callProcess "git" ["reset", "--hard", ref]
-    rev <- strip <$> readProcess "git" ["rev-parse", "HEAD"] ""
+    callProcess "git" ["reset", "--hard", rev]
     liftIO $ removeDirectoryRecursive ".git"
-    return rev
 
 cabalSdist :: FilePath -> FilePath -> IO ()
 cabalSdist sourceDirectory dst = do
