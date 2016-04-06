@@ -55,17 +55,17 @@ currentDirectory = "."
 initSandbox :: (MonadIO m, Fail m, MonadProcess m) => [Path AddSource] -> [Path PackageConfig] -> m (Path PackageDb)
 initSandbox addSourceDependencies packageConfigs = do
   deleteSandbox
-  callProcess "cabal" ["sandbox", "init"]
+  callProcessM "cabal" ["sandbox", "init"]
   packageDb <- findPackageDb currentDirectory
   registerPackageConfigs packageDb packageConfigs
-  mapM_ (\ dep -> callProcess "cabal" ["sandbox", "add-source", path dep]) addSourceDependencies
+  mapM_ (\ dep -> callProcessM "cabal" ["sandbox", "add-source", path dep]) addSourceDependencies
   liftIO $ createDirectoryIfMissing False cabalSandboxBinDirectory
   return packageDb
 
 deleteSandbox :: (MonadIO m, MonadProcess m) => m ()
 deleteSandbox = do
   exists <- liftIO $ doesDirectoryExist cabalSandboxDirectory
-  when exists (callProcess "cabal" ["sandbox", "delete"])
+  when exists (callProcessM "cabal" ["sandbox", "delete"])
 
 findPackageDb :: (MonadIO m, Fail m) => Path Sandbox -> m (Path PackageDb)
 findPackageDb sandbox = do
@@ -105,7 +105,7 @@ packageFromPackageConfig :: FilePath -> Package
 packageFromPackageConfig = parsePackage . reverse . drop 1 . dropWhile (/= '-') . reverse
 
 recache :: MonadProcess m => Path PackageDb -> m ()
-recache packageDb = callProcess "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDb]
+recache packageDb = callProcessM "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDb]
 
 data AddSourceCache
 

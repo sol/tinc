@@ -5,9 +5,9 @@ import           Prelude.Compat
 import qualified System.Process
 
 class (Functor m, Applicative m, Monad m) => MonadProcess m where
-  readProcess :: FilePath -> [String] -> String -> m String
-  callProcess :: FilePath -> [String] -> m ()
+  readProcessM :: FilePath -> [String] -> String -> m String
+  callProcessM :: FilePath -> [String] -> m ()
 
 instance MonadProcess IO where
-  readProcess = System.Process.readProcess
-  callProcess = System.Process.callProcess
+  readProcessM = System.Process.readProcess
+  callProcessM = System.Process.callProcess

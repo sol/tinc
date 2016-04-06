@@ -110,7 +110,7 @@ gitRefToRev :: (Fail m, MonadProcess m) => String -> String -> m String
 gitRefToRev repo ref
   | isGitRev ref = return ref
   | otherwise = do
-      r <- readProcess "git" ["ls-remote", repo, ref] ""
+      r <- readProcessM "git" ["ls-remote", repo, ref] ""
       case words r of
         rev : _ | isGitRev rev -> return rev
         _ -> die ("invalid reference " ++ show ref ++ " for git repository " ++ repo)
@@ -120,15 +120,15 @@ isGitRev ref = length ref == 40 && all (`elem` "0123456789abcdef") ref
 
 cloneGit :: (MonadProcess m, MonadIO m, MonadMask m) => String -> String -> FilePath -> m ()
 cloneGit url rev dst = do
-  callProcess "git" ["clone", url, dst]
+  callProcessM "git" ["clone", url, dst]
   withCurrentDirectory dst $ do
-    callProcess "git" ["reset", "--hard", rev]
+    callProcessM "git" ["reset", "--hard", rev]
     liftIO $ removeDirectoryRecursive ".git"
 
 cabalSdist :: FilePath -> FilePath -> IO ()
 cabalSdist sourceDirectory dst = do
   withCurrentDirectory sourceDirectory $ do
-    callProcess "cabal" ["sdist", "--output-directory", dst]
+    callProcessM "cabal" ["sdist", "--output-directory", dst]
 
 moveToAddSourceCache :: MonadIO m => Path AddSourceCache -> FilePath -> Hpack.AddSource -> Sandbox.AddSource -> m ()
 moveToAddSourceCache cache src hpackDep dep@(AddSource name _) = liftIO $ do

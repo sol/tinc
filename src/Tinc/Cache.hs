@@ -181,7 +181,7 @@ populateCache cacheDir addSourceCache missing reusable = either return populate 
         liftIO $ do
           writeAddSourceHashes packageDb populateCacheActionWriteAddSourceHashes
           writeFile validMarker ""
-        callProcess "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage populateCacheActionInstallPlan)
+        callProcessM "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage populateCacheActionInstallPlan)
         map (uncurry CachedPackage) <$> listPackages packageDb
 
 newCacheEntry :: Path CacheDir -> IO FilePath

@@ -109,7 +109,7 @@ cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies = wit
 cabalDryInstall :: (MonadIO m, Fail m, MonadProcess m, MonadCatch m) => Facts -> [String] -> [String] -> m [Package]
 cabalDryInstall facts args constraints = go >>= parseInstallPlan
   where
-    install xs = uncurry readProcess (cabal facts ("install" : "--dry-run" : xs)) ""
+    install xs = uncurry readProcessM (cabal facts ("install" : "--dry-run" : xs)) ""
 
     go = do
       r <- try $ install (args ++ constraints)
