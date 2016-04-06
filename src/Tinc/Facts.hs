@@ -48,8 +48,10 @@ getNixResolver :: IO String
 getNixResolver = fromMaybe defaultNixResolver <$> lookupEnv "TINC_NIX_RESOLVER"
 
 discoverFacts :: FilePath -> IO Facts
-discoverFacts executablePath = do
-  ghcInfo <- getGhcInfo
+discoverFacts executablePath = getGhcInfo >>= discoverFacts_impl executablePath
+
+discoverFacts_impl :: FilePath -> GhcInfo -> IO Facts
+discoverFacts_impl executablePath ghcInfo = do
   home <- getHomeDirectory
   useNix_ <- useNix executablePath
   nixResolver <- getNixResolver

@@ -36,44 +36,49 @@ withUseNix value action = do
 
 spec :: Spec
 spec = do
-  describe "discoverFacts" $ around_ withTempHome $ do
+  describe "discoverFacts_impl" $ around_ withTempHome $ do
+    let ghcInfo = GhcInfo {
+            ghcInfoPlatform = "x86_64-unknown-linux"
+          , ghcInfoVersion = "7.10.3"
+          , ghcInfoGlobalPackageDb = error "ghcInfoGlobalPackageDb"
+          }
     it "includes GHC version in cache directory" $ do
-      Facts{..} <- discoverFacts "/some/path/to/tinc"
+      Facts{..} <- discoverFacts_impl "/some/path/to/tinc" ghcInfo
       path factsCache `shouldContain` ghcInfoVersion factsGhcInfo
 
     describe "factsUseNix" $ do
       context "when TINC_USE_NIX is not set" $ around_ (withUseNix Nothing) $ do
         context "when executable is installed under /nix" $ do
           it "is True" $ do
-            Facts{..} <- discoverFacts "/nix/some/path/to/tinc"
+            Facts{..} <- discoverFacts_impl "/nix/some/path/to/tinc" ghcInfo
             factsUseNix `shouldBe` True
 
         context "when executable is not installed under /nix" $ do
           it "is False" $ do
-            Facts{..} <- discoverFacts "/some/path/to/tinc"
+            Facts{..} <- discoverFacts_impl "/some/path/to/tinc" ghcInfo
             factsUseNix `shouldBe` False
 
       context "when TINC_USE_NIX is set to 'yes'" $ around_ (withUseNix $ Just "yes") $ do
         context "when executable is installed under /nix" $ do
           it "is True" $ do
-            Facts{..} <- discoverFacts "/nix/some/path/to/tinc"
+            Facts{..} <- discoverFacts_impl "/nix/some/path/to/tinc" ghcInfo
             factsUseNix `shouldBe` True
 
         context "when executable is not installed under /nix" $ do
           it "is True" $ do
-            Facts{..} <- discoverFacts "/some/path/to/tinc"
+            Facts{..} <- discoverFacts_impl "/some/path/to/tinc" ghcInfo
             factsUseNix `shouldBe` True
 
 
       context "when TINC_USE_NIX is set to 'no'" $ around_ (withUseNix $ Just "no") $ do
         context "when executable is installed under /nix" $ do
           it "is False" $ do
-            Facts{..} <- discoverFacts "/nix/some/path/to/tinc"
+            Facts{..} <- discoverFacts_impl "/nix/some/path/to/tinc" ghcInfo
             factsUseNix `shouldBe` False
 
         context "when executable is not installed under /nix" $ do
           it "is False" $ do
-            Facts{..} <- discoverFacts "/some/path/to/tinc"
+            Facts{..} <- discoverFacts_impl "/some/path/to/tinc" ghcInfo
             factsUseNix `shouldBe` False
 
 
