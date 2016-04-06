@@ -104,3 +104,23 @@ spec = do
       let stubbedAction = stub ("foo", "bar", "baz", return "r")
           call action = action "foo" "bar" "baz"
       withMockSpec stubbedAction call
+
+  describe "mockChain" $ do
+    let actions = replicate 2 $ stub ("foo", "bar", return "r")
+
+    context "when mock is called the specified number of times" $ do
+      it "passes" $ do
+        mockChain actions $ \mock -> do
+          replicateM_ 2 (mock "foo" "bar")
+
+    context "when mock is called too often" $ do
+      it "fails" $ do
+        mockChain actions $ \mock -> do
+          replicateM_ 3 (mock "foo" "bar")
+        `shouldThrow` hUnitFailure "Expected to be called only 2 times, but it received an additional call!"
+
+    context "when mock is not called often enough" $ do
+      it "fails" $ do
+        mockChain actions $ \mock -> do
+          replicateM_ 1 (mock "foo" "bar")
+        `shouldThrow` hUnitFailure "Expected to be called 2 times, but it was called 1 time instead!"

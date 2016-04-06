@@ -116,21 +116,27 @@ unexpectedParameters plural expected actual = do
 
 class Mockable a where
   withMock :: WithLocation(a -> (a -> IO x) -> IO x)
+  mockChain :: WithLocation ([a] -> (a -> IO x) -> IO x)
 
 instance Mockable (a -> IO r) where
   withMock action inner = withMock (\() -> action) $ inner . ($ ())
+  mockChain options inner = mockChain (map const options) $ inner . ($ ())
 
 instance Mockable (a -> b -> IO r) where
   withMock action inner = withMock (\() -> action) $ inner . ($ ())
+  mockChain options inner = mockChain (map const options) $ inner . ($ ())
 
 instance Mockable (a -> b -> c -> IO r) where
   withMock action inner = withMock (\() -> action) $ inner . ($ ())
+  mockChain options inner = mockChain (map const options) $ inner . ($ ())
 
 instance Mockable (a -> b -> c -> d -> IO r) where
   withMock action inner = withMock (\() -> action) $ inner . ($ ())
+  mockChain options inner = mockChain (map const options) $ inner . ($ ())
 
 instance Mockable (a -> b -> c -> d -> e -> IO r) where
   withMock action inner = withMock (\() -> action) $ inner . ($ ())
+  mockChain options inner = mockChain (map const options) $ inner . ($ ())
 
 instance Mockable (a -> b -> c -> d -> e -> f -> IO r) where
   withMock action inner = do
@@ -140,3 +146,27 @@ instance Mockable (a -> b -> c -> d -> e -> f -> IO r) where
       n <- readIORef ref
       unless (n == 1) $ do
         failure ("Expected to be called once, but it was called " ++ show n ++ " times instead!")
+
+  mockChain options inner = do
+    let n = length options
+    ref <- newIORef options
+    let
+      takeOption xs = case xs of
+        y : ys -> (ys, Just y)
+        [] -> ([], Nothing)
+
+      wrapped a b c d e f = do
+        option <- atomicModifyIORef ref takeOption
+        case option of
+          Just action -> action a b c d e f
+          Nothing -> failure ("Expected to be called only " ++ pluralize n "time" ++ ", but it received an additional call!")
+
+    inner wrapped <* do
+      leftover <- readIORef ref
+      case leftover of
+        [] -> return ()
+        xs -> failure ("Expected to be called " ++ pluralize n "time" ++ ", but it was called " ++ pluralize (n - length xs) "time" ++ " instead!")
+
+pluralize :: Int -> String -> String
+pluralize 1 s = "1 " ++ s
+pluralize n s = show n ++ " " ++ s ++ "s"
