@@ -6,7 +6,7 @@ module Test.Mockery.Action (
 , dummy
 , dummy_
 , Stub (..)
-, ExpectCall (..)
+, Mockable (..)
 ) where
 
 import           Prelude ()
@@ -95,7 +95,7 @@ instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Stub [(a, b, c
       expected = map (\(a, b, c, r) -> ((a, b, c), r)) options
 
 unexpectedParameters :: WithLocation ((MonadIO m, Show a) => Bool -> [a] -> a -> m r)
-unexpectedParameters pluralize expected actual = do
+unexpectedParameters plural expected actual = do
   liftIO . failure . unlines $ [
       message
     , expectedMessage
@@ -103,8 +103,8 @@ unexpectedParameters pluralize expected actual = do
     ]
   where
     message
-      | pluralize = "Unexected parameters to mocked action!"
-      | otherwise = "Unexected parameter to mocked action!"
+      | plural    = "Unexected parameters to stubbed action!"
+      | otherwise = "Unexected parameter to stubbed action!"
 
     expectedMessage = case expected of
       [x] -> "expected: " ++ show x
@@ -114,26 +114,26 @@ unexpectedParameters pluralize expected actual = do
       [_] -> " but got: " ++ show actual
       _ -> "        but got: " ++ show actual
 
-class ExpectCall a where
-  expectOnce :: WithLocation(a -> (a -> IO x) -> IO x)
+class Mockable a where
+  withMock :: WithLocation(a -> (a -> IO x) -> IO x)
 
-instance ExpectCall (a -> IO r) where
-  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+instance Mockable (a -> IO r) where
+  withMock action inner = withMock (\() -> action) $ inner . ($ ())
 
-instance ExpectCall (a -> b -> IO r) where
-  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+instance Mockable (a -> b -> IO r) where
+  withMock action inner = withMock (\() -> action) $ inner . ($ ())
 
-instance ExpectCall (a -> b -> c -> IO r) where
-  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+instance Mockable (a -> b -> c -> IO r) where
+  withMock action inner = withMock (\() -> action) $ inner . ($ ())
 
-instance ExpectCall (a -> b -> c -> d -> IO r) where
-  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+instance Mockable (a -> b -> c -> d -> IO r) where
+  withMock action inner = withMock (\() -> action) $ inner . ($ ())
 
-instance ExpectCall (a -> b -> c -> d -> e -> IO r) where
-  expectOnce action inner = expectOnce (\() -> action) $ inner . ($ ())
+instance Mockable (a -> b -> c -> d -> e -> IO r) where
+  withMock action inner = withMock (\() -> action) $ inner . ($ ())
 
-instance ExpectCall (a -> b -> c -> d -> e -> f -> IO r) where
-  expectOnce action inner = do
+instance Mockable (a -> b -> c -> d -> e -> f -> IO r) where
+  withMock action inner = do
     ref <- newIORef (0 :: Integer)
     let wrapped a b c d e f = action a b c d e f <* modifyIORef ref succ
     inner wrapped <* do
