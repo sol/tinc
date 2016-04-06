@@ -4,10 +4,10 @@ import           Prelude ()
 import           Prelude.Compat
 import qualified System.Process
 
-process :: Process IO
+process :: MonadProcess m => Process m
 process = Process {
-  readProcess = System.Process.readProcess
-, callProcess = System.Process.callProcess
+  readProcess = readProcessM
+, callProcess = callProcessM
 }
 
 data Process m = Process {

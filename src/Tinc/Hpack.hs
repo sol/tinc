@@ -11,6 +11,7 @@ module Tinc.Hpack (
 #ifdef TEST
 , parseAddSourceDependencies
 , cacheAddSourceDep
+, cloneGit_impl
 , gitRefToRev_impl
 , isGitRev
 , checkCabalName
@@ -123,10 +124,13 @@ isGitRev :: String -> Bool
 isGitRev ref = length ref == 40 && all (`elem` "0123456789abcdef") ref
 
 cloneGit :: (MonadProcess m, MonadIO m, MonadMask m) => String -> String -> FilePath -> m ()
-cloneGit url rev dst = do
-  callProcessM "git" ["clone", url, dst]
+cloneGit = cloneGit_impl process
+
+cloneGit_impl :: (MonadIO m, MonadMask m) => Process m -> String -> String -> FilePath -> m ()
+cloneGit_impl Process{..} url rev dst = do
+  callProcess "git" ["clone", url, dst]
   withCurrentDirectory dst $ do
-    callProcessM "git" ["reset", "--hard", rev]
+    callProcess "git" ["reset", "--hard", rev]
     liftIO $ removeDirectoryRecursive ".git"
 
 cabalSdist :: FilePath -> FilePath -> IO ()

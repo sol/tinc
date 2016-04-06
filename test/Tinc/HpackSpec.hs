@@ -76,7 +76,7 @@ spec = do
           parseAddSourceDependencies [] `shouldReturn` []
 
   describe "cacheAddSourceDep" $ do
-    let url = "https://github.com/haskell-tinc/hpack"
+    let url = "https://github.com/sol/hpack"
         rev = "6bebd90d1e22901e94460c02bba9d0fa5b343f81"
         cachedGitDependency = AddSource "hpack" rev
 
@@ -113,6 +113,31 @@ spec = do
           createDirectoryIfMissing True ("git-cache" </> "hpack" </> rev)
           withEnv env {envReadProcess = undefined, envCallProcess = undefined} action
             `shouldReturn` cachedGitDependency
+
+  describe "cloneGit_impl" $ do
+    let
+      url = "https://github.com/sol/hpack"
+      rev = "6bebd90d1e22901e94460c02bba9d0fa5b343f81"
+      dst = "hpack"
+      git = [
+          stub ("git", ["clone", url, dst], touch "hpack/.git/.placeholder")
+        , stub ("git", ["reset", "--hard", rev], writeFile "rev" rev)
+        ]
+
+      action inner = inTempDirectory $ do
+        mockChain git $ \callProcess_ -> do
+          cloneGit_impl process {callProcess = callProcess_} url rev dst
+          inner
+
+    around_ action $ do
+      it "clones a git repository" $ do
+        doesDirectoryExist dst `shouldReturn` True
+
+      it "resets to the specified revision" $ do
+        readFile (dst </> "rev") `shouldReturn` rev
+
+      it "removes .git" $ do
+        doesDirectoryExist (dst </> ".git") `shouldReturn` False
 
   describe "gitRefToRev_impl" $ do
     let
