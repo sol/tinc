@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
 module Tinc.Hpack (
   readConfig
 , doesConfigExist
@@ -10,7 +11,7 @@ module Tinc.Hpack (
 #ifdef TEST
 , parseAddSourceDependencies
 , cacheAddSourceDep
-, gitRefToRev
+, gitRefToRev_impl
 , isGitRev
 , checkCabalName
 , determinePackageName
@@ -106,11 +107,14 @@ cacheAddSourceDep cache name dep = do
         moveToAddSourceCache cache tmp dep addSource
         return addSource
 
-gitRefToRev :: (Fail m, MonadProcess m) => String -> String -> m String
-gitRefToRev repo ref
+gitRefToRev :: String -> String -> IO String
+gitRefToRev = gitRefToRev_impl process
+
+gitRefToRev_impl :: Fail m => Process m -> String -> String -> m String
+gitRefToRev_impl Process{..} repo ref
   | isGitRev ref = return ref
   | otherwise = do
-      r <- readProcessM "git" ["ls-remote", repo, ref] ""
+      r <- readProcess "git" ["ls-remote", repo, ref] ""
       case words r of
         rev : _ | isGitRev rev -> return rev
         _ -> die ("invalid reference " ++ show ref ++ " for git repository " ++ repo)

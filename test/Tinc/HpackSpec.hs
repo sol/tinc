@@ -114,7 +114,7 @@ spec = do
           withEnv env {envReadProcess = undefined, envCallProcess = undefined} action
             `shouldReturn` cachedGitDependency
 
-  describe "gitRefToRev" $ do
+  describe "gitRefToRev_impl" $ do
     let
       repo = "http://github.com/sol/with-location"
 
@@ -122,16 +122,16 @@ spec = do
       let
         ref = "master"
         output = "517c35a825cbb8eb53fadf4a24654f1227466155        refs/heads/master\n"
-        mockedEnv = env {envReadProcess = stub ("git", ["ls-remote", repo, ref], "", return output)}
-      withEnv mockedEnv (gitRefToRev repo ref) `shouldReturn` "517c35a825cbb8eb53fadf4a24654f1227466155"
+        p = process {readProcess = stub ("git", ["ls-remote", repo, ref], "", return output)}
+      gitRefToRev_impl p repo ref `shouldReturn` "517c35a825cbb8eb53fadf4a24654f1227466155"
 
     context "when git reference does not exist" $ do
       it "returns an error" $ do
         let
           ref = "master"
           output = ""
-          mockedEnv = env {envReadProcess = stub ("git", ["ls-remote", repo, ref], "", return output)}
-        withEnv mockedEnv (gitRefToRev repo ref) `shouldThrow` errorCall ("invalid reference " ++ show ref ++ " for git repository " ++ repo)
+          p = process {readProcess = stub ("git", ["ls-remote", repo, ref], "", return output)}
+        gitRefToRev_impl p repo ref `shouldThrow` errorCall ("invalid reference " ++ show ref ++ " for git repository " ++ repo)
 
   describe "isGitRev" $ do
     context "when given a git revision" $ do
