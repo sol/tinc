@@ -4,15 +4,13 @@ module Tinc.HpackSpec (spec) where
 
 import           Helper
 import           Hpack.Config as Hpack
-import           Safe
 import           System.Directory
 import           System.FilePath
 import           System.IO.Error
 import           System.IO.Temp
 
-import           MockedEnv
-import           MockedProcess
 import           Test.Mockery.Action
+import           Tinc.Types
 import           Tinc.Hpack
 import           Tinc.Sandbox as Sandbox
 
@@ -75,44 +73,38 @@ spec = do
         inTempDirectory $ do
           parseAddSourceDependencies [] `shouldReturn` []
 
-  describe "cacheAddSourceDep" $ do
-    let url = "https://github.com/sol/hpack"
-        rev = "6bebd90d1e22901e94460c02bba9d0fa5b343f81"
-        cachedGitDependency = AddSource "hpack" rev
+  describe "cacheAddSourceDep_impl" $ around_ inTempDirectory $ do
+    let
+      name = "hpack"
+      url = "https://github.com/sol/hpack"
+      rev = "6bebd90d1e22901e94460c02bba9d0fa5b343f81"
+      gitDependency = Hpack.GitRef url rev
 
-        mockedCallProcess command args = do
-          let
-            dst = atDef "/path/to/some/tmp/dir" args 2
+      cacheDir = "git-cache"
+      cachedGitDependency = AddSource name rev
+      cachedGitDependencyPath = addSourcePath cacheDir cachedGitDependency
 
-            gitClone = ("git", ["clone", url, dst], ) $ do
-              createDirectory $ dst </> ".git"
-              writeFile (dst </> "hpack.cabal") "name: hpack"
+    context "when a revision is not yet in the cache" $ do
+      let
+        cloneGit :: CloneGit IO
+        cloneGit url_ rev_ dst = stub (url, rev, writeCabalFile) url_ rev_
+          where
+            writeCabalFile = writeFile (dst </> "hpack.cabal") "name: hpack"
 
-            gitReset = ("git", ["reset", "--hard", rev], return ())
-
-          stub [gitClone, gitReset] command args
-
-        mockedEnv = env {envCallProcess = mockedCallProcess}
-
-    let action = cacheAddSourceDep "git-cache" "hpack" (Hpack.GitRef url rev)
-
-    it "adds specified git ref to cache" $ do
-      inTempDirectory $ do
-        actualRev <- withEnv mockedEnv action
-        actualRev `shouldBe` cachedGitDependency
-        doesDirectoryExist ("git-cache" </> "hpack" </> rev) `shouldReturn` True
-        doesDirectoryExist ("git-cache" </> "hpack" </> rev </> ".git") `shouldReturn` False
-
-    it "is idempotent" $ do
-      inTempDirectory $ do
-        withEnv mockedEnv (action >> action) `shouldReturn` cachedGitDependency
+      it "adds the revision to the cache" $ do
+        cacheAddSourceDep_impl cloneGit cacheDir name gitDependency
+          `shouldReturn` cachedGitDependency
+        doesDirectoryExist (path cachedGitDependencyPath) `shouldReturn` True
 
     context "when a revision is already in the cache" $ do
+      let
+        cloneGit :: CloneGit IO
+        cloneGit = dummy "cloneGit"
+
       it "does nothing" $ do
-        inTempDirectory $ do
-          createDirectoryIfMissing True ("git-cache" </> "hpack" </> rev)
-          withEnv env {envReadProcess = undefined, envCallProcess = undefined} action
-            `shouldReturn` cachedGitDependency
+        touch (path cachedGitDependencyPath </> ".placeholder")
+        cacheAddSourceDep_impl cloneGit cacheDir name gitDependency
+          `shouldReturn` cachedGitDependency
 
   describe "cloneGit_impl" $ do
     let

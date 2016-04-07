@@ -10,8 +10,11 @@ module Tinc.Hpack (
 
 #ifdef TEST
 , parseAddSourceDependencies
-, cacheAddSourceDep
+, cacheAddSourceDep_impl
+
+, CloneGit
 , cloneGit_impl
+
 , gitRefToRev_impl
 , isGitRev
 , checkCabalName
@@ -23,7 +26,6 @@ module Tinc.Hpack (
 import           Prelude ()
 import           Prelude.Compat
 
-import           Control.Monad.Catch
 import           Control.Monad.Compat
 import           Control.Monad.IO.Class
 import           Data.Function
@@ -87,21 +89,24 @@ parseAddSourceDependencies additionalDeps = do
   let deps = nubBy ((==) `on` Hpack.dependencyName) (additionalDeps ++ packageDeps)
   return [(name, addSource) | Hpack.Dependency name (Just addSource) <- deps]
 
-cacheAddSourceDep :: (Fail m, MonadProcess m, MonadIO m, MonadMask m) => Path AddSourceCache -> String -> Hpack.AddSource -> m Sandbox.AddSource
-cacheAddSourceDep cache name dep = do
-  liftIO $ createDirectoryIfMissing True (path cache)
+cacheAddSourceDep :: Path AddSourceCache -> String -> Hpack.AddSource -> IO Sandbox.AddSource
+cacheAddSourceDep = cacheAddSourceDep_impl (cloneGit_impl process)
+
+cacheAddSourceDep_impl :: CloneGit IO -> Path AddSourceCache -> String -> Hpack.AddSource -> IO Sandbox.AddSource
+cacheAddSourceDep_impl cloneGit cache name dep = do
+  createDirectoryIfMissing True (path cache)
   withTempDirectory (path cache) "tmp" $ \ sandbox -> do
     let tmp = sandbox </> name
-    liftIO $ createDirectory tmp
+    createDirectory tmp
     case dep of
       Hpack.GitRef url rev -> do
         let addSource = AddSource name rev
-        alreadyInCache <- liftIO $ doesDirectoryExist (path $ addSourcePath cache addSource)
+        alreadyInCache <- doesDirectoryExist (path $ addSourcePath cache addSource)
         unless alreadyInCache $ do
           cloneGit url rev tmp
           moveToAddSourceCache cache tmp dep addSource
         return addSource
-      Hpack.Local dir -> liftIO $ do
+      Hpack.Local dir -> do
         cabalSdist dir tmp
         fp <- fingerprint tmp
         let addSource = AddSource name fp
@@ -123,15 +128,14 @@ gitRefToRev_impl Process{..} repo ref
 isGitRev :: String -> Bool
 isGitRev ref = length ref == 40 && all (`elem` "0123456789abcdef") ref
 
-cloneGit :: (MonadProcess m, MonadIO m, MonadMask m) => String -> String -> FilePath -> m ()
-cloneGit = cloneGit_impl process
+type CloneGit m = String -> String -> FilePath -> m ()
 
-cloneGit_impl :: (MonadIO m, MonadMask m) => Process m -> String -> String -> FilePath -> m ()
+cloneGit_impl :: Process IO -> String -> String -> FilePath -> IO ()
 cloneGit_impl Process{..} url rev dst = do
   callProcess "git" ["clone", url, dst]
   withCurrentDirectory dst $ do
     callProcess "git" ["reset", "--hard", rev]
-    liftIO $ removeDirectoryRecursive ".git"
+    removeDirectoryRecursive ".git"
 
 cabalSdist :: FilePath -> FilePath -> IO ()
 cabalSdist sourceDirectory dst = do
