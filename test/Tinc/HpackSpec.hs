@@ -8,6 +8,7 @@ import           System.Directory
 import           System.FilePath
 import           System.IO.Error
 import           System.IO.Temp
+import           GHC.Fingerprint
 
 import           Test.Mockery.Action
 import           Tinc.Types
@@ -27,7 +28,7 @@ spec = do
           , "  - bar"
           , "library: {}"
           ]
-        parseAddSourceDependencies [] `shouldReturn` [("foo", GitRef "https://github.com/sol/hpack" "master")]
+        parseAddSourceDependencies [] `shouldReturn` [("foo", GitRef "https://github.com/sol/hpack" "master" Nothing)]
 
     it "extracts local dependencies" $ do
       inTempDirectory $ do
@@ -42,8 +43,8 @@ spec = do
 
     it "extracts git dependencies from list of additional dependencies " $ do
       inTempDirectory $ do
-        parseAddSourceDependencies [Dependency "foo" (Just $ GitRef "https://github.com/sol/hpack" "master"), "bar"] `shouldReturn`
-          [("foo", GitRef "https://github.com/sol/hpack" "master")]
+        parseAddSourceDependencies [Dependency "foo" (Just $ GitRef "https://github.com/sol/hpack" "master" Nothing), "bar"] `shouldReturn`
+          [("foo", GitRef "https://github.com/sol/hpack" "master" Nothing)]
 
     context "when the same git dependency is specified in both package.yaml and tinc.yaml" $ do
       it "gives tinc.yaml precedence" $ do
@@ -56,8 +57,8 @@ spec = do
             , "  - bar"
             , "library: {}"
             ]
-          parseAddSourceDependencies [Dependency "foo" (Just $ GitRef "https://github.com/sol/hpack" "dev"), "bar"] `shouldReturn`
-            [("foo", GitRef "https://github.com/sol/hpack" "dev")]
+          parseAddSourceDependencies [Dependency "foo" (Just $ GitRef "https://github.com/sol/hpack" "dev" Nothing), "bar"] `shouldReturn`
+            [("foo", GitRef "https://github.com/sol/hpack" "dev" Nothing)]
 
     context "when package.yaml can not be parsed" $ do
       it "throws an exception" $ do
@@ -75,36 +76,55 @@ spec = do
 
   describe "cacheAddSourceDep_impl" $ around_ inTempDirectory $ do
     let
-      name = "hpack"
       url = "https://github.com/sol/hpack"
       rev = "6bebd90d1e22901e94460c02bba9d0fa5b343f81"
-      gitDependency = Hpack.GitRef url rev
+      name = "hpack"
 
-      cacheDir = "git-cache"
-      cachedGitDependency = AddSource name rev
-      cachedGitDependencyPath = addSourcePath cacheDir cachedGitDependency
+      cacheAddSourceDepSpec subdir cacheKey cabalFile = do
+        let
+          gitDependency = Hpack.GitRef url rev subdir
 
-    context "when a revision is not yet in the cache" $ do
+          cacheDir = "git-cache"
+          cachedGitDependency = AddSource name cacheKey
+          cachedGitDependencyPath = addSourcePath cacheDir cachedGitDependency
+
+        context "when a revision is not yet in the cache" $ do
+          let
+            cloneGit :: CloneGit IO
+            cloneGit url_ rev_ dst = stub (url, rev, writeCabalFile) url_ rev_
+              where
+                writeCabalFile = do
+                  touch (cabalFile dst)
+                  writeFile (cabalFile dst) "name: hpack"
+
+          it "adds the revision to the cache" $ do
+            cacheAddSourceDep_impl cloneGit cacheDir name gitDependency
+              `shouldReturn` cachedGitDependency
+            doesDirectoryExist (path cachedGitDependencyPath) `shouldReturn` True
+
+        context "when a revision is already in the cache" $ do
+          let
+            cloneGit :: CloneGit IO
+            cloneGit = dummy "cloneGit"
+
+          it "does nothing" $ do
+            touch (path cachedGitDependencyPath </> ".placeholder")
+            cacheAddSourceDep_impl cloneGit cacheDir name gitDependency
+              `shouldReturn` cachedGitDependency
+
+    context "without subdir" $ do
       let
-        cloneGit :: CloneGit IO
-        cloneGit url_ rev_ dst = stub (url, rev, writeCabalFile) url_ rev_
-          where
-            writeCabalFile = writeFile (dst </> "hpack.cabal") "name: hpack"
+        subdir = Nothing
+        cacheKey = rev
+        cabalFile = (</> "hpack.cabal")
+      cacheAddSourceDepSpec subdir cacheKey cabalFile
 
-      it "adds the revision to the cache" $ do
-        cacheAddSourceDep_impl cloneGit cacheDir name gitDependency
-          `shouldReturn` cachedGitDependency
-        doesDirectoryExist (path cachedGitDependencyPath) `shouldReturn` True
-
-    context "when a revision is already in the cache" $ do
+    context "with subdir" $ do
       let
-        cloneGit :: CloneGit IO
-        cloneGit = dummy "cloneGit"
-
-      it "does nothing" $ do
-        touch (path cachedGitDependencyPath </> ".placeholder")
-        cacheAddSourceDep_impl cloneGit cacheDir name gitDependency
-          `shouldReturn` cachedGitDependency
+        subdir = Just "subdir"
+        cacheKey = show (fingerprintFingerprints [ fingerprintString rev, fingerprintString "subdir" ])
+        cabalFile = (</> "subdir/hpack.cabal")
+      cacheAddSourceDepSpec subdir cacheKey cabalFile
 
   describe "cloneGit_impl" $ do
     let
@@ -169,14 +189,14 @@ spec = do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
           writeFile cabalFile "name: foo"
-          checkCabalName dir "foo" (Hpack.GitRef "<url>" "<ref>")
+          checkCabalName dir "foo" (Hpack.GitRef "<url>" "<ref>" Nothing)
 
     context "when git dependency name and cabal package name differ" $ do
       it "fails" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
           writeFile cabalFile "name: foo"
-          checkCabalName dir "bar" (Hpack.GitRef "<url>" "<ref>")
+          checkCabalName dir "bar" (Hpack.GitRef "<url>" "<ref>" Nothing)
             `shouldThrow` errorCall "the git repository <url> contains package \"foo\", expected: \"bar\""
 
   describe "determinePackageName" $ do
@@ -184,23 +204,23 @@ spec = do
       withSystemTempDirectory "tinc" $ \ dir -> do
         let cabalFile = dir </> "foo.cabal"
         writeFile cabalFile "library\n  build-depends: foo bar"
-        determinePackageName dir (Hpack.GitRef "<repo>" "<ref>") `shouldThrow` isUserError
+        determinePackageName dir (Hpack.GitRef "<repo>" "<ref>" Nothing) `shouldThrow` isUserError
 
   describe "findCabalFile" $ do
     it "finds cabal files in given directory" $ do
       withSystemTempDirectory "tinc" $ \ dir -> do
         let cabalFile = dir </> "foo.cabal"
         touch cabalFile
-        findCabalFile dir (Hpack.GitRef "<repo>" "<ref>") `shouldReturn` cabalFile
+        findCabalFile dir (Hpack.GitRef "<repo>" "<ref>" Nothing) `shouldReturn` cabalFile
 
     context "when there is no cabal file" $ do
       it "reports an error" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
-          findCabalFile dir (Hpack.GitRef "<repo>" "<ref>") `shouldThrow` errorCall "Couldn't find .cabal file in git repository <repo>"
+          findCabalFile dir (Hpack.GitRef "<repo>" "<ref>" Nothing) `shouldThrow` errorCall "Couldn't find .cabal file in git repository <repo>"
 
     context "when there are multiple cabal files" $ do
       it "reports an error" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
           touch (dir </> "foo.cabal")
           touch (dir </> "bar.cabal")
-          findCabalFile dir (Hpack.GitRef "<repo>" "<ref>") `shouldThrow` errorCall "Multiple cabal files found in git repository <repo>"
+          findCabalFile dir (Hpack.GitRef "<repo>" "<ref>" Nothing) `shouldThrow` errorCall "Multiple cabal files found in git repository <repo>"

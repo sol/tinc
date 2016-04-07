@@ -34,6 +34,7 @@ import           Distribution.Package
 import           Distribution.PackageDescription
 import           Distribution.PackageDescription.Parse
 import           Distribution.Verbosity
+import           GHC.Fingerprint
 import qualified Hpack.Config as Hpack
 import           Hpack.Run
 import           System.Directory hiding (getDirectoryContents)
@@ -60,8 +61,11 @@ doesConfigExist = doesFileExist Hpack.packageConfig
 render :: Hpack.Package -> (FilePath, String)
 render pkg = (name, contents)
   where
+    name :: String
     name = Hpack.packageName pkg ++ ".cabal"
-    contents = renderPackage defaultRenderSettings 2 [] pkg
+
+    contents :: String
+    contents = renderPackage defaultRenderSettings 2 [] [] pkg
 
 mkPackage :: [Hpack.Dependency] -> Hpack.Package
 mkPackage deps = (Hpack.package "tinc-generated" "0.0.0"){Hpack.packageExecutables = [mkExecutable deps]}
@@ -75,7 +79,7 @@ extractAddSourceDependencies addSourceCache additionalDeps =
 
 resolveGitReferences :: (String, Hpack.AddSource) -> IO (String, Hpack.AddSource)
 resolveGitReferences (name, addSource) = (,) name <$> case addSource of
-  Hpack.GitRef url ref -> Hpack.GitRef url <$> gitRefToRev url ref
+  Hpack.GitRef url ref dir -> Hpack.GitRef url <$> gitRefToRev url ref <*> pure dir
   Hpack.Local _ -> return addSource
 
 parseAddSourceDependencies :: [Hpack.Dependency] ->  IO [(String, Hpack.AddSource)]
@@ -99,12 +103,17 @@ cacheAddSourceDep_impl cloneGit cache name dep = do
     let tmp = sandbox </> name
     createDirectory tmp
     case dep of
-      Hpack.GitRef url rev -> do
-        let addSource = AddSource name rev
+      Hpack.GitRef url rev subdir -> do
+        let
+          cacheKey = case subdir of
+            Nothing -> rev
+            Just dir -> show $ fingerprintFingerprints [fingerprintString rev, fingerprintString dir]
+          src = maybe tmp (tmp </>) subdir
+          addSource = AddSource name cacheKey
         alreadyInCache <- doesDirectoryExist (path $ addSourcePath cache addSource)
         unless alreadyInCache $ do
           cloneGit url rev tmp
-          moveToAddSourceCache cache tmp dep addSource
+          moveToAddSourceCache cache src dep addSource
         return addSource
       Hpack.Local dir -> do
         cabalSdist dir tmp
@@ -161,7 +170,7 @@ checkCabalName directory expectedName addSource = do
 
 subject :: Hpack.AddSource -> String
 subject addSource = case addSource of
-  Hpack.GitRef url _ -> "git repository " ++ url
+  Hpack.GitRef url _ subdir -> maybe "" (\dir -> "directory " ++ show dir ++ " of ") subdir ++ "git repository " ++ url
   Hpack.Local dir -> "directory " ++ dir
 
 determinePackageName :: (Fail m, MonadIO m) => FilePath -> Hpack.AddSource -> m String

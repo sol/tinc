@@ -111,7 +111,13 @@ data AddSourceCache
 
 data AddSource = AddSource {
   addSourcePackageName :: String
-, addSourceHash :: String -- git revision or fingerprint of local dependency
+
+-- This is one of:
+--  + git revision for git dependencies
+--  + md5(md5(git revision), md5(subdir)) for git dependencies that specify a subdir
+--  + md5 of local dependency for local dependencies
+, addSourceHash :: String
+
 } deriving (Eq, Show, Generic)
 
 addSourceJsonOptions :: Options
