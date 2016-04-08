@@ -10,7 +10,7 @@ module Tinc.Hpack (
 
 #ifdef TEST
 , parseAddSourceDependencies
-, cacheAddSourceDep_impl
+, populateAddSourceCache_impl
 
 , CloneGit
 , cloneGit_impl
@@ -72,7 +72,7 @@ mkExecutable deps = (Hpack.section $ Hpack.Executable "tinc-generated" "Generate
 
 extractAddSourceDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [Sandbox.AddSource]
 extractAddSourceDependencies addSourceCache additionalDeps =
-  parseAddSourceDependencies additionalDeps >>= mapM resolveGitReferences >>= mapM (uncurry (cacheAddSourceDep addSourceCache))
+  parseAddSourceDependencies additionalDeps >>= mapM resolveGitReferences >>= mapM (uncurry (populateAddSourceCache addSourceCache))
 
 resolveGitReferences :: (String, Hpack.AddSource) -> IO (String, Hpack.AddSource)
 resolveGitReferences (name, addSource) = (,) name <$> case addSource of
@@ -81,7 +81,7 @@ resolveGitReferences (name, addSource) = (,) name <$> case addSource of
 
 parseAddSourceDependencies :: [Hpack.Dependency] ->  IO [(String, Hpack.AddSource)]
 parseAddSourceDependencies additionalDeps = do
-  exists <- doesFileExist Hpack.packageConfig
+  exists <- doesConfigExist
   packageDeps <- if exists
     then do
       pkg <- readConfig []
@@ -90,11 +90,11 @@ parseAddSourceDependencies additionalDeps = do
   let deps = nubBy ((==) `on` Hpack.dependencyName) (additionalDeps ++ packageDeps)
   return [(name, addSource) | Hpack.Dependency name (Just addSource) <- deps]
 
-cacheAddSourceDep :: Path AddSourceCache -> String -> Hpack.AddSource -> IO Sandbox.AddSource
-cacheAddSourceDep = cacheAddSourceDep_impl (cloneGit_impl process)
+populateAddSourceCache :: Path AddSourceCache -> String -> Hpack.AddSource -> IO Sandbox.AddSource
+populateAddSourceCache = populateAddSourceCache_impl (cloneGit_impl process)
 
-cacheAddSourceDep_impl :: CloneGit IO -> Path AddSourceCache -> String -> Hpack.AddSource -> IO Sandbox.AddSource
-cacheAddSourceDep_impl cloneGit cache name dep = do
+populateAddSourceCache_impl :: CloneGit IO -> Path AddSourceCache -> String -> Hpack.AddSource -> IO Sandbox.AddSource
+populateAddSourceCache_impl cloneGit cache name dep = do
   createDirectoryIfMissing True (path cache)
   withTempDirectory (path cache) "tmp" $ \ sandbox -> do
     let tmp = sandbox </> name

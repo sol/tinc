@@ -165,7 +165,7 @@ generateCabalFile additionalDeps = do
   cabalFiles <- getCabalFiles "."
   case cabalFiles of
     _ | hasHpackConfig -> renderHpack
-    [] | not (null additionalDeps) -> generate
+    [] | not (null additionalDeps) -> return generated
     [cabalFile] -> reuseExisting cabalFile
     [] -> die "No cabal file found."
     _ -> die "Multiple cabal files found."
@@ -173,10 +173,8 @@ generateCabalFile additionalDeps = do
     renderHpack :: IO (FilePath, String)
     renderHpack = Hpack.render <$> Hpack.readConfig additionalDeps
 
-    generate :: IO (FilePath, String)
-    generate = do
-      let package = Hpack.mkPackage additionalDeps
-      return (Hpack.render package)
+    generated :: (FilePath, String)
+    generated = Hpack.render (Hpack.mkPackage additionalDeps)
 
     reuseExisting :: FilePath -> IO (FilePath, String)
     reuseExisting file = (,) file <$> readFile file

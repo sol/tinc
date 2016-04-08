@@ -74,7 +74,7 @@ spec = do
         inTempDirectory $ do
           parseAddSourceDependencies [] `shouldReturn` []
 
-  describe "cacheAddSourceDep_impl" $ around_ inTempDirectory $ do
+  describe "populateAddSourceCache_impl" $ around_ inTempDirectory $ do
     let
       url = "https://github.com/sol/hpack"
       rev = "6bebd90d1e22901e94460c02bba9d0fa5b343f81"
@@ -98,7 +98,7 @@ spec = do
                   writeFile (cabalFile dst) "name: hpack"
 
           it "adds the revision to the cache" $ do
-            cacheAddSourceDep_impl cloneGit cacheDir name gitDependency
+            populateAddSourceCache_impl cloneGit cacheDir name gitDependency
               `shouldReturn` cachedGitDependency
             doesDirectoryExist (path cachedGitDependencyPath) `shouldReturn` True
 
@@ -109,7 +109,7 @@ spec = do
 
           it "does nothing" $ do
             touch (path cachedGitDependencyPath </> ".placeholder")
-            cacheAddSourceDep_impl cloneGit cacheDir name gitDependency
+            populateAddSourceCache_impl cloneGit cacheDir name gitDependency
               `shouldReturn` cachedGitDependency
 
     context "without subdir" $ do
