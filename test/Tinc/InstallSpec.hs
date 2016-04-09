@@ -15,7 +15,7 @@ import           System.FilePath
 
 import           Tinc.Install
 import           Tinc.Package
-import           Tinc.Sandbox
+import           Tinc.AddSource
 import           Tinc.Types
 import           Util
 

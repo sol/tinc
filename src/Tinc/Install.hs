@@ -37,6 +37,7 @@ import qualified Tinc.AddSource as AddSource
 import           Tinc.Package
 import           Tinc.Process
 import           Tinc.Sandbox
+import           Tinc.AddSource
 import           Tinc.Facts
 import           Tinc.Types
 import qualified Tinc.Nix as Nix

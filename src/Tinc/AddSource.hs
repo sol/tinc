@@ -1,8 +1,12 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Tinc.AddSource (
-  extractAddSourceDependencies
+  AddSourceCache
+, AddSource(..)
+, addSourcePath
+, extractAddSourceDependencies
 #ifdef TEST
 , extractAddSourceDependencies_impl
 , parseAddSourceDependencies
@@ -32,19 +36,45 @@ import qualified Hpack.Config as Hpack
 import           System.Directory hiding (getDirectoryContents)
 import           System.FilePath
 import           System.IO.Temp
+import           Data.Aeson
+import           Data.Aeson.Types
+import           GHC.Generics
 
 import           Tinc.Fail
 import           Tinc.Types
 import           Tinc.Process
-import           Tinc.Sandbox as Sandbox
 import           Tinc.Hpack
 import           Util
 
-extractAddSourceDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [Sandbox.AddSource]
+data AddSourceCache
+
+data AddSource = AddSource {
+  addSourcePackageName :: String
+
+-- This is one of:
+--  + git revision for git dependencies
+--  + md5(md5(git revision), md5(subdir)) for git dependencies that specify a subdir
+--  + md5 of local dependency for local dependencies
+, addSourceHash :: String
+
+} deriving (Eq, Show, Generic)
+
+addSourceJsonOptions :: Options
+addSourceJsonOptions = defaultOptions{fieldLabelModifier = camelTo2 '-' . drop (length ("AddSource" :: String))}
+
+instance FromJSON AddSource where
+  parseJSON = genericParseJSON addSourceJsonOptions
+instance ToJSON AddSource where
+  toJSON = genericToJSON addSourceJsonOptions
+
+addSourcePath :: Path AddSourceCache -> AddSource -> Path AddSource
+addSourcePath (Path cache) (AddSource name rev) = Path $ cache </> name </> rev
+
+extractAddSourceDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [AddSource]
 extractAddSourceDependencies addSourceCache additionalDeps =
   parseAddSourceDependencies additionalDeps >>= extractAddSourceDependencies_impl (addSourceDependenciesFrom addSourceCache) resolveGitReferences (populateAddSourceCache addSourceCache)
 
-extractAddSourceDependencies_impl :: AddSourceDependenciesFrom -> ResolveGitReferences -> PopulateAddSourceCache -> [(String, Hpack.AddSource)] -> IO [Sandbox.AddSource]
+extractAddSourceDependencies_impl :: AddSourceDependenciesFrom -> ResolveGitReferences -> PopulateAddSourceCache -> [(String, Hpack.AddSource)] -> IO [AddSource]
 extractAddSourceDependencies_impl addSourceDependenciesFrom_ resolveGitReferences_ populateAddSourceCache_ = go
   where
     go deps = do
@@ -86,7 +116,7 @@ parseAddSourceDependencies additionalDeps = do
   let deps = nubBy ((==) `on` Hpack.dependencyName) (additionalDeps ++ packageDeps)
   return (filterAddSource deps)
 
-type PopulateAddSourceCache = (String, Hpack.AddSource) -> IO Sandbox.AddSource
+type PopulateAddSourceCache = (String, Hpack.AddSource) -> IO AddSource
 
 populateAddSourceCache :: Path AddSourceCache -> PopulateAddSourceCache
 populateAddSourceCache = populateAddSourceCache_impl (cloneGit_impl process)
@@ -146,7 +176,7 @@ cabalSdist sourceDirectory dst = do
   withCurrentDirectory sourceDirectory $ do
     callProcessM "cabal" ["sdist", "--output-directory", dst]
 
-moveToAddSourceCache :: MonadIO m => Path AddSourceCache -> FilePath -> Hpack.AddSource -> Sandbox.AddSource -> m ()
+moveToAddSourceCache :: MonadIO m => Path AddSourceCache -> FilePath -> Hpack.AddSource -> AddSource -> m ()
 moveToAddSourceCache cache src hpackDep dep@(AddSource name _) = liftIO $ do
   checkCabalName src name hpackDep
   let dst = addSourcePath cache dep

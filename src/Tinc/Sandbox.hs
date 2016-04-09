@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -11,9 +10,6 @@ module Tinc.Sandbox (
 , initSandbox
 , recache
 
-, AddSource(..)
-, AddSourceCache
-, addSourcePath
 , cabalSandboxDirectory
 , cabalSandboxBinDirectory
 
@@ -27,11 +23,8 @@ module Tinc.Sandbox (
 
 import           Control.Monad
 import           Control.Monad.IO.Class
-import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.List
 import           Data.Maybe
-import           GHC.Generics
 import           System.Directory hiding (getDirectoryContents)
 import           System.FilePath
 
@@ -41,6 +34,7 @@ import           Tinc.GhcPkg
 import           Tinc.Package
 import           Tinc.Process
 import           Tinc.Types
+import           Tinc.AddSource
 
 data PackageConfig
 
@@ -103,27 +97,3 @@ packageFromPackageConfig = parsePackage . reverse . drop 1 . dropWhile (/= '-') 
 
 recache :: MonadProcess m => Path PackageDb -> m ()
 recache packageDb = callProcessM "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDb]
-
-data AddSourceCache
-
-data AddSource = AddSource {
-  addSourcePackageName :: String
-
--- This is one of:
---  + git revision for git dependencies
---  + md5(md5(git revision), md5(subdir)) for git dependencies that specify a subdir
---  + md5 of local dependency for local dependencies
-, addSourceHash :: String
-
-} deriving (Eq, Show, Generic)
-
-addSourceJsonOptions :: Options
-addSourceJsonOptions = defaultOptions{fieldLabelModifier = camelTo2 '-' . drop (length ("AddSource" :: String))}
-
-instance FromJSON AddSource where
-  parseJSON = genericParseJSON addSourceJsonOptions
-instance ToJSON AddSource where
-  toJSON = genericToJSON addSourceJsonOptions
-
-addSourcePath :: Path AddSourceCache -> AddSource -> Path AddSource
-addSourcePath (Path cache) (AddSource name rev) = Path $ cache </> name </> rev

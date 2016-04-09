@@ -22,7 +22,7 @@ import           System.Directory
 
 import           Tinc.Fail
 import           Tinc.Package
-import           Tinc.Sandbox
+import           Tinc.AddSource
 
 type Constraint = String
 

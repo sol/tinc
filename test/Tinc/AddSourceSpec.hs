@@ -14,7 +14,6 @@ import           GHC.Fingerprint
 import           Test.Mockery.Action
 import           Tinc.Types
 import           Tinc.AddSource
-import           Tinc.Sandbox as Sandbox
 
 spec :: Spec
 spec = do

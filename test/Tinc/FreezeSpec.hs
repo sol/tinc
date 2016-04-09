@@ -7,7 +7,7 @@ import           System.Posix.Files
 
 import           Tinc.Freeze
 import           Tinc.Package
-import           Tinc.Sandbox
+import           Tinc.AddSource
 
 spec :: Spec
 spec = around_ inTempDirectory $ do

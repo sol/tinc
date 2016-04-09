@@ -30,7 +30,7 @@ import           System.IO
 import           Tinc.Facts
 import           Tinc.Package
 import           Tinc.Types
-import           Tinc.Sandbox
+import           Tinc.AddSource
 import           Util
 
 type NixExpression = String

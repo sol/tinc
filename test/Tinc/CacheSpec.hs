@@ -21,6 +21,7 @@ import           Tinc.Cache
 import           Tinc.GhcPkg
 import           Tinc.Package
 import           Tinc.Sandbox hiding (recache)
+import           Tinc.AddSource
 import           Tinc.Types
 
 data ReadGhcPkgEnv = ReadGhcPkgEnv {

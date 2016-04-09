@@ -42,6 +42,7 @@ import           Tinc.Package
 import           Tinc.PackageGraph
 import           Tinc.Process
 import           Tinc.Sandbox
+import           Tinc.AddSource
 import           Tinc.Types
 import           Util
 

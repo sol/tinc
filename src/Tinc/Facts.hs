@@ -9,7 +9,7 @@ import           System.FilePath
 import           Data.Function
 
 import           Tinc.GhcInfo
-import           Tinc.Sandbox
+import           Tinc.AddSource
 import           Tinc.Types
 
 data NixCache
