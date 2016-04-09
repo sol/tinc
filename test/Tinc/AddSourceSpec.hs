@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-module Tinc.HpackSpec (spec) where
+module Tinc.AddSourceSpec (spec) where
 
 import           Helper
 import           Hpack.Config as Hpack
@@ -13,7 +13,7 @@ import           GHC.Fingerprint
 
 import           Test.Mockery.Action
 import           Tinc.Types
-import           Tinc.Hpack
+import           Tinc.AddSource
 import           Tinc.Sandbox as Sandbox
 
 spec :: Spec

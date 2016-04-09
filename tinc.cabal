@@ -54,6 +54,7 @@ executable tinc
     , time
   other-modules:
       Run
+      Tinc.AddSource
       Tinc.Cabal
       Tinc.Cache
       Tinc.Config
@@ -111,6 +112,7 @@ test-suite spec
     , unix
   other-modules:
       Run
+      Tinc.AddSource
       Tinc.Cabal
       Tinc.Cache
       Tinc.Config
@@ -136,13 +138,13 @@ test-suite spec
       RunSpec
       Test.Mockery.Action
       Test.Mockery.ActionSpec
+      Tinc.AddSourceSpec
       Tinc.CacheSpec
       Tinc.ConfigSpec
       Tinc.FactsSpec
       Tinc.FreezeSpec
       Tinc.GhcInfoSpec
       Tinc.GhcPkgSpec
-      Tinc.HpackSpec
       Tinc.InstallSpec
       Tinc.NixSpec
       Tinc.PackageGraphSpec

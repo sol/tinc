@@ -33,6 +33,7 @@ import           Tinc.Fail
 import           Tinc.Freeze
 import           Tinc.GhcInfo
 import qualified Tinc.Hpack as Hpack
+import qualified Tinc.AddSource as AddSource
 import           Tinc.Package
 import           Tinc.Process
 import           Tinc.Sandbox
@@ -86,7 +87,7 @@ createInstallPlan ghcInfo cacheDir installPlan = do
 solveDependencies :: Facts -> Path AddSourceCache -> IO [Package]
 solveDependencies facts addSourceCache = do
   additionalDeps <- getAdditionalDependencies
-  addSourceDependencies <- Hpack.extractAddSourceDependencies addSourceCache additionalDeps
+  addSourceDependencies <- AddSource.extractAddSourceDependencies addSourceCache additionalDeps
   withSystemTempDirectory "tinc-remote-repo-cache" $ \(Path -> remoteRepoCache) -> do
     cloneRemoteRepoCache addSourceDependencies (factsRemoteRepoCache facts) remoteRepoCache
     cabalInstallPlan facts{ factsRemoteRepoCache = remoteRepoCache } additionalDeps addSourceCache addSourceDependencies
