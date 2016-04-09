@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.11.2.
+-- This file has been generated from package.yaml by hpack version 0.12.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -52,6 +52,8 @@ executable tinc
     , unix-compat
     , with-location
     , time
+    , text
+    , template
   other-modules:
       Run
       Tinc.Cabal
@@ -104,6 +106,8 @@ test-suite spec
     , unix-compat
     , with-location
     , time
+    , text
+    , template
     , hspec
     , mockery >= 0.3.3
     , HUnit >= 1.3

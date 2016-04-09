@@ -37,6 +37,8 @@ dependencies:
   - unix-compat
   - with-location
   - time
+  - text
+  - template
 
 source-dirs: src
 

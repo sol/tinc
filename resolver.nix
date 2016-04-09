@@ -466,6 +466,21 @@ let
         }
       )
       { inherit mtl parsec; };
+    template = callPackage
+      (
+        { mkDerivation, base, mtl, stdenv, text }:
+        mkDerivation {
+          pname = "template";
+          version = "0.2.0.10";
+          sha256 = "10mcnhi2rdflmv79z0359nn5sylifvk9ih38xnjqqby6n4hs7mcg";
+          libraryHaskellDepends = [ base mtl text ];
+          description = "Simple string substitution";
+          license = stdenv.lib.licenses.bsd3;
+          doCheck = false;
+          doHaddock = false;
+        }
+      )
+      { inherit mtl text; };
     tf-random = callPackage
       (
         { mkDerivation, base, primitive, random, stdenv, time }:
@@ -706,8 +721,8 @@ let
         }:
         mkDerivation {
           pname = "monad-control";
-          version = "1.0.0.5";
-          sha256 = "1ya3i7x7p643fbrylf6bh8731mjvgn067qw2h8ijqbn805bp2pq5";
+          version = "1.0.1.0";
+          sha256 = "1x018gi5irznx5rgzmkr2nrgh26r8cvqwkcfc6n6y05pdjf21c6l";
           libraryHaskellDepends = [
             base stm transformers transformers-base transformers-compat
           ];
@@ -1045,12 +1060,12 @@ let
       (
         { mkDerivation, aeson, aeson-qq, base, base-compat, containers
         , deepseq, directory, filepath, Glob, hspec, interpolate, mockery
-        , stdenv, temporary, text, unordered-containers, yaml
+        , QuickCheck, stdenv, temporary, text, unordered-containers, yaml
         }:
         mkDerivation {
           pname = "hpack";
-          version = "0.11.2";
-          sha256 = "1ndqir068ll3qzs48jbqmcc7iz78ay5z925l03d4zb6izwc92jz4";
+          version = "0.12.0";
+          sha256 = "0j47hr60kyh27b2cjg73parirrmgksh0bgyja5yl79pgf1ldyjsn";
           isLibrary = true;
           isExecutable = true;
           libraryHaskellDepends = [
@@ -1063,7 +1078,7 @@ let
           ];
           testHaskellDepends = [
             aeson aeson-qq base base-compat containers deepseq directory
-            filepath Glob hspec interpolate mockery temporary text
+            filepath Glob hspec interpolate mockery QuickCheck temporary text
             unordered-containers yaml
           ];
           homepage = "https://github.com/sol/hpack#readme";
@@ -1073,7 +1088,7 @@ let
           doHaddock = false;
         }
       )
-      { inherit aeson base-compat Glob hspec mockery temporary text unordered-containers yaml; };
+      { inherit aeson base-compat Glob hspec mockery QuickCheck temporary text unordered-containers yaml; };
   };
 
   newResolver = oldResolver.override {

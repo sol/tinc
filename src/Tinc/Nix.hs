@@ -8,8 +8,12 @@ module Tinc.Nix (
 , createDerivations
 #ifdef TEST
 , Function (..)
-, defaultDerivation
-, shellDerivation
+, defaultNixTemplate
+, shellNixTemplate
+, defaultTemplateFile
+, shellTemplateFile
+, loadTemplateFile
+, writeNixFile
 , resolverDerivation
 , pkgImport
 , parseNixFunction
@@ -19,15 +23,22 @@ module Tinc.Nix (
 #endif
 ) where
 
+import           Control.Monad.IO.Class
 import           Data.Char
 import           Data.Maybe
 import           Data.List
+import qualified Data.Text as T
+import           Data.Text.Lazy (toStrict)
+import qualified Data.Text.IO as TIO
+import           Data.Text.Template
+import           System.Directory (doesDirectoryExist, getHomeDirectory)
 import           System.FilePath
 import           System.Process.Internals (translate)
 import           System.Process
 import           System.IO
 
 import           Tinc.Facts
+import           Tinc.Fail
 import           Tinc.Package
 import           Tinc.Types
 import           Tinc.Sandbox
@@ -48,28 +59,64 @@ packageFile = "package.nix"
 resolverFile :: FilePath
 resolverFile = "resolver.nix"
 
-defaultFile :: FilePath
-defaultFile = "default.nix"
+defaultTemplateFile :: FilePath
+defaultTemplateFile = "default.nix.tinc-template"
 
-shellFile :: FilePath
-shellFile = "shell.nix"
+shellTemplateFile :: FilePath
+shellTemplateFile = "shell.nix.tinc-template"
 
 cabal :: Facts -> [String] -> (String, [String])
 cabal Facts{..} args = ("nix-shell", ["-p", "haskell.packages." ++ show factsNixResolver ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
 
 nixShell :: String -> [String] -> (String, [String])
-nixShell command args = ("nix-shell", [shellFile, "--run", unwords $ command : map translate args])
+nixShell command args = ("nix-shell", ["--run", unwords $ command : map translate args])
 
 createDerivations :: Facts -> [Package] -> IO ()
 createDerivations facts@Facts{..} dependencies = do
   mapM_ (populateCache factsAddSourceCache factsNixCache) dependencies
-  pkgDerivation <- cabalToNix "."
+  cabalToNix "." >>= writeFile packageFile
 
   let knownHaskellDependencies = map packageName dependencies
-  mapM (readDependencies factsNixCache knownHaskellDependencies) dependencies >>= resolverDerivation facts >>= writeFile resolverFile
-  writeFile packageFile pkgDerivation
-  writeFile defaultFile (defaultDerivation facts)
-  writeFile shellFile (shellDerivation facts)
+  mapM (readDependencies factsNixCache knownHaskellDependencies) dependencies
+    >>= resolverDerivation facts
+    >>= writeFile resolverFile
+
+  homeDirTemplates <- (</> ".tinc" </> "nix") <$> getHomeDirectory >>= getTemplates
+  currentDirTemplates <- getTemplates "."
+  let templates = nubBy compareFileNames $ currentDirTemplates ++ homeDirTemplates ++ defaultTemplates
+  mapM_ (writeNixFile facts) templates
+
+  where
+    defaultTemplates = [
+        (defaultTemplateFile, defaultNixTemplate)
+      , (shellTemplateFile, shellNixTemplate)
+      ]
+    getTemplates dir = do
+      exists <- doesDirectoryExist dir
+      if exists
+        then toTemplates . map (dir </>) . filter (templateSuffix `isSuffixOf`) <$> getDirectoryContents dir
+        else return []
+    toTemplates = map (\file -> (file, loadTemplateFile file))
+    templateSuffix = ".nix.tinc-template"
+    compareFileNames (takeFileName . fst -> file1) (takeFileName . fst -> file2) = file1 == file2
+
+loadTemplateFile :: (MonadIO m, Fail m) => FilePath -> m Template
+loadTemplateFile templateFile = do
+  input <- liftIO $ TIO.readFile templateFile
+  case templateSafe input of
+    Right loadedTemplate -> return loadedTemplate
+    Left (row, col) -> do
+      die $ "Error: " ++ templateFile ++ " has error at row " ++ show row ++ " column " ++ show col ++ "."
+
+writeNixFile :: Facts -> (FilePath, IO Template) -> IO ()
+writeNixFile Facts{..} (templateFile, getTemplate) = do
+  getTemplate >>= renderToFile
+  where
+    nixFile = takeFileName $ dropExtension templateFile
+    context (T.unpack -> "resolver") = T.pack factsNixResolver
+    context _ = T.pack " "
+    renderToFile loadedTemplate = TIO.writeFile nixFile $ toStrict renderedTemplate
+      where renderedTemplate = render loadedTemplate context
 
 populateCache :: Path AddSourceCache -> Path NixCache -> Package -> IO ()
 populateCache addSourceCache cache pkg = do
@@ -98,15 +145,18 @@ cabalToNix uri = do
   hPutStrLn stderr $ "cabal2nix " ++ uri
   readProcess "cabal2nix" [uri] ""
 
-defaultDerivation :: Facts -> NixExpression
-defaultDerivation Facts{..} = unlines [
-    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
+nixBegin :: String
+nixBegin = "{ nixpkgs ? import <nixpkgs> {}, compiler ? \"$resolver\" }:"
+
+defaultNixTemplate :: IO Template
+defaultNixTemplate = return . template . T.unlines $ map T.pack [
+    nixBegin
   , "(import ./resolver.nix { inherit nixpkgs compiler; }).callPackage ./package.nix { }"
   ]
 
-shellDerivation :: Facts -> NixExpression
-shellDerivation Facts{..} = unlines [
-    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
+shellNixTemplate :: IO Template
+shellNixTemplate = return . template . T.unlines $ map T.pack [
+    nixBegin
   , "(import ./default.nix { inherit nixpkgs compiler; }).env"
   ]
 
@@ -148,7 +198,7 @@ pkgImport ((Package name _), haskellDependencies, systemDependencies) derivation
       | otherwise = "inherit " ++ intercalate " " haskellDependencies ++ "; "
     inheritSystemDependencies
       | null systemDependencies = ""
-      | otherwise = "inherit (pkgs) " ++ intercalate " " systemDependencies ++ "; "
+      | otherwise = "inherit (nixpkgs) " ++ intercalate " " systemDependencies ++ "; "
 
 readDependencies :: Path NixCache -> [HaskellDependency] -> Package -> IO (Package, [HaskellDependency], [SystemDependency])
 readDependencies cache knownHaskellDependencies package = do
