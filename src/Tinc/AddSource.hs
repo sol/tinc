@@ -59,6 +59,8 @@ data AddSource = AddSource {
 
 } deriving (Eq, Show, Generic)
 
+type AddSourceDependency = (String, Hpack.AddSource)
+
 addSourceJsonOptions :: Options
 addSourceJsonOptions = defaultOptions{fieldLabelModifier = camelTo2 '-' . drop (length ("AddSource" :: String))}
 
@@ -74,7 +76,7 @@ extractAddSourceDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO 
 extractAddSourceDependencies addSourceCache additionalDeps =
   parseAddSourceDependencies additionalDeps >>= extractAddSourceDependencies_impl (addSourceDependenciesFrom addSourceCache) resolveGitReferences (populateAddSourceCache addSourceCache)
 
-extractAddSourceDependencies_impl :: AddSourceDependenciesFrom -> ResolveGitReferences -> PopulateAddSourceCache -> [(String, Hpack.AddSource)] -> IO [AddSource]
+extractAddSourceDependencies_impl :: AddSourceDependenciesFrom -> ResolveGitReferences -> PopulateAddSourceCache -> [AddSourceDependency] -> IO [AddSource]
 extractAddSourceDependencies_impl addSourceDependenciesFrom_ resolveGitReferences_ populateAddSourceCache_ = go
   where
     go deps = do
@@ -84,14 +86,14 @@ extractAddSourceDependencies_impl addSourceDependenciesFrom_ resolveGitReference
           xs <- mapM resolveGitReferences_ deps >>= mapM populateAddSourceCache_
           (xs ++) <$> (mapM addSourceDependenciesFrom_ xs >>= go . concat)
 
-type ResolveGitReferences = (String, Hpack.AddSource) -> IO (String, Hpack.AddSource)
+type ResolveGitReferences = AddSourceDependency -> IO AddSourceDependency
 
 resolveGitReferences :: ResolveGitReferences
 resolveGitReferences (name, addSource) = (,) name <$> case addSource of
   Hpack.GitRef url ref dir -> Hpack.GitRef url <$> gitRefToRev url ref <*> pure dir
   Hpack.Local _ -> return addSource
 
-type AddSourceDependenciesFrom = AddSource -> IO [(String, Hpack.AddSource)]
+type AddSourceDependenciesFrom = AddSource -> IO [AddSourceDependency]
 
 addSourceDependenciesFrom :: Path AddSourceCache -> AddSourceDependenciesFrom
 addSourceDependenciesFrom addSourceCache addSource = do
@@ -102,10 +104,10 @@ addSourceDependenciesFrom addSourceCache addSource = do
   where
     config = path (addSourcePath addSourceCache addSource) </> Hpack.packageConfig
 
-filterAddSource :: [Hpack.Dependency] -> [(String, Hpack.AddSource)]
+filterAddSource :: [Hpack.Dependency] -> [AddSourceDependency]
 filterAddSource deps = [(name, addSource) | Hpack.Dependency name (Just addSource) <- deps]
 
-parseAddSourceDependencies :: [Hpack.Dependency] ->  IO [(String, Hpack.AddSource)]
+parseAddSourceDependencies :: [Hpack.Dependency] ->  IO [AddSourceDependency]
 parseAddSourceDependencies additionalDeps = do
   exists <- doesConfigExist
   packageDeps <- if exists
@@ -116,18 +118,18 @@ parseAddSourceDependencies additionalDeps = do
   let deps = nubBy ((==) `on` Hpack.dependencyName) (additionalDeps ++ packageDeps)
   return (filterAddSource deps)
 
-type PopulateAddSourceCache = (String, Hpack.AddSource) -> IO AddSource
-
 populateAddSourceCache :: Path AddSourceCache -> PopulateAddSourceCache
 populateAddSourceCache = populateAddSourceCache_impl (cloneGit_impl process)
 
+type PopulateAddSourceCache = AddSourceDependency -> IO AddSource
+
 populateAddSourceCache_impl :: CloneGit IO -> Path AddSourceCache -> PopulateAddSourceCache
-populateAddSourceCache_impl cloneGit cache (name, dep) = do
+populateAddSourceCache_impl cloneGit cache dep@(name, hpackAddSource) = do
   createDirectoryIfMissing True (path cache)
   withTempDirectory (path cache) "tmp" $ \ sandbox -> do
     let tmp = sandbox </> name
     createDirectory tmp
-    case dep of
+    case hpackAddSource of
       Hpack.GitRef url rev subdir -> do
         let
           cacheKey = case subdir of
@@ -176,17 +178,17 @@ cabalSdist sourceDirectory dst = do
   withCurrentDirectory sourceDirectory $ do
     callProcessM "cabal" ["sdist", "--output-directory", dst]
 
-moveToAddSourceCache :: MonadIO m => Path AddSourceCache -> FilePath -> Hpack.AddSource -> AddSource -> m ()
+moveToAddSourceCache :: MonadIO m => Path AddSourceCache -> FilePath -> AddSourceDependency -> AddSource -> m ()
 moveToAddSourceCache cache src hpackDep dep@(AddSource name _) = liftIO $ do
-  checkCabalName src name hpackDep
+  checkCabalName src hpackDep
   let dst = addSourcePath cache dep
   exists <- doesDirectoryExist $ path dst
   unless exists $ do
     createDirectoryIfMissing True (path cache </> name)
     renameDirectory src $ path dst
 
-checkCabalName :: (Fail m, MonadIO m) => FilePath -> String -> Hpack.AddSource -> m ()
-checkCabalName directory expectedName addSource = do
+checkCabalName :: (Fail m, MonadIO m) => FilePath -> AddSourceDependency -> m ()
+checkCabalName directory (expectedName, addSource) = do
   name <- determinePackageName directory addSource
   if name == expectedName
     then return ()

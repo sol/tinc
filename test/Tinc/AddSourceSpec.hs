@@ -224,14 +224,14 @@ spec = do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
           writeFile cabalFile "name: foo"
-          checkCabalName dir "foo" (Hpack.GitRef "<url>" "<ref>" Nothing)
+          checkCabalName dir ("foo", Hpack.GitRef "<url>" "<ref>" Nothing)
 
     context "when git dependency name and cabal package name differ" $ do
       it "fails" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
           writeFile cabalFile "name: foo"
-          checkCabalName dir "bar" (Hpack.GitRef "<url>" "<ref>" Nothing)
+          checkCabalName dir ("bar", Hpack.GitRef "<url>" "<ref>" Nothing)
             `shouldThrow` errorCall "the git repository <url> contains package \"foo\", expected: \"bar\""
 
   describe "determinePackageName" $ do
