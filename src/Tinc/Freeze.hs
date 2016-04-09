@@ -7,19 +7,16 @@ module Tinc.Freeze (
 , freezeFile
 ) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Data.Aeson
 import qualified Data.ByteString as B
 import           Data.Char
 import           Data.Ord
-import           Data.List.Compat
+import           Data.List
 import qualified Data.Yaml as Yaml
 import           Hpack.Yaml
 import           GHC.Generics
 import           Control.Exception
-import           Control.Monad.Compat
+import           Control.Monad
 import           System.IO.Error
 import           System.Directory
 

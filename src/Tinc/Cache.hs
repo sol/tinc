@@ -22,14 +22,11 @@ module Tinc.Cache (
 #endif
 ) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Control.Monad.Catch
-import           Control.Monad.Compat
+import           Control.Monad
 import           Control.Monad.IO.Class
 import qualified Data.ByteString as B
-import           Data.List.Compat
+import           Data.List
 import qualified Data.Map as Map
 import           Data.Yaml
 import           System.Directory hiding (getDirectoryContents)

@@ -9,9 +9,6 @@ module Test.Mockery.Action (
 , Mockable (..)
 ) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Control.Monad.IO.Class
 import           Control.Monad
 import           Data.IORef

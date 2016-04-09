@@ -2,11 +2,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Run where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Control.Exception
-import           Control.Monad.Compat
+import           Control.Monad
 import           Development.GitRev
 import           System.Environment
 import           System.FileLock

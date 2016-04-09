@@ -1,8 +1,5 @@
 module Tinc.GhcInfo where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           System.Process
 
 import           Tinc.GhcPkg

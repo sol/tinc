@@ -1,9 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module MockedEnv where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Control.Monad.Catch
 import           Control.Monad.Trans.Reader
 import           Control.Monad.IO.Class

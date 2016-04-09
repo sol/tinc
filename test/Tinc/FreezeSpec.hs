@@ -1,9 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Tinc.FreezeSpec (spec) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Test.Hspec
 import           Test.Mockery.Directory
 import           System.Posix.Files

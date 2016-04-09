@@ -1,7 +1,5 @@
 module Tinc.Process where
 
-import           Prelude ()
-import           Prelude.Compat
 import qualified System.Process
 
 process :: MonadProcess m => Process m

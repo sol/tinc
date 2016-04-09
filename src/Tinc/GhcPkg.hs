@@ -5,9 +5,6 @@ module Tinc.GhcPkg (
 , listGlobalPackages
 ) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           System.Process
 
 import           Tinc.Package

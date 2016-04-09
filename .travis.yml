@@ -2,21 +2,16 @@ sudo: false
 
 language: c
 
-env:
-  - GHCVER=7.8.4
-  - GHCVER=7.10.2
-
 addons:
   apt:
     sources:
       - hvr-ghc
     packages:
-      - ghc-7.8.4
-      - ghc-7.10.2
+      - ghc-7.10.3
       - cabal-install-1.22
 
 before_install:
-  - export PATH=$HOME/.tinc/bin:/opt/ghc/$GHCVER/bin:/opt/cabal/1.22/bin:$PATH
+  - export PATH=$HOME/.tinc/bin:/opt/ghc/7.10.3/bin:/opt/cabal/1.22/bin:$PATH
   - curl -sSL https://github.com/sol/tinc/raw/master/get-tinc.sh | bash
   - tinc --version
   - ghc --version
@@ -42,8 +37,6 @@ deploy:
   bucket: zalora-public
   local_dir: build
   skip_cleanup: true
-  on:
-    condition: $GHCVER = 7.10.2
 
 cache:
   directories:

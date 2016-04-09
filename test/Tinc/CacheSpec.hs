@@ -3,9 +3,6 @@
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.CacheSpec (spec) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Helper
 import           MockedEnv
 import           MockedProcess

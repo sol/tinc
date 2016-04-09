@@ -1,9 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Tinc.Fail where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Data.WithLocation
 import           Control.Exception
 

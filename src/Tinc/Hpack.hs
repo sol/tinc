@@ -23,13 +23,10 @@ module Tinc.Hpack (
 #endif
 ) where
 
-import           Prelude ()
-import           Prelude.Compat
-
-import           Control.Monad.Compat
+import           Control.Monad
 import           Control.Monad.IO.Class
 import           Data.Function
-import           Data.List.Compat
+import           Data.List
 import           Distribution.Package
 import           Distribution.PackageDescription
 import           Distribution.PackageDescription.Parse

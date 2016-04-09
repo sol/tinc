@@ -19,12 +19,9 @@ module Tinc.Nix (
 #endif
 ) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Data.Char
 import           Data.Maybe
-import           Data.List.Compat
+import           Data.List
 import           System.FilePath
 import           System.Process.Internals (translate)
 import           System.Process

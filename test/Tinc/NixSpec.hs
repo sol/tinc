@@ -1,9 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Tinc.NixSpec (spec) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Helper
 
 import           Tinc.Package

@@ -1,9 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Tinc.FactsSpec (spec) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Test.Hspec
 import           Test.Mockery.Directory
 import           Test.Mockery.Environment

@@ -25,14 +25,11 @@ module Tinc.Sandbox (
 #endif
 ) where
 
-import           Prelude ()
-import           Prelude.Compat
-
-import           Control.Monad.Compat
+import           Control.Monad
 import           Control.Monad.IO.Class
 import           Data.Aeson
 import           Data.Aeson.Types
-import           Data.List.Compat
+import           Data.List
 import           Data.Maybe
 import           GHC.Generics
 import           System.Directory hiding (getDirectoryContents)

@@ -16,13 +16,10 @@ module Tinc.Install (
 #endif
 ) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Control.Monad.Catch
-import           Control.Monad.Compat
+import           Control.Monad
 import           Control.Monad.IO.Class
-import           Data.List.Compat
+import           Data.List
 import           System.Directory hiding (getDirectoryContents)
 import           System.IO.Temp
 import           System.FilePath

@@ -1,13 +1,10 @@
 module Util where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Control.Monad.Catch
-import           Control.Monad.Compat
+import           Control.Monad
 import           Control.Monad.IO.Class
 import           Data.Char
-import           Data.List.Compat
+import           Data.List
 import           GHC.Fingerprint
 import           System.Directory hiding (getDirectoryContents)
 import qualified System.Directory as Directory

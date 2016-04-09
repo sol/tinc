@@ -1,13 +1,10 @@
 module Tinc.Facts where
 
-import           Prelude ()
-import           Prelude.Compat
-
-import           Data.List.Compat
-import           Control.Monad.Compat
+import           Data.List
+import           Control.Monad
 import           Data.Maybe
 import           System.Directory
-import           System.Environment.Compat
+import           System.Environment
 import           System.FilePath
 import           Data.Function
 

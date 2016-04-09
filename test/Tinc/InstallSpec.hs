@@ -4,9 +4,6 @@
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.InstallSpec (spec) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Helper
 import           MockedEnv
 import           MockedProcess

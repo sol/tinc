@@ -6,9 +6,6 @@ module Tinc.RecentCheck (
 , tincEnvCreationTime
 ) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Data.Maybe
 import           Data.Time
 import           System.Directory

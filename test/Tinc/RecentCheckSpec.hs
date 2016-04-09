@@ -1,8 +1,5 @@
 module Tinc.RecentCheckSpec (spec) where
 
-import           Prelude ()
-import           Prelude.Compat
-
 import           Helper
 
 import           Data.Time
