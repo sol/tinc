@@ -46,7 +46,7 @@ import           Util
 
 installDependencies :: Bool -> Facts -> IO ()
 installDependencies dryRun facts@Facts{..} = do
-  solveDependencies facts factsAddSourceCache >>= if factsUseNix
+  solveDependencies facts >>= if factsUseNix
   then doNix
   else doCabal
   where
@@ -85,13 +85,13 @@ createInstallPlan ghcInfo cacheDir installPlan = do
       missing = installPlan \\ map cachedPackageName reusable
   return (InstallPlan reusable missing)
 
-solveDependencies :: Facts -> Path AddSourceCache -> IO [Package]
-solveDependencies facts addSourceCache = do
+solveDependencies :: Facts -> IO [Package]
+solveDependencies facts@Facts{..} = do
   additionalDeps <- getAdditionalDependencies
-  addSourceDependencies <- AddSource.extractAddSourceDependencies addSourceCache additionalDeps
+  addSourceDependencies <- AddSource.extractAddSourceDependencies factsGitCache factsAddSourceCache additionalDeps
   withSystemTempDirectory "tinc-remote-repo-cache" $ \(Path -> remoteRepoCache) -> do
-    cloneRemoteRepoCache addSourceDependencies (factsRemoteRepoCache facts) remoteRepoCache
-    cabalInstallPlan facts{ factsRemoteRepoCache = remoteRepoCache } additionalDeps addSourceCache addSourceDependencies
+    cloneRemoteRepoCache addSourceDependencies factsRemoteRepoCache remoteRepoCache
+    cabalInstallPlan facts{ factsRemoteRepoCache = remoteRepoCache } additionalDeps addSourceDependencies
 
 remoteRepoTarFile :: FilePath
 remoteRepoTarFile = "00-index.tar"
@@ -124,14 +124,14 @@ listRemoteRepos (Path dir) = do
   remotes <- getDirectories dir
   filterM (doesFileExist . (\remote -> dir </> remote </> remoteRepoTarFile)) remotes
 
-cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Facts -> [Hpack.Dependency] -> Path AddSourceCache -> [AddSource] -> m [Package]
-cabalInstallPlan facts additionalDeps addSourceCache addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
+cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Facts -> [Hpack.Dependency] -> [AddSource] -> m [Package]
+cabalInstallPlan facts@Facts{..} additionalDeps addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
   liftIO $ copyFreezeFile dir
   cabalFile <- liftIO (generateCabalFile additionalDeps)
   constraints <- liftIO (readFreezeFile addSourceDependencies)
   withCurrentDirectory dir $ do
     liftIO $ uncurry writeFile cabalFile
-    _ <- initSandbox (map (addSourcePath addSourceCache) addSourceDependencies) []
+    _ <- initSandbox (map (addSourcePath factsAddSourceCache) addSourceDependencies) []
     map addAddSourceHash <$> cabalDryInstall facts ["--only-dependencies", "--enable-tests"] constraints
   where
     addAddSourceHash :: Package -> Package

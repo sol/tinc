@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Test.Mockery.ActionSpec (spec) where
 
 import           Test.Hspec
@@ -6,8 +7,15 @@ import           Control.Monad
 import           Test.HUnit.Lang
 import           Test.Mockery.Action
 
+#if MIN_VERSION_HUnit(1,4,0)
+hUnitFailure :: String -> HUnitFailure -> Bool
+hUnitFailure actual (HUnitFailure _ reason) = case reason of
+  Reason expected -> actual == expected
+  _ -> False
+#else
 hUnitFailure :: String -> HUnitFailure -> Bool
 hUnitFailure actual (HUnitFailure _ expected) = actual == expected
+#endif
 
 spec :: Spec
 spec = do

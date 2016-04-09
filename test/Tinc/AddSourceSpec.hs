@@ -1,10 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Tinc.AddSourceSpec (spec) where
 
 import           Helper
-import           Hpack.Config as Hpack
+import           Hpack.Config as Hpack hiding (Local)
 import           System.Directory
 import           System.FilePath
 import           System.IO.Error
@@ -19,38 +20,32 @@ spec :: Spec
 spec = do
   describe "extractAddSourceDependencies_impl" $ do
     let
-      fooDep = ("foo", Hpack.GitRef "sol/foo" "foo-rev" Nothing)
-      barDep = ("bar", Hpack.GitRef "sol/bar" "bar-rev" Nothing)
+      fooDep = AddSourceDependency "foo" (Git "sol/foo" "foo-rev" Nothing)
+      barDep = AddSourceDependency "bar" (Git "sol/bar" "bar-rev" Nothing)
 
       fooAddSource = AddSource "foo" "foo-rev"
       barAddSource = AddSource "bar" "bar-rev"
 
       deps = [fooDep]
 
-      populateAddSourceCache (name, Hpack.GitRef _ rev _) = return (AddSource name rev)
+      populateAddSourceCache (AddSourceDependency name (Git _ (Rev rev) Nothing)) = return (AddSource name rev)
+      resolveGitReferences = return
+      cacheGitRev = return
 
     it "populates the add-source cache" $ do
       let
         addSourceDependenciesFrom = stub [(fooAddSource, return [])]
-        resolveGitReferences = return
-      withMock populateAddSourceCache $ \populate -> do
-        extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences populate deps `shouldReturn` [fooAddSource]
 
-    it "resolves git references to revisions" $ do
-      let
-        addSourceDependenciesFrom = stub [(fooAddSource, return [])]
-        resolveGitReferences = stub [(fooDep, return fooDep)]
-      withMock resolveGitReferences $ \resolveGitReferences_ -> do
-        extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences_ populateAddSourceCache deps `shouldReturn` [fooAddSource]
+      withMock populateAddSourceCache $ \populate -> do
+        extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences cacheGitRev populate deps `shouldReturn` [fooAddSource]
 
     it "takes transitive add-source dependencies into account" $ do
       let
-        resolveGitReferences = return
         addSourceDependenciesFrom = stub [
             (fooAddSource, return [barDep])
           , (barAddSource, return [])
           ]
-      extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences populateAddSourceCache deps `shouldReturn` [fooAddSource, barAddSource]
+      extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences cacheGitRev populateAddSourceCache deps `shouldReturn` [fooAddSource, barAddSource]
 
   describe "parseAddSourceDependencies" $ do
     it "extracts git dependencies from package.yaml" $ do
@@ -63,7 +58,7 @@ spec = do
           , "  - bar"
           , "library: {}"
           ]
-        parseAddSourceDependencies [] `shouldReturn` [("foo", GitRef "https://github.com/sol/hpack" "master" Nothing)]
+        parseAddSourceDependencies [] `shouldReturn` [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
 
     it "extracts local dependencies" $ do
       inTempDirectory $ do
@@ -74,12 +69,12 @@ spec = do
           , "  - bar"
           , "library: {}"
           ]
-        parseAddSourceDependencies [] `shouldReturn` [("foo", Local "../foo")]
+        parseAddSourceDependencies [] `shouldReturn` [AddSourceDependency "foo" (Local "../foo")]
 
     it "extracts git dependencies from list of additional dependencies " $ do
       inTempDirectory $ do
         parseAddSourceDependencies [Dependency "foo" (Just $ GitRef "https://github.com/sol/hpack" "master" Nothing), "bar"] `shouldReturn`
-          [("foo", GitRef "https://github.com/sol/hpack" "master" Nothing)]
+          [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
 
     context "when the same git dependency is specified in both package.yaml and tinc.yaml" $ do
       it "gives tinc.yaml precedence" $ do
@@ -93,7 +88,7 @@ spec = do
             , "library: {}"
             ]
           parseAddSourceDependencies [Dependency "foo" (Just $ GitRef "https://github.com/sol/hpack" "dev" Nothing), "bar"] `shouldReturn`
-            [("foo", GitRef "https://github.com/sol/hpack" "dev" Nothing)]
+            [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "dev" Nothing)]
 
     context "when package.yaml can not be parsed" $ do
       it "throws an exception" $ do
@@ -111,40 +106,38 @@ spec = do
 
   describe "populateAddSourceCache_impl" $ around_ inTempDirectory $ do
     let
+      name = "hpack"
       url = "https://github.com/sol/hpack"
       rev = "6bebd90d1e22901e94460c02bba9d0fa5b343f81"
-      name = "hpack"
+
 
       cacheAddSourceDepSpec subdir cacheKey cabalFile = do
         let
-          gitDependency = Hpack.GitRef url rev subdir
+          gitDependency = Git url (CachedRev rev) subdir
 
-          cacheDir = "git-cache"
+          cache :: Path AddSourceCache
+          cache = "add-source"
+
+          gitCache :: Path GitCache
+          gitCache = "git-cache"
+
           cachedGitDependency = AddSource name cacheKey
-          cachedGitDependencyPath = addSourcePath cacheDir cachedGitDependency
+          cachedGitDependencyPath = addSourcePath cache cachedGitDependency
 
         context "when a revision is not yet in the cache" $ do
-          let
-            cloneGit :: CloneGit IO
-            cloneGit url_ rev_ dst = stub (url, rev, writeCabalFile) url_ rev_
-              where
-                writeCabalFile = do
-                  touch (cabalFile dst)
-                  writeFile (cabalFile dst) "name: hpack"
-
           it "adds the revision to the cache" $ do
-            populateAddSourceCache_impl cloneGit cacheDir (name, gitDependency)
+            let file = cabalFile (path gitCache </> rev)
+            touch file
+            writeFile file "name: hpack"
+
+            populateAddSourceCache_impl gitCache cache (AddSourceDependency name gitDependency)
               `shouldReturn` cachedGitDependency
             doesDirectoryExist (path cachedGitDependencyPath) `shouldReturn` True
 
         context "when a revision is already in the cache" $ do
-          let
-            cloneGit :: CloneGit IO
-            cloneGit = dummy "cloneGit"
-
           it "does nothing" $ do
             touch (path cachedGitDependencyPath </> ".placeholder")
-            populateAddSourceCache_impl cloneGit cacheDir (name, gitDependency)
+            populateAddSourceCache_impl gitCache cache (AddSourceDependency name gitDependency)
               `shouldReturn` cachedGitDependency
 
     context "without subdir" $ do
@@ -157,34 +150,45 @@ spec = do
     context "with subdir" $ do
       let
         subdir = Just "subdir"
-        cacheKey = show (fingerprintFingerprints [ fingerprintString rev, fingerprintString "subdir" ])
+        cacheKey = show (fingerprintFingerprints [fingerprintString rev, fingerprintString "subdir"])
         cabalFile = (</> "subdir/hpack.cabal")
       cacheAddSourceDepSpec subdir cacheKey cabalFile
 
-  describe "cloneGit_impl" $ do
+  describe "gitClone_impl" $ around_ inTempDirectory $ do
     let
       url = "https://github.com/sol/hpack"
       rev = "6bebd90d1e22901e94460c02bba9d0fa5b343f81"
-      dst = "hpack"
+      cache = "git-cache"
+      dst = path cache </> rev
       git = [
-          stub ("git", ["clone", url, dst], touch "hpack/.git/.placeholder")
+          clone
         , stub ("git", ["reset", "--hard", rev], writeFile "rev" rev)
         ]
 
-      action inner = inTempDirectory $ do
+      clone "git" ["clone", url_, dir] | url_ == url = do
+        touch (dir </> ".git" </> ".placeholder")
+        writeFile (dir </> "some-source-file") "some-code"
+
+      action inner = do
         mockChain git $ \callProcess_ -> do
-          cloneGit_impl process {callProcess = callProcess_} url rev dst
+          gitClone_impl process {callProcess = callProcess_} cache url (Rev rev) `shouldReturn` CachedRev rev
           inner
 
     around_ action $ do
       it "clones a git repository" $ do
-        doesDirectoryExist dst `shouldReturn` True
+        readFile (dst </> "some-source-file") `shouldReturn` "some-code"
 
       it "resets to the specified revision" $ do
         readFile (dst </> "rev") `shouldReturn` rev
 
       it "removes .git" $ do
         doesDirectoryExist (dst </> ".git") `shouldReturn` False
+
+    context "when revision is already in cache" $ do
+      it "does nothing" $ do
+        touch (dst </> "some-source-file")
+        gitClone_impl process cache url (Rev rev) `shouldReturn` CachedRev rev
+        readFile (dst </> "some-source-file") `shouldReturn` ""
 
   describe "gitRefToRev_impl" $ do
     let
@@ -195,7 +199,7 @@ spec = do
         ref = "master"
         output = "517c35a825cbb8eb53fadf4a24654f1227466155        refs/heads/master\n"
         p = process {readProcess = stub ("git", ["ls-remote", repo, ref], "", return output)}
-      gitRefToRev_impl p repo ref `shouldReturn` "517c35a825cbb8eb53fadf4a24654f1227466155"
+      gitRefToRev_impl p repo (Ref ref) `shouldReturn` "517c35a825cbb8eb53fadf4a24654f1227466155"
 
     context "when git reference does not exist" $ do
       it "returns an error" $ do
@@ -203,7 +207,7 @@ spec = do
           ref = "master"
           output = ""
           p = process {readProcess = stub ("git", ["ls-remote", repo, ref], "", return output)}
-        gitRefToRev_impl p repo ref `shouldThrow` errorCall ("invalid reference " ++ show ref ++ " for git repository " ++ repo)
+        gitRefToRev_impl p repo (Ref ref) `shouldThrow` errorCall ("invalid reference " ++ show ref ++ " for git repository " ++ repo)
 
   describe "isGitRev" $ do
     context "when given a git revision" $ do
@@ -224,14 +228,14 @@ spec = do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
           writeFile cabalFile "name: foo"
-          checkCabalName dir ("foo", Hpack.GitRef "<url>" "<ref>" Nothing)
+          checkCabalName dir (AddSourceDependency "foo" $ Git "<url>" () Nothing)
 
     context "when git dependency name and cabal package name differ" $ do
       it "fails" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
           writeFile cabalFile "name: foo"
-          checkCabalName dir ("bar", Hpack.GitRef "<url>" "<ref>" Nothing)
+          checkCabalName dir (AddSourceDependency "bar" $ Git "<url>" () Nothing)
             `shouldThrow` errorCall "the git repository <url> contains package \"foo\", expected: \"bar\""
 
   describe "determinePackageName" $ do
@@ -239,23 +243,23 @@ spec = do
       withSystemTempDirectory "tinc" $ \ dir -> do
         let cabalFile = dir </> "foo.cabal"
         writeFile cabalFile "library\n  build-depends: foo bar"
-        determinePackageName dir (Hpack.GitRef "<repo>" "<ref>" Nothing) `shouldThrow` isUserError
+        determinePackageName dir (Git "<repo>" () Nothing) `shouldThrow` isUserError
 
   describe "findCabalFile" $ do
     it "finds cabal files in given directory" $ do
       withSystemTempDirectory "tinc" $ \ dir -> do
         let cabalFile = dir </> "foo.cabal"
         touch cabalFile
-        findCabalFile dir (Hpack.GitRef "<repo>" "<ref>" Nothing) `shouldReturn` cabalFile
+        findCabalFile dir (Git "<repo>" () Nothing) `shouldReturn` cabalFile
 
     context "when there is no cabal file" $ do
       it "reports an error" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
-          findCabalFile dir (Hpack.GitRef "<repo>" "<ref>" Nothing) `shouldThrow` errorCall "Couldn't find .cabal file in git repository <repo>"
+          findCabalFile dir (Git "<repo>" () Nothing) `shouldThrow` errorCall "Couldn't find .cabal file in git repository <repo>"
 
     context "when there are multiple cabal files" $ do
       it "reports an error" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
           touch (dir </> "foo.cabal")
           touch (dir </> "bar.cabal")
-          findCabalFile dir (Hpack.GitRef "<repo>" "<ref>" Nothing) `shouldThrow` errorCall "Multiple cabal files found in git repository <repo>"
+          findCabalFile dir (Git "<repo>" () Nothing) `shouldThrow` errorCall "Multiple cabal files found in git repository <repo>"

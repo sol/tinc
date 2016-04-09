@@ -19,6 +19,7 @@ type Plugin = (String, FilePath)
 
 data Facts = Facts {
   factsCache :: Path CacheDir
+, factsGitCache :: Path GitCache
 , factsAddSourceCache :: Path AddSourceCache
 , factsNixCache :: Path NixCache
 , factsUseNix :: Bool
@@ -58,6 +59,9 @@ discoverFacts_impl executablePath ghcInfo = do
       cacheDir :: Path CacheDir
       cacheDir = Path (home </> ".tinc" </> "cache" </> ghcFlavor ghcInfo)
 
+      gitCache :: Path GitCache
+      gitCache = Path (home </> ".tinc" </> "cache" </> "git")
+
       addSourceCache :: Path AddSourceCache
       addSourceCache = Path (home </> ".tinc" </> "cache" </> "add-source")
 
@@ -76,6 +80,7 @@ discoverFacts_impl executablePath ghcInfo = do
      else setEnv tincEnvVar "no"
   return Facts {
     factsCache = cacheDir
+  , factsGitCache = gitCache
   , factsAddSourceCache = addSourceCache
   , factsNixCache = nixCache
   , factsUseNix = useNix_

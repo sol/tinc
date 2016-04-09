@@ -30,6 +30,7 @@ instance (Ord a, Ord v) => Eq (G.Graph a v) where
 facts :: Facts
 facts = Facts {
   factsCache = error "factsCache"
+, factsGitCache = error "factsGitCache"
 , factsAddSourceCache = error "factsAddSoruceCache"
 , factsNixCache = error "factsNixCache"
 , factsUseNix = False

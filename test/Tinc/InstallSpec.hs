@@ -13,6 +13,7 @@ import           Data.List
 import           System.Directory
 import           System.FilePath
 
+import           Tinc.Facts
 import           Tinc.Install
 import           Tinc.Package
 import           Tinc.AddSource
@@ -67,7 +68,7 @@ spec = do
       withCabalFile $ \_ -> do
         let ?cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
             ?mockedCallProcess = stub cabalSandboxInit
-        withMockedEnv (cabalInstallPlan facts [] undefined []) `shouldReturn` [Package "setenv" "0.1.1.3"]
+        withMockedEnv (cabalInstallPlan facts [] []) `shouldReturn` [Package "setenv" "0.1.1.3"]
 
     it "takes add-source dependencies into account" $ do
       withCabalFile $ \sandbox -> do
@@ -85,7 +86,7 @@ spec = do
                 cabalSandboxInit
               , ("cabal", ["sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
               ]
-        withMockedEnv (cabalInstallPlan facts [] addSourceCache [cachedDependency]) `shouldReturn` [dependency]
+        withMockedEnv (cabalInstallPlan facts {factsAddSourceCache = addSourceCache} [] [cachedDependency]) `shouldReturn` [dependency]
 
   describe "copyFreezeFile" $ do
     it "copies freeze file" $ do

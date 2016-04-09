@@ -75,3 +75,9 @@ tee action a = action a >> return a
 
 getCabalFiles :: FilePath -> IO [FilePath]
 getCabalFiles dir = filter (not . ("." `isPrefixOf`)) . filter (".cabal" `isSuffixOf`) <$> getDirectoryContents dir
+
+whenM :: Monad m => m Bool -> m () -> m ()
+whenM  condition action = condition >>= (`when` action)
+
+unlessM :: Monad m => m Bool -> m () -> m ()
+unlessM condition action = condition >>= (`unless` action)
