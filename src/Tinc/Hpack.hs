@@ -9,6 +9,7 @@ module Tinc.Hpack (
 , extractAddSourceDependencies
 
 #ifdef TEST
+, extractAddSourceDependencies_impl
 , parseAddSourceDependencies
 , populateAddSourceCache_impl
 
@@ -72,12 +73,38 @@ mkExecutable deps = (Hpack.section $ Hpack.Executable "tinc-generated" "Generate
 
 extractAddSourceDependencies :: Path AddSourceCache -> [Hpack.Dependency] -> IO [Sandbox.AddSource]
 extractAddSourceDependencies addSourceCache additionalDeps =
-  parseAddSourceDependencies additionalDeps >>= mapM resolveGitReferences >>= mapM (uncurry (populateAddSourceCache addSourceCache))
+  parseAddSourceDependencies additionalDeps >>= extractAddSourceDependencies_impl (addSourceDependenciesFrom addSourceCache) resolveGitReferences (populateAddSourceCache addSourceCache)
 
-resolveGitReferences :: (String, Hpack.AddSource) -> IO (String, Hpack.AddSource)
+extractAddSourceDependencies_impl :: AddSourceDependenciesFrom -> ResolveGitReferences -> PopulateAddSourceCache -> [(String, Hpack.AddSource)] -> IO [Sandbox.AddSource]
+extractAddSourceDependencies_impl addSourceDependenciesFrom_ resolveGitReferences_ populateAddSourceCache_ = go
+  where
+    go deps = do
+      case deps of
+        [] -> return []
+        _ -> do
+          xs <- mapM resolveGitReferences_ deps >>= mapM populateAddSourceCache_
+          (xs ++) <$> (mapM addSourceDependenciesFrom_ xs >>= go . concat)
+
+type ResolveGitReferences = (String, Hpack.AddSource) -> IO (String, Hpack.AddSource)
+
+resolveGitReferences :: ResolveGitReferences
 resolveGitReferences (name, addSource) = (,) name <$> case addSource of
   Hpack.GitRef url ref dir -> Hpack.GitRef url <$> gitRefToRev url ref <*> pure dir
   Hpack.Local _ -> return addSource
+
+type AddSourceDependenciesFrom = AddSource -> IO [(String, Hpack.AddSource)]
+
+addSourceDependenciesFrom :: Path AddSourceCache -> AddSourceDependenciesFrom
+addSourceDependenciesFrom addSourceCache addSource = do
+  exists <- doesFileExist config
+  if exists
+    then Hpack.readPackageConfig config >>= either die (return . filterAddSource . Hpack.packageDependencies . snd)
+    else return []
+  where
+    config = path (addSourcePath addSourceCache addSource) </> Hpack.packageConfig
+
+filterAddSource :: [Hpack.Dependency] -> [(String, Hpack.AddSource)]
+filterAddSource deps = [(name, addSource) | Hpack.Dependency name (Just addSource) <- deps]
 
 parseAddSourceDependencies :: [Hpack.Dependency] ->  IO [(String, Hpack.AddSource)]
 parseAddSourceDependencies additionalDeps = do
@@ -88,13 +115,15 @@ parseAddSourceDependencies additionalDeps = do
       return $ Hpack.packageDependencies pkg
     else return []
   let deps = nubBy ((==) `on` Hpack.dependencyName) (additionalDeps ++ packageDeps)
-  return [(name, addSource) | Hpack.Dependency name (Just addSource) <- deps]
+  return (filterAddSource deps)
 
-populateAddSourceCache :: Path AddSourceCache -> String -> Hpack.AddSource -> IO Sandbox.AddSource
+type PopulateAddSourceCache = (String, Hpack.AddSource) -> IO Sandbox.AddSource
+
+populateAddSourceCache :: Path AddSourceCache -> PopulateAddSourceCache
 populateAddSourceCache = populateAddSourceCache_impl (cloneGit_impl process)
 
-populateAddSourceCache_impl :: CloneGit IO -> Path AddSourceCache -> String -> Hpack.AddSource -> IO Sandbox.AddSource
-populateAddSourceCache_impl cloneGit cache name dep = do
+populateAddSourceCache_impl :: CloneGit IO -> Path AddSourceCache -> PopulateAddSourceCache
+populateAddSourceCache_impl cloneGit cache (name, dep) = do
   createDirectoryIfMissing True (path cache)
   withTempDirectory (path cache) "tmp" $ \ sandbox -> do
     let tmp = sandbox </> name

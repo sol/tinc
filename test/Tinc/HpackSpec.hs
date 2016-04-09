@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Tinc.HpackSpec (spec) where
 
 import           Helper
@@ -17,6 +18,41 @@ import           Tinc.Sandbox as Sandbox
 
 spec :: Spec
 spec = do
+  describe "extractAddSourceDependencies_impl" $ do
+    let
+      fooDep = ("foo", Hpack.GitRef "sol/foo" "foo-rev" Nothing)
+      barDep = ("bar", Hpack.GitRef "sol/bar" "bar-rev" Nothing)
+
+      fooAddSource = AddSource "foo" "foo-rev"
+      barAddSource = AddSource "bar" "bar-rev"
+
+      deps = [fooDep]
+
+      populateAddSourceCache (name, Hpack.GitRef _ rev _) = return (AddSource name rev)
+
+    it "populates the add-source cache" $ do
+      let
+        addSourceDependenciesFrom = stub [(fooAddSource, return [])]
+        resolveGitReferences = return
+      withMock populateAddSourceCache $ \populate -> do
+        extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences populate deps `shouldReturn` [fooAddSource]
+
+    it "resolves git references to revisions" $ do
+      let
+        addSourceDependenciesFrom = stub [(fooAddSource, return [])]
+        resolveGitReferences = stub [(fooDep, return fooDep)]
+      withMock resolveGitReferences $ \resolveGitReferences_ -> do
+        extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences_ populateAddSourceCache deps `shouldReturn` [fooAddSource]
+
+    it "takes transitive add-source dependencies into account" $ do
+      let
+        resolveGitReferences = return
+        addSourceDependenciesFrom = stub [
+            (fooAddSource, return [barDep])
+          , (barAddSource, return [])
+          ]
+      extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences populateAddSourceCache deps `shouldReturn` [fooAddSource, barAddSource]
+
   describe "parseAddSourceDependencies" $ do
     it "extracts git dependencies from package.yaml" $ do
       inTempDirectory $ do
@@ -98,7 +134,7 @@ spec = do
                   writeFile (cabalFile dst) "name: hpack"
 
           it "adds the revision to the cache" $ do
-            populateAddSourceCache_impl cloneGit cacheDir name gitDependency
+            populateAddSourceCache_impl cloneGit cacheDir (name, gitDependency)
               `shouldReturn` cachedGitDependency
             doesDirectoryExist (path cachedGitDependencyPath) `shouldReturn` True
 
@@ -109,7 +145,7 @@ spec = do
 
           it "does nothing" $ do
             touch (path cachedGitDependencyPath </> ".placeholder")
-            populateAddSourceCache_impl cloneGit cacheDir name gitDependency
+            populateAddSourceCache_impl cloneGit cacheDir (name, gitDependency)
               `shouldReturn` cachedGitDependency
 
     context "without subdir" $ do
