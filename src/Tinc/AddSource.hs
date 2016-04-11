@@ -207,7 +207,13 @@ populateAddSourceCache_impl gitCache cache dep@(AddSourceDependency name source)
         return addSource
 
 gitRefToRev :: String -> Ref -> IO Rev
-gitRefToRev = gitRefToRev_impl process
+gitRefToRev = gitRefToRev_impl process {readProcess = verboseReadProcess}
+  where
+    verboseReadProcess command args input = do
+      putStrLn (unwords $ command : args)
+      r <- readProcess process command args input
+      putStr r
+      return r
 
 gitRefToRev_impl :: Fail m => Process m -> String -> Ref -> m Rev
 gitRefToRev_impl Process{..} repo (Ref ref)
