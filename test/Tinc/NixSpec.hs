@@ -2,9 +2,13 @@
 module Tinc.NixSpec (spec) where
 
 import           Helper
+import           System.FilePath
+import           System.IO.Temp
 
 import           Tinc.Package
 import           Tinc.Nix
+import           Tinc.Facts
+import           Tinc.Types
 
 
 spec :: Spec
@@ -27,45 +31,104 @@ spec = do
 
   describe "pkgImport" $ do
     it "imports a package" $ do
-      pkgImport cache (Package "HUnit" "1.3.1.1", [], []) `shouldBe` "HUnit = callPackage /path/to/nix/cache/HUnit-1.3.1.1.nix { };"
+      let
+        derivation = unlines [
+            "{ mkDerivation }:"
+          , "mkDerivation { some derivation; }"
+          ]
+        inlined = [
+            "foo = callPackage"
+          , "  ("
+          , "    { mkDerivation }:"
+          , "    mkDerivation { some derivation; }"
+          , "  )"
+          , "  { };"
+          ]
+      pkgImport (Package "foo" "0.1.0", [], []) derivation `shouldBe` inlined;
 
     context "when given a list of Haskell dependencies" $ do
       it "specifies the dependencies in the expression" $ do
-        pkgImport cache (Package "foo" "0.1.0", ["bar", "baz"], []) `shouldBe` "foo = callPackage /path/to/nix/cache/foo-0.1.0.nix { inherit bar baz; };"
+        let
+          derivation = unlines [
+              "{ mkDerivation, bar, baz }:"
+            , "mkDerivation { some derivation; }"
+            ]
+          inlined = [
+              "foo = callPackage"
+            , "  ("
+            , "    { mkDerivation, bar, baz }:"
+            , "    mkDerivation { some derivation; }"
+            , "  )"
+            , "  { inherit bar baz; };"
+            ]
+        pkgImport (Package "foo" "0.1.0", ["bar", "baz"], []) derivation `shouldBe` inlined
 
     context "when given a list of system dependencies" $ do
       it "specifies the dependencies in the expression" $ do
-        pkgImport cache (Package "foo" "0.1.0", [], ["bar"]) `shouldBe` "foo = callPackage /path/to/nix/cache/foo-0.1.0.nix { inherit (pkgs) bar; };"
+        let
+          derivation = unlines [
+              "{ mkDerivation, bar }:"
+            , "mkDerivation { some derivation; }"
+            ]
+          inlined = [
+              "foo = callPackage"
+            , "  ("
+            , "    { mkDerivation, bar }:"
+            , "    mkDerivation { some derivation; }"
+            , "  )"
+            , "  { inherit (pkgs) bar; };"
+            ]
+        pkgImport (Package "foo" "0.1.0", [], ["bar"]) derivation `shouldBe` inlined;
 
-  describe "defaultDerivation" $ do
-    it "generates default derivation" $ do
-      defaultDerivation facts `shouldBe` unlines [
-          "{ nixpkgs ? import <nixpkgs> {}, compiler ? \"ghc7103\" }:"
-        , "nixpkgs.pkgs.haskell.packages.${compiler}.callPackage ./package.nix { }"
-        ]
-
-  describe "shellDerivation" $ do
-    it "generates shell derivation" $ do
-      shellDerivation facts `shouldBe` unlines [
-          "{ nixpkgs ? import <nixpkgs> {}, compiler ? \"ghc7103\" }:"
-        , "(import ./default.nix { inherit nixpkgs compiler; }).env"
-        ]
-
-  describe "projectDerivation" $ do
-    it "generates project derivation" $ do
+  describe "resolverDerivation" $ do
+    it "generates resolver derivation" $ do
       let dependencies = [
               (Package "foo" "0.1.0", [], [])
             , (Package "bar" "0.1.0", ["foo"], ["baz"])
             ]
-          pkgDerivation = "{ mkDerivation, base, foo }: { someDerivation }"
-      projectDerivation cache pkgDerivation dependencies `shouldBe` unlines [
-          "{ callPackage, mkDerivation, base }:"
-        , "let"
-        , "  pkgs = (import <nixpkgs> {}).pkgs;"
-        , "  foo = callPackage /path/to/nix/cache/foo-0.1.0.nix { };"
-        , "  bar = callPackage /path/to/nix/cache/bar-0.1.0.nix { inherit foo; inherit (pkgs) baz; };"
-        , "in { someDerivation }"
-        ]
+          fooDerivation = unlines [
+              "{ mkDerivation, base }:"
+            , "mkDerivation { some derivation; }"
+            ]
+          barDerivation = unlines [
+              "{ mkDerivation, base, foo, baz }:"
+            , "mkDerivation { some derivation; }"
+            ]
+          resolver = unlines [
+              "rec {"
+            , "  compiler = " ++ show (factsNixResolver facts) ++ ";"
+            , "  resolver = { nixpkgs ? import <nixpkgs> {}, compiler ? compiler }:"
+            , "    let"
+            , "      oldResolver = builtins.getAttr compiler nixpkgs.haskell.packages;"
+            , "      callPackage = oldResolver.callPackage;"
+            , ""
+            , "      overrideFunction = self: super: rec {"
+            , "        foo = callPackage"
+            , "          ("
+            , "            { mkDerivation, base }:"
+            , "            mkDerivation { some derivation; }"
+            , "          )"
+            , "          { };"
+            , "        bar = callPackage"
+            , "          ("
+            , "            { mkDerivation, base, foo, baz }:"
+            , "            mkDerivation { some derivation; }"
+            , "          )"
+            , "          { inherit foo; inherit (pkgs) baz; };"
+            , "      };"
+            , ""
+            , "      newResolver = oldResolver.override {"
+            , "        overrides = overrideFunction;"
+            , "      };"
+            , ""
+            , "    in newResolver;"
+            , "}"
+            ]
+
+      withSystemTempDirectory "tinc" $ \dir -> do
+        writeFile (dir </> "foo-0.1.0.nix") fooDerivation
+        writeFile (dir </> "bar-0.1.0.nix") barDerivation
+        resolverDerivation facts{ factsNixCache = Path dir } dependencies `shouldReturn` resolver
 
   describe "parseNixFunction" $ do
     it "parses a Nix function" $ do

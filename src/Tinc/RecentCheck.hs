@@ -12,6 +12,7 @@ import           System.Directory
 import           System.FilePath
 
 import           Tinc.Facts
+import           Tinc.Nix
 import           Tinc.Sandbox
 import           Tinc.GhcInfo
 import qualified Tinc.Config as Tinc
@@ -40,7 +41,7 @@ modificationTime file = do
   if exists then Just <$> getModificationTime file else return Nothing
 
 packageDotNixCreationTime :: IO (Maybe UTCTime)
-packageDotNixCreationTime = modificationTime "package.nix"
+packageDotNixCreationTime = modificationTime resolverFile
 
 recentMarker :: GhcInfo -> FilePath
 recentMarker ghcInfo = cabalSandboxDirectory </> ghcFlavor ghcInfo ++ ".tinc"

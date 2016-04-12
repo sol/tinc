@@ -5,12 +5,13 @@ module Tinc.Nix (
   NixCache
 , cabal
 , nixShell
+, resolverFile
 , createDerivations
 #ifdef TEST
 , Function (..)
 , defaultDerivation
 , shellDerivation
-, projectDerivation
+, resolverDerivation
 , pkgImport
 , parseNixFunction
 , disableTests
@@ -45,6 +46,9 @@ data Function = Function {
 packageFile :: FilePath
 packageFile = "package.nix"
 
+resolverFile :: FilePath
+resolverFile = "tinc.nix"
+
 defaultFile :: FilePath
 defaultFile = "default.nix"
 
@@ -63,10 +67,10 @@ createDerivations facts@Facts{..} dependencies = do
   pkgDerivation <- cabalToNix "."
 
   let knownHaskellDependencies = map packageName dependencies
-  derivation <- projectDerivation factsNixCache pkgDerivation <$> mapM (readDependencies factsNixCache knownHaskellDependencies) dependencies
-  writeFile packageFile derivation
-  writeFile defaultFile (defaultDerivation facts)
-  writeFile shellFile (shellDerivation facts)
+  mapM (readDependencies factsNixCache knownHaskellDependencies) dependencies >>= resolverDerivation facts >>= writeFile resolverFile
+  writeFile packageFile pkgDerivation
+  writeFile defaultFile defaultDerivation
+  writeFile shellFile shellDerivation
 
 populateCache :: Path AddSourceCache -> Path NixCache -> Package -> IO ()
 populateCache addSourceCache cache pkg = do
@@ -95,38 +99,67 @@ cabalToNix uri = do
   hPutStrLn stderr $ "cabal2nix " ++ uri
   readProcess "cabal2nix" [uri] ""
 
-defaultDerivation :: Facts -> NixExpression
-defaultDerivation Facts{..} = unlines [
-    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
-  , "nixpkgs.pkgs.haskell.packages.${compiler}.callPackage ./package.nix { }"
+defaultDerivation :: NixExpression
+defaultDerivation = unlines [
+    "let"
+  , "  tinc = import ./" ++ resolverFile ++ ";"
+  , "  default ={ nixpkgs ? import <nixpkgs> {}, compiler ? tinc.compiler }:"
+  , "    (tinc.resolver { inherit nixpkgs compiler; }).callPackage ./" ++ packageFile ++ " {};"
+  , "  overrideFile = ./default-override.nix;"
+  , "  expr = if builtins.pathExists overrideFile then import overrideFile else default;"
+  , "in expr"
   ]
 
-shellDerivation :: Facts -> NixExpression
-shellDerivation Facts{..} = unlines [
-    "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
-  , "(import ./default.nix { inherit nixpkgs compiler; }).env"
+shellDerivation :: NixExpression
+shellDerivation = unlines [
+    "let"
+  , "  tinc = import ./" ++ resolverFile ++ ";"
+  , "in"
+  , "{ nixpkgs ? import <nixpkgs> {}, compiler ? tinc.compiler }:"
+  , "(import ./" ++ defaultFile ++ " { inherit nixpkgs compiler; }).env"
   ]
 
-projectDerivation :: Path NixCache -> NixExpression -> [(Package, [HaskellDependency], [SystemDependency])] -> NixExpression
-projectDerivation cache pkgDerivation dependencies = renderNixFunction pkg
+indent :: Int -> [String] -> [String]
+indent n = map f
   where
-    function = parseNixFunction pkgDerivation
-    knownHaskellDependencies = map (packageName . (\(p, _, _) -> p)) dependencies
-    addLetBindings body = unlines $ "let" : indent pkgImports ++ ["in " ++ body]
-    nixPkgImport = "pkgs = (import <nixpkgs> {}).pkgs;"
-    pkgImports = nixPkgImport : map (pkgImport cache) dependencies
-    indent = map ("  " ++)
-    pkg = case function of
-      Function args body -> Function ("callPackage" : filter (`notElem` knownHaskellDependencies) args) $ addLetBindings body
+    f xs = case xs of
+      "" -> ""
+      _ -> replicate n ' ' ++ xs
 
-renderNixFunction :: Function -> NixExpression
-renderNixFunction (Function args body) = "{ " ++ intercalate ", " args ++ " }:\n" ++ body
-
-pkgImport :: Path NixCache -> (Package, [HaskellDependency], [SystemDependency]) -> String
-pkgImport cache (package@(Package name _), haskellDependencies, systemDependencies) =
-  name ++ " = callPackage " ++ derivationFile cache package ++ " " ++ args ++ ";"
+resolverDerivation :: Facts -> [(Package, [HaskellDependency], [SystemDependency])] -> IO NixExpression
+resolverDerivation Facts{..} dependencies = do
+  overrides <- concat <$> mapM getPkgDerivation dependencies
+  return . unlines $ [
+      "rec {"
+    , "  compiler = " ++ show factsNixResolver ++ ";"
+    , "  resolver = { nixpkgs ? import <nixpkgs> {}, compiler ? compiler }:"
+    ] ++ indent 4 [
+      "let"
+    , "  oldResolver = builtins.getAttr compiler nixpkgs.haskell.packages;"
+    , "  callPackage = oldResolver.callPackage;"
+    , ""
+    , "  overrideFunction = self: super: rec {"
+    ] ++ indent 8 overrides ++
+    indent 4 [
+      "  };"
+    , ""
+    , "  newResolver = oldResolver.override {"
+    , "    overrides = overrideFunction;"
+    , "  };"
+    , ""
+    , "in newResolver;"
+    ] ++ ["}"]
   where
-    args = "{ " ++ inheritHaskellDependencies ++ inheritSystemDependencies ++ "}"
+    getPkgDerivation packageDeps@(package, _, _) = pkgImport packageDeps <$> readFile (derivationFile factsNixCache package)
+
+pkgImport :: (Package, [HaskellDependency], [SystemDependency]) -> NixExpression -> [String]
+pkgImport ((Package name _), haskellDependencies, systemDependencies) derivation = begin : indent 2 definition
+  where
+    begin = name ++ " = callPackage"
+    derivationLines = lines derivation
+    inlineDerivation = ["("] ++ indent 2 derivationLines ++ [")"]
+    args = "{ " ++ inheritHaskellDependencies ++ inheritSystemDependencies ++ "};"
+    definition = inlineDerivation ++ [args]
     inheritHaskellDependencies
       | null haskellDependencies = ""
       | otherwise = "inherit " ++ intercalate " " haskellDependencies ++ "; "
