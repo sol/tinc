@@ -16,8 +16,11 @@ module Tinc.AddSource (
 , Rev(..)
 , CachedRev(..)
 , extractAddSourceDependencies_impl
+, resolveLocalAddSourceDependency
 , parseAddSourceDependencies
 , populateAddSourceCache_impl
+
+, copyPackageConfig
 
 , gitClone_impl
 
@@ -33,6 +36,7 @@ import           Control.Monad
 import           Control.Monad.IO.Class
 import           Data.Function
 import           Data.List
+import           Data.Maybe
 import           Data.String
 import           Distribution.Package
 import           Distribution.PackageDescription hiding (Git)
@@ -99,15 +103,24 @@ extractAddSourceDependencies :: Path GitCache -> Path AddSourceCache -> [Hpack.D
 extractAddSourceDependencies gitCache addSourceCache additionalDeps =
   parseAddSourceDependencies additionalDeps >>= extractAddSourceDependencies_impl (addSourceDependenciesFrom addSourceCache) resolveGitReferences (cacheGitRev gitCache) (populateAddSourceCache_impl gitCache addSourceCache)
 
-extractAddSourceDependencies_impl :: AddSourceDependenciesFrom ref -> ResolveGitReferences ref rev -> CacheGitRev rev cachedRev -> PopulateAddSourceCache cachedRev -> [AddSourceDependency ref] -> IO [AddSource]
+extractAddSourceDependencies_impl :: AddSourceDependenciesFrom rev ref -> ResolveGitReferences ref rev -> CacheGitRev rev cachedRev -> PopulateAddSourceCache cachedRev -> [AddSourceDependency ref] -> IO [AddSource]
 extractAddSourceDependencies_impl addSourceDependenciesFrom_ resolveGitReferences_ cacheGitRev_ populateAddSourceCache_ = go
   where
     go deps = do
       case deps of
         [] -> return []
         _ -> do
-          xs <- mapM resolveGitReferences_ deps >>= mapM cacheGitRev_ >>= mapM populateAddSourceCache_
-          (xs ++) <$> (mapM addSourceDependenciesFrom_ xs >>= go . concat)
+          resolvedDeps <- mapM resolveGitReferences_ deps
+          xs <- mapM cacheGitRev_ resolvedDeps >>= mapM populateAddSourceCache_
+          (xs ++) <$> (mapM addSourceDependenciesFrom_ (zip resolvedDeps xs) >>= go . concat)
+
+resolveLocalAddSourceDependency :: Source Rev -> AddSourceDependency Ref -> AddSourceDependency Ref
+resolveLocalAddSourceDependency source (AddSourceDependency name dep) = case (source, dep) of
+  (_, Git _ _ _) -> AddSourceDependency name dep
+  (Git url (Rev rev) subdir, Local path) -> AddSourceDependency name (Git url (Ref rev) (Just p))
+      where
+        p = normalise $ fromMaybe "." subdir </> path
+  (Local path, Local p) -> AddSourceDependency name (Local $ normalise (path </> p))
 
 type ResolveGitReferences ref rev = AddSourceDependency ref -> IO (AddSourceDependency rev)
 
@@ -146,10 +159,10 @@ gitClone_impl Process{..} cache url (Rev rev) = do
 cachedRevPath :: Path GitCache -> CachedRev -> Path CachedRev
 cachedRevPath (Path cache) (CachedRev rev) = Path (cache </> rev)
 
-type AddSourceDependenciesFrom ref = AddSource -> IO [AddSourceDependency ref]
+type AddSourceDependenciesFrom rev ref = (AddSourceDependency rev, AddSource) -> IO [AddSourceDependency ref]
 
-addSourceDependenciesFrom :: Path AddSourceCache -> AddSourceDependenciesFrom Ref
-addSourceDependenciesFrom addSourceCache addSource = do
+addSourceDependenciesFrom :: Path AddSourceCache -> AddSourceDependenciesFrom Rev Ref
+addSourceDependenciesFrom addSourceCache (AddSourceDependency _ source, addSource) = map (resolveLocalAddSourceDependency source) <$> do
   exists <- doesFileExist config
   if exists
     then Hpack.readPackageConfig config >>= either die (return . filterAddSource . Hpack.packageDependencies . snd)
@@ -201,10 +214,19 @@ populateAddSourceCache_impl gitCache cache dep@(AddSourceDependency name source)
         let tmp = sandbox </> name
         createDirectory tmp
         cabalSdist dir tmp
+        copyPackageConfig dir tmp
         fp <- fingerprint tmp
         let addSource = AddSource name fp
         moveToAddSourceCache cache tmp dep addSource
         return addSource
+
+copyPackageConfig :: FilePath -> FilePath -> IO ()
+copyPackageConfig srcDir dstDir = do
+  whenM (doesFileExist src) $ do
+    copyFile src dst
+  where
+    src = srcDir </> Hpack.packageConfig
+    dst = dstDir </> Hpack.packageConfig
 
 gitRefToRev :: String -> Ref -> IO Rev
 gitRefToRev = gitRefToRev_impl process {readProcess = verboseReadProcess}

@@ -34,7 +34,7 @@ spec = do
 
     it "populates the add-source cache" $ do
       let
-        addSourceDependenciesFrom = stub [(fooAddSource, return [])]
+        addSourceDependenciesFrom = stub [((fooDep, fooAddSource), return [])]
 
       withMock populateAddSourceCache $ \populate -> do
         extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences cacheGitRev populate deps `shouldReturn` [fooAddSource]
@@ -42,10 +42,38 @@ spec = do
     it "takes transitive add-source dependencies into account" $ do
       let
         addSourceDependenciesFrom = stub [
-            (fooAddSource, return [barDep])
-          , (barAddSource, return [])
+            ((fooDep, fooAddSource), return [barDep])
+          , ((barDep, barAddSource), return [])
           ]
       extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences cacheGitRev populateAddSourceCache deps `shouldReturn` [fooAddSource, barAddSource]
+
+  describe "resolveLocalAddSourceDependency" $ do
+    context "with a git dependency" $ do
+      it "is the identity" $ do
+        let dep = AddSourceDependency "bar" (Git "sol/bar" "some-rev" Nothing) :: AddSourceDependency Ref
+        resolveLocalAddSourceDependency undefined dep `shouldBe` dep
+
+    context "with a local dependency" $ do
+      let dep = AddSourceDependency "bar" (Local "./bar") :: AddSourceDependency Ref
+      context "when source is Git" $ do
+        it "maps the local dependency to a git dependency" $ do
+          let
+            source = Git "sol/foo" "some-rev" Nothing
+            expected = AddSourceDependency "bar" (Git "sol/foo" "some-rev" (Just "bar"))
+          resolveLocalAddSourceDependency source dep `shouldBe` expected
+
+        it "takes the subdir of the git dependency into account" $ do
+          let
+            source = Git "sol/foo" "some-rev" (Just "foo")
+            expected = AddSourceDependency "bar" (Git "sol/foo" "some-rev" (Just "foo/bar"))
+          resolveLocalAddSourceDependency source dep `shouldBe` expected
+
+      context "when source is Local" $ do
+        it "makes the path of the dependency relative to the source" $ do
+          let
+            source = Local "../packages/foo"
+            expected = AddSourceDependency "bar" (Local "../packages/foo/bar")
+          resolveLocalAddSourceDependency source dep `shouldBe` expected
 
   describe "parseAddSourceDependencies" $ do
     it "extracts git dependencies from package.yaml" $ do
@@ -221,6 +249,20 @@ spec = do
     context "when given a 40 character (160 bit) git reference" $ do
       it "it returns False" $ do
         isGitRev "very-long-branch-name-that-is-not-a-revi" `shouldBe` False
+
+  describe "copyPackageConfig" $ (around_ inTempDirectory) $ do
+    it "copies package.yaml" $ do
+      touch "foo/package.yaml"
+      touch "bar/.placeholder"
+      copyPackageConfig "foo" "bar"
+      doesFileExist "bar/package.yaml" `shouldReturn` True
+
+    context "when package.yaml does not exist" $ do
+      it "does nothing" $ do
+        touch "foo/.placeholder"
+        touch "bar/.placeholder"
+        copyPackageConfig "foo" "bar"
+        doesFileExist "bar/package.yaml" `shouldReturn` False
 
   describe "checkCabalName" $ do
     context "when git dependency name and cabal package name match" $ do
