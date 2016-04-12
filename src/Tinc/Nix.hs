@@ -5,6 +5,7 @@ module Tinc.Nix (
   NixCache
 , cabal
 , nixShell
+, resolverFile
 , createDerivations
 #ifdef TEST
 , Function (..)
@@ -46,7 +47,7 @@ packageFile :: FilePath
 packageFile = "package.nix"
 
 resolverFile :: FilePath
-resolverFile = "resolver.nix"
+resolverFile = "tinc.nix"
 
 defaultFile :: FilePath
 defaultFile = "default.nix"
@@ -101,13 +102,13 @@ cabalToNix uri = do
 defaultDerivation :: Facts -> NixExpression
 defaultDerivation Facts{..} = unlines [
     "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
-  , "(import ./resolver.nix { inherit nixpkgs compiler; }).callPackage ./package.nix { }"
+  , "(import ./" ++ resolverFile ++ " { inherit nixpkgs compiler; }).callPackage ./package.nix { }"
   ]
 
 shellDerivation :: Facts -> NixExpression
 shellDerivation Facts{..} = unlines [
     "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show factsNixResolver ++ " }:"
-  , "(import ./default.nix { inherit nixpkgs compiler; }).env"
+  , "(import ./" ++ defaultFile ++ " { inherit nixpkgs compiler; }).env"
   ]
 
 indent :: Int -> [String] -> [String]

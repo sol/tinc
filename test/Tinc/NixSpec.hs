@@ -84,7 +84,7 @@ spec = do
     it "generates default derivation" $ do
       defaultDerivation facts `shouldBe` unlines [
           "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show (factsNixResolver facts) ++ " }:"
-        , "(import ./resolver.nix { inherit nixpkgs compiler; }).callPackage ./package.nix { }"
+        , "(import ./tinc.nix { inherit nixpkgs compiler; }).callPackage ./package.nix { }"
         ]
 
   describe "shellDerivation" $ do
