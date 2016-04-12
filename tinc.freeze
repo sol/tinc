@@ -81,6 +81,8 @@ dependencies:
   version: '0.6'
 - name: tagged
   version: '0.8.3'
+- name: template
+  version: '0.2.0.10'
 - name: temporary
   version: '1.2.0.4'
 - name: text

@@ -40,7 +40,7 @@ modificationTime file = do
   if exists then Just <$> getModificationTime file else return Nothing
 
 packageDotNixCreationTime :: IO (Maybe UTCTime)
-packageDotNixCreationTime = modificationTime "package.nix"
+packageDotNixCreationTime = modificationTime "resolver.nix"
 
 recentMarker :: GhcInfo -> FilePath
 recentMarker ghcInfo = cabalSandboxDirectory </> ghcFlavor ghcInfo ++ ".tinc"
