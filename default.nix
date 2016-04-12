@@ -1,2 +1,5 @@
-{ nixpkgs ? import <nixpkgs> {}, compiler ? "ghc7103" }:
-(import ./tinc.nix { inherit nixpkgs compiler; }).callPackage ./package.nix { }
+let
+  tinc = import ./tinc.nix;
+in
+{ nixpkgs ? import <nixpkgs> {}, compiler ? tinc.compiler }:
+(tinc.resolver { inherit nixpkgs compiler; }).callPackage ./package.nix {}

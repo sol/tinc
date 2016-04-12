@@ -80,20 +80,6 @@ spec = do
             ]
         pkgImport (Package "foo" "0.1.0", [], ["bar"]) derivation `shouldBe` inlined;
 
-  describe "defaultDerivation" $ do
-    it "generates default derivation" $ do
-      defaultDerivation facts `shouldBe` unlines [
-          "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show (factsNixResolver facts) ++ " }:"
-        , "(import ./tinc.nix { inherit nixpkgs compiler; }).callPackage ./package.nix { }"
-        ]
-
-  describe "shellDerivation" $ do
-    it "generates shell derivation" $ do
-      shellDerivation facts `shouldBe` unlines [
-          "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show (factsNixResolver facts) ++ " }:"
-        , "(import ./default.nix { inherit nixpkgs compiler; }).env"
-        ]
-
   describe "resolverDerivation" $ do
     it "generates resolver derivation" $ do
       let dependencies = [
@@ -109,31 +95,34 @@ spec = do
             , "mkDerivation { some derivation; }"
             ]
           resolver = unlines [
-              "{ nixpkgs ? import <nixpkgs> {}, compiler ? " ++ show (factsNixResolver facts) ++ " }:"
-            , "let"
-            , "  oldResolver = builtins.getAttr compiler nixpkgs.haskell.packages;"
-            , "  callPackage = oldResolver.callPackage;"
+              "rec {"
+            , "  compiler = " ++ show (factsNixResolver facts) ++ ";"
+            , "  resolver = { nixpkgs ? import <nixpkgs> {}, compiler ? compiler }:"
+            , "    let"
+            , "      oldResolver = builtins.getAttr compiler nixpkgs.haskell.packages;"
+            , "      callPackage = oldResolver.callPackage;"
             , ""
-            , "  overrideFunction = self: super: rec {"
-            , "    foo = callPackage"
-            , "      ("
-            , "        { mkDerivation, base }:"
-            , "        mkDerivation { some derivation; }"
-            , "      )"
-            , "      { };"
-            , "    bar = callPackage"
-            , "      ("
-            , "        { mkDerivation, base, foo, baz }:"
-            , "        mkDerivation { some derivation; }"
-            , "      )"
-            , "      { inherit foo; inherit (pkgs) baz; };"
-            , "  };"
+            , "      overrideFunction = self: super: rec {"
+            , "        foo = callPackage"
+            , "          ("
+            , "            { mkDerivation, base }:"
+            , "            mkDerivation { some derivation; }"
+            , "          )"
+            , "          { };"
+            , "        bar = callPackage"
+            , "          ("
+            , "            { mkDerivation, base, foo, baz }:"
+            , "            mkDerivation { some derivation; }"
+            , "          )"
+            , "          { inherit foo; inherit (pkgs) baz; };"
+            , "      };"
             , ""
-            , "  newResolver = oldResolver.override {"
-            , "    overrides = overrideFunction;"
-            , "  };"
+            , "      newResolver = oldResolver.override {"
+            , "        overrides = overrideFunction;"
+            , "      };"
             , ""
-            , "in newResolver"
+            , "    in newResolver;"
+            , "}"
             ]
 
       withSystemTempDirectory "tinc" $ \dir -> do
