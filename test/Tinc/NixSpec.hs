@@ -76,7 +76,7 @@ spec = do
             , "    { mkDerivation, bar }:"
             , "    mkDerivation { some derivation; }"
             , "  )"
-            , "  { inherit (pkgs) bar; };"
+            , "  { inherit (nixpkgs) bar; };"
             ]
         pkgImport (Package "foo" "0.1.0", [], ["bar"]) derivation `shouldBe` inlined;
 
@@ -114,7 +114,7 @@ spec = do
             , "            { mkDerivation, base, foo, baz }:"
             , "            mkDerivation { some derivation; }"
             , "          )"
-            , "          { inherit foo; inherit (pkgs) baz; };"
+            , "          { inherit foo; inherit (nixpkgs) baz; };"
             , "      };"
             , ""
             , "      newResolver = oldResolver.override {"
