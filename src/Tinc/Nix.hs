@@ -165,7 +165,7 @@ pkgImport ((Package name _), haskellDependencies, systemDependencies) derivation
       | otherwise = "inherit " ++ intercalate " " haskellDependencies ++ "; "
     inheritSystemDependencies
       | null systemDependencies = ""
-      | otherwise = "inherit (pkgs) " ++ intercalate " " systemDependencies ++ "; "
+      | otherwise = "inherit (nixpkgs) " ++ intercalate " " systemDependencies ++ "; "
 
 readDependencies :: Path NixCache -> [HaskellDependency] -> Package -> IO (Package, [HaskellDependency], [SystemDependency])
 readDependencies cache knownHaskellDependencies package = do
