@@ -10,8 +10,6 @@ module Tinc.Install (
 , cabalDryInstall
 , copyFreezeFile
 , generateCabalFile
-, cloneRemoteRepoCache
-, listRemoteRepos
 #endif
 ) where
 
@@ -88,28 +86,7 @@ solveDependencies :: Facts -> IO [Package]
 solveDependencies facts@Facts{..} = do
   additionalDeps <- getAdditionalDependencies
   addSourceDependencies <- AddSource.extractAddSourceDependencies factsGitCache factsAddSourceCache additionalDeps
-  withSystemTempDirectory "tinc-remote-repo-cache" $ \(Path -> remoteRepoCache) -> do
-    cloneRemoteRepoCache factsRemoteRepoCache remoteRepoCache
-    cabalInstallPlan facts{ factsRemoteRepoCache = remoteRepoCache } additionalDeps addSourceDependencies
-
-remoteRepoTarFile :: FilePath
-remoteRepoTarFile = "00-index.tar"
-
-remoteRepoCacheFile :: FilePath
-remoteRepoCacheFile = "00-index.cache"
-
-cloneRemoteRepoCache :: Path RemoteRepoCache -> Path RemoteRepoCache -> IO ()
-cloneRemoteRepoCache src (Path dst) = do
-  remotes <- listRemoteRepos src
-  forM_ remotes $ \remote -> do
-    createDirectoryIfMissing True $ dst </> remote
-    linkFile (path src </> remote </> remoteRepoTarFile) (dst </> remote </> remoteRepoTarFile)
-    copyFile (path src </> remote </> remoteRepoCacheFile) (dst </> remote </> remoteRepoCacheFile)
-
-listRemoteRepos :: Path RemoteRepoCache -> IO [FilePath]
-listRemoteRepos (Path dir) = do
-  remotes <- getDirectories dir
-  filterM (doesFileExist . (\remote -> dir </> remote </> remoteRepoTarFile)) remotes
+  cabalInstallPlan facts additionalDeps addSourceDependencies
 
 cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Facts -> [Hpack.Dependency] -> [AddSource] -> m [Package]
 cabalInstallPlan facts@Facts{..} additionalDeps addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
@@ -129,9 +106,9 @@ cabalInstallPlan facts@Facts{..} additionalDeps addSourceDependencies = withSyst
     addSourceHashes = [(name, rev) | AddSource name rev <- addSourceDependencies]
 
 cabalDryInstall :: (MonadIO m, Fail m, MonadProcess m, MonadCatch m) => Facts -> [String] -> [String] -> m [Package]
-cabalDryInstall facts@Facts{..} args constraints = go >>= parseInstallPlan
+cabalDryInstall facts args constraints = go >>= parseInstallPlan
   where
-    install xs = uncurry readProcessM (cabal facts ("--remote-repo-cache" : path factsRemoteRepoCache : "install" : "--dry-run" : xs)) ""
+    install xs = uncurry readProcessM (cabal facts ("install" : "--dry-run" : xs)) ""
 
     go = do
       r <- try $ install (args ++ constraints)

@@ -13,7 +13,6 @@ import           Tinc.AddSource
 import           Tinc.Types
 
 data NixCache
-data RemoteRepoCache
 type Plugins = [Plugin]
 type Plugin = (String, FilePath)
 
@@ -26,7 +25,6 @@ data Facts = Facts {
 , factsNixResolver :: String
 , factsPlugins :: Plugins
 , factsGhcInfo :: GhcInfo
-, factsRemoteRepoCache :: Path RemoteRepoCache
 } deriving (Eq, Show)
 
 tincEnvVar :: String
@@ -68,9 +66,6 @@ discoverFacts_impl executablePath ghcInfo = do
       nixCache :: Path NixCache
       nixCache = Path (home </> ".tinc" </> "cache" </> "nix")
 
-      remoteRepoCache :: Path RemoteRepoCache
-      remoteRepoCache = Path (home </> ".cabal" </> "packages")
-
   createDirectoryIfMissing True (path cacheDir)
   createDirectoryIfMissing True (path nixCache)
   createDirectoryIfMissing True pluginsDir
@@ -87,7 +82,6 @@ discoverFacts_impl executablePath ghcInfo = do
   , factsNixResolver = nixResolver
   , factsPlugins = plugins
   , factsGhcInfo = ghcInfo
-  , factsRemoteRepoCache = remoteRepoCache
   }
 
 listAllPlugins :: FilePath -> IO Plugins
