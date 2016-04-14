@@ -186,44 +186,19 @@ spec = do
       remote = "some-remote"
       tarFile = "00-index.tar"
       cacheFile = "00-index.cache"
-      cacheFileContents = "index cache\n"
+      cacheFileContents = "index cache"
       setup = do
         touch ("src" </> remote </> tarFile)
         writeFile ("src" </> remote </> cacheFile) cacheFileContents
+        cloneRemoteRepoCache "src" "dst"
 
     around_ inTempDirectory $ before_ setup $ do
-      it "symlinks tar file" $ do
-        cloneRemoteRepoCache [] "src" "dst"
+      it "symlinks 00-index.tar" $ do
         srcTarFile <- canonicalizePath ("src" </> remote </> tarFile)
         canonicalizePath ("dst" </> remote </> tarFile) `shouldReturn` srcTarFile
 
-      it "copies cache file" $ do
-        cloneRemoteRepoCache [] "src" "dst"
+      it "copies 00-index.cache" $ do
         readFile ("dst" </> remote </> cacheFile) `shouldReturn` cacheFileContents
-
-      it "removes add-source dependencies from cache file" $ do
-        let
-          cacheFileLines = [
-              "pkg: foo 0.1.0 b# 240236"
-            , "pkg: bar 0.1.0 b# 240240"
-            , "pkg: bar 0.2.0 b# 240242"
-            ]
-        writeFile ("src" </> remote </> cacheFile) $ unlines cacheFileLines
-        cloneRemoteRepoCache [AddSource "bar" "some-hash"] "src" "dst"
-        readFile ("dst" </> remote </> cacheFile) `shouldReturn` unlines (take 1 cacheFileLines)
-
-    describe "removeAddSourceDependencies" $ do
-      it "removes add-source dependencies" $ do
-        let input = ["pkg: foo 0.1.0 b# 240236"]
-        removeAddSourceDependencies [AddSource "foo" "some-hash"] input `shouldBe` []
-
-      it "keeps other dependencies" $ do
-        let input = ["pkg: foo-bar 0.1.0 b# 240236"]
-        removeAddSourceDependencies [AddSource "foo" "some-hash"] input `shouldBe` input
-
-      it "keeps preferred versions" $ do
-        let input = ["pref-ver: foo >0.1.0.0"]
-        removeAddSourceDependencies [AddSource "foo" "some-hash"] input `shouldBe` input
 
     describe "listRemoteRepos" $ around_ inTempDirectory $ do
       it "list remotes" $ do
