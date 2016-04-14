@@ -23,6 +23,7 @@ module Tinc.Nix (
 import           Data.Char
 import           Data.Maybe
 import           Data.List
+import           System.Directory
 import           System.FilePath
 import           System.Process.Internals (translate)
 import           System.Process
@@ -79,7 +80,9 @@ populateCache addSourceCache cache pkg = do
   where
     go = case pkg of
       Package _ (Version _ Nothing) -> cabalToNix ("cabal://" ++ showPackage pkg)
-      Package name (Version _ (Just ref)) -> cabalToNix (path . addSourcePath addSourceCache $ AddSource name ref)
+      Package name (Version _ (Just ref)) -> do
+        let p = path . addSourcePath addSourceCache $ AddSource name ref
+        canonicalizePath p >>= cabalToNix
 
 disable :: String -> NixExpression -> NixExpression
 disable s xs = case lines xs of
