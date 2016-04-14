@@ -96,8 +96,10 @@ cabalInstallPlan facts@Facts{..} additionalDeps addSourceDependencies = withSyst
   withCurrentDirectory dir $ do
     liftIO $ uncurry writeFile cabalFile
     _ <- initSandbox (map (addSourcePath factsAddSourceCache) addSourceDependencies) []
-    map addAddSourceHash <$> cabalDryInstall facts ["--only-dependencies", "--enable-tests"] constraints
+    installPlan <- cabalDryInstall facts ["--only-dependencies", "--enable-tests"] constraints
+    return $ markAddSourceDependencies installPlan
   where
+    markAddSourceDependencies = map addAddSourceHash
     addAddSourceHash :: Package -> Package
     addAddSourceHash p@(Package name version) = case lookup name addSourceHashes of
       Just rev -> Package name version {versionAddSourceHash = Just rev}
