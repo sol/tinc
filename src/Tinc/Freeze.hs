@@ -2,9 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.Freeze (
-  writeFreezeFile
+  Constraint
+, writeFreezeFile
 , readFreezeFile
 , freezeFile
+, addSourceConstraint
 ) where
 
 import           Data.Aeson
@@ -12,6 +14,7 @@ import qualified Data.ByteString as B
 import           Data.Char
 import           Data.Ord
 import           Data.List
+import           Data.Version (showVersion)
 import qualified Data.Yaml as Yaml
 import           Hpack.Yaml
 import           GHC.Generics
@@ -76,3 +79,6 @@ readFreezeFile (map addSourcePackageName -> addSourceDependencies) = do
     else return []
   where
     removeAddSourceDependencies = filter ((`notElem` addSourceDependencies) . name)
+
+addSourceConstraint :: AddSourceWithVersion -> Constraint
+addSourceConstraint (AddSource n _, v) = toConstraint (Dependency n $ showVersion v)

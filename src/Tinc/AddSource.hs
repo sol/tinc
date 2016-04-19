@@ -7,6 +7,7 @@ module Tinc.AddSource (
   GitCache
 , AddSourceCache
 , AddSource(..)
+, AddSourceWithVersion
 , addSourcePath
 , extractAddSourceDependencies
 #ifdef TEST
@@ -27,19 +28,20 @@ module Tinc.AddSource (
 , gitRefToRev_impl
 , isGitRev
 , checkCabalName
-, determinePackageName
 , findCabalFile
+, CabalPackage(..)
+, parseCabalFile
 #endif
 ) where
 
 import           Control.Monad
-import           Control.Monad.IO.Class
 import           Data.Function
 import           Data.List
 import           Data.Maybe
 import           Data.String
 import           Data.Tree
-import           Distribution.Package
+import           Data.Version
+import           Distribution.Package hiding (Package)
 import           Distribution.PackageDescription hiding (Git)
 import           Distribution.PackageDescription.Parse
 import           Distribution.Verbosity
@@ -72,6 +74,8 @@ data AddSource = AddSource {
 
 } deriving (Eq, Show, Generic)
 
+type AddSourceWithVersion = (AddSource, Version)
+
 data AddSourceDependency a = AddSourceDependency {
   _addSourceDependencyName :: String
 , _addSourceDependencySource :: Source a
@@ -100,24 +104,25 @@ instance ToJSON AddSource where
 addSourcePath :: Path AddSourceCache -> AddSource -> Path AddSource
 addSourcePath (Path cache) (AddSource name rev) = Path $ cache </> name </> rev
 
-extractAddSourceDependencies :: Path GitCache -> Path AddSourceCache -> [Hpack.Dependency] -> IO [AddSource]
+extractAddSourceDependencies :: Path GitCache -> Path AddSourceCache -> [Hpack.Dependency] -> IO [AddSourceWithVersion]
 extractAddSourceDependencies gitCache addSourceCache additionalDeps = do
   parseAddSourceDependencies additionalDeps >>= fmap removeDuplicates . unfoldForestM go
   where
-    go :: AddSourceDependency Ref -> IO (AddSource, [AddSourceDependency Ref])
-    go dep = do
+    go :: AddSourceDependency Ref -> IO (AddSourceWithVersion, [AddSourceDependency Ref])
+    go dep@(AddSourceDependency _ source) = do
       resolvedDep <- resolveGitReferences dep
       cachedDep <- cacheGitRev gitCache resolvedDep >>= populateAddSourceCache_impl gitCache addSourceCache
       deps <- addSourceDependenciesFrom addSourceCache (resolvedDep, cachedDep)
-      return (cachedDep, deps)
+      version <- cabalPackageVersion <$> parseCabalFile (path $ addSourcePath addSourceCache cachedDep) source
+      return ((cachedDep, version), deps)
 
-removeDuplicates :: Forest AddSource -> [AddSource]
+removeDuplicates :: Forest (AddSource, a) -> [(AddSource, a)]
 removeDuplicates = nubByPackageName . concat . removeFakeRoot . levels . addFakeRoot
   where
-    fakeRoot = AddSource "fake-root" "fake-root"
+    fakeRoot = error "Tinc.AddSource.removeDuplicates: fake-root"
     addFakeRoot = Node fakeRoot
     removeFakeRoot = drop 1
-    nubByPackageName = nubBy ((==) `on` addSourcePackageName)
+    nubByPackageName = nubBy ((==) `on` (addSourcePackageName . fst))
 
 mapLocalDependencyToGitDependency :: Source Rev -> AddSourceDependency Ref -> AddSourceDependency Ref
 mapLocalDependencyToGitDependency source (AddSourceDependency name dep) = case (source, dep) of
@@ -266,9 +271,9 @@ moveToAddSourceCache cache src hpackDep dep = do
   unlessM (doesDirectoryExist $ path dst) $ do
     renameDirectory src $ path dst
 
-checkCabalName :: (Fail m, MonadIO m) => FilePath -> AddSourceDependency a -> m ()
+checkCabalName :: FilePath -> AddSourceDependency a -> IO ()
 checkCabalName directory (AddSourceDependency expectedName source) = do
-  name <- determinePackageName directory source
+  name <- cabalPackageName <$> parseCabalFile directory source
   if name == expectedName
     then return ()
     else die ("the " ++ subject source ++ " contains package " ++ show name
@@ -279,15 +284,22 @@ subject addSource = case addSource of
   Git url _ subdir -> maybe "" (\dir -> "directory " ++ show dir ++ " of ") subdir ++ "git repository " ++ url
   Local dir -> "directory " ++ dir
 
-determinePackageName :: (Fail m, MonadIO m) => FilePath -> Source a -> m String
-determinePackageName directory dep = do
-  cabalFile <- findCabalFile directory dep
-  unPackageName . pkgName . package . packageDescription <$>
-    liftIO (readPackageDescription silent cabalFile)
+data CabalPackage = CabalPackage {
+  cabalPackageName :: String
+, cabalPackageVersion :: Version
+} deriving (Eq, Show)
 
-findCabalFile :: (Fail m, MonadIO m) => FilePath -> Source a -> m FilePath
+parseCabalFile :: FilePath -> Source a -> IO CabalPackage
+parseCabalFile dir source = do
+  cabalFile <- findCabalFile dir source
+  pkg <- package . packageDescription <$> readPackageDescription silent cabalFile
+  case versionBranch (pkgVersion pkg) of
+    [] -> die $ "the cabal file in " ++ subject source ++ " does not specify a version"
+    v -> return $ CabalPackage (unPackageName $ pkgName pkg) (makeVersion v)
+
+findCabalFile :: FilePath -> Source a -> IO FilePath
 findCabalFile dir addSource = do
-  cabalFiles <- liftIO $ getCabalFiles dir
+  cabalFiles <- getCabalFiles dir
   case cabalFiles of
     [cabalFile] -> return (dir </> cabalFile)
     [] -> die ("Couldn't find .cabal file in " ++ subject addSource)

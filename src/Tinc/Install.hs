@@ -88,26 +88,28 @@ solveDependencies facts@Facts{..} = do
   addSourceDependencies <- AddSource.extractAddSourceDependencies factsGitCache factsAddSourceCache additionalDeps
   cabalInstallPlan facts additionalDeps addSourceDependencies
 
-cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Facts -> [Hpack.Dependency] -> [AddSource] -> m [Package]
-cabalInstallPlan facts@Facts{..} additionalDeps addSourceDependencies = withSystemTempDirectory "tinc" $ \dir -> do
+cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Facts -> [Hpack.Dependency] -> [AddSourceWithVersion] -> m [Package]
+cabalInstallPlan facts@Facts{..} additionalDeps addSourceDependenciesWithVersions = withSystemTempDirectory "tinc" $ \dir -> do
   liftIO $ copyFreezeFile dir
   cabalFile <- liftIO (generateCabalFile additionalDeps)
   constraints <- liftIO (readFreezeFile addSourceDependencies)
   withCurrentDirectory dir $ do
     liftIO $ uncurry writeFile cabalFile
     _ <- initSandbox (map (addSourcePath factsAddSourceCache) addSourceDependencies) []
-    installPlan <- cabalDryInstall facts ["--only-dependencies", "--enable-tests"] constraints
+    installPlan <- cabalDryInstall facts args constraints
     return $ markAddSourceDependencies installPlan
   where
+    addSourceDependencies = map fst addSourceDependenciesWithVersions
+    addSourceConstraints = map addSourceConstraint addSourceDependenciesWithVersions
+    args = ["--only-dependencies", "--enable-tests"] ++ addSourceConstraints
     markAddSourceDependencies = map addAddSourceHash
     addAddSourceHash :: Package -> Package
     addAddSourceHash p@(Package name version) = case lookup name addSourceHashes of
       Just rev -> Package name version {versionAddSourceHash = Just rev}
       Nothing -> p
-
     addSourceHashes = [(name, rev) | AddSource name rev <- addSourceDependencies]
 
-cabalDryInstall :: (MonadIO m, Fail m, MonadProcess m, MonadCatch m) => Facts -> [String] -> [String] -> m [Package]
+cabalDryInstall :: (MonadIO m, Fail m, MonadProcess m, MonadCatch m) => Facts -> [String] -> [Constraint] -> m [Package]
 cabalDryInstall facts args constraints = go >>= parseInstallPlan
   where
     install xs = uncurry readProcessM (cabal facts ("install" : "--dry-run" : xs)) ""

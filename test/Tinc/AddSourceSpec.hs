@@ -7,6 +7,7 @@ module Tinc.AddSourceSpec (spec) where
 import           Helper
 import           Hpack.Config as Hpack hiding (Local)
 import           Data.Tree
+import           Data.Version
 import           System.Directory
 import           System.FilePath
 import           System.IO.Error
@@ -129,7 +130,7 @@ spec = do
           it "adds the revision to the cache" $ do
             let file = cabalFile (path gitCache </> rev)
             touch file
-            writeFile file "name: hpack"
+            writeFile file "name: hpack\nversion: 0.1.0"
 
             populateAddSourceCache_impl gitCache cache (AddSourceDependency name gitDependency)
               `shouldReturn` cachedGitDependency
@@ -242,23 +243,35 @@ spec = do
       it "succeeds" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
-          writeFile cabalFile "name: foo"
+          writeFile cabalFile "name: foo\nversion: 0.1.0"
           checkCabalName dir (AddSourceDependency "foo" $ Git "<url>" () Nothing)
 
     context "when git dependency name and cabal package name differ" $ do
       it "fails" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
-          writeFile cabalFile "name: foo"
+          writeFile cabalFile "name: foo\nversion: 0.1.0"
           checkCabalName dir (AddSourceDependency "bar" $ Git "<url>" () Nothing)
             `shouldThrow` errorCall "the git repository <url> contains package \"foo\", expected: \"bar\""
 
-  describe "determinePackageName" $ do
+  describe "parseCabalFile" $ do
+    it "returns package name and version" $ do
+      withSystemTempDirectory "tinc" $ \ dir -> do
+        let cabalFile = dir </> "foo.cabal"
+        writeFile cabalFile "name: foo\nversion: 0.1.0"
+        parseCabalFile dir (Git "<repo>" () Nothing) `shouldReturn` CabalPackage "foo" (makeVersion [0,1,0])
+
+    it "complains about missing version" $ do
+      withSystemTempDirectory "tinc" $ \ dir -> do
+        let cabalFile = dir </> "foo.cabal"
+        writeFile cabalFile "name: foo"
+        parseCabalFile dir (Git "<repo>" () Nothing) `shouldThrow` errorCall "the cabal file in git repository <repo> does not specify a version"
+
     it "complains about invalid cabal files" $ do
       withSystemTempDirectory "tinc" $ \ dir -> do
         let cabalFile = dir </> "foo.cabal"
         writeFile cabalFile "library\n  build-depends: foo bar"
-        determinePackageName dir (Git "<repo>" () Nothing) `shouldThrow` isUserError
+        parseCabalFile dir (Git "<repo>" () Nothing) `shouldThrow` isUserError
 
   describe "findCabalFile" $ do
     it "finds cabal files in given directory" $ do
@@ -281,11 +294,11 @@ spec = do
 
   describe "removeDuplicates" $ do
     let
-      foo = AddSource "foo"
+      foo hash = (AddSource "foo" hash, ())
       foo1 = foo "foo-hash1"
       foo2 = foo "foo-hash2"
-      bar = AddSource "bar" "bar-hash"
-      baz = AddSource "baz" "baz-hash"
+      bar = (AddSource "bar" "bar-hash", ())
+      baz = (AddSource "baz" "baz-hash", ())
 
     it "removes duplicates" $ do
       removeDuplicates [Node foo1 [], Node foo2 []] `shouldBe` [foo1]

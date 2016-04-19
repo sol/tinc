@@ -10,6 +10,7 @@ import           MockedProcess
 import           Test.Mockery.Action
 
 import           Data.List
+import           Data.Version (makeVersion)
 import           System.Directory
 import           System.FilePath
 
@@ -56,18 +57,17 @@ spec = do
           , "In order, the following would be installed (use -v for more details):"
           ] ++ dependencies
 
-        mockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => Env
-        mockedEnv = env {envReadProcess = mockedReadProcess, envCallProcess = ?mockedCallProcess}
-          where
-            mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests"], "", ?cabalInstallResult)
+        mockedEnv :: (?mockedReadProcess :: ReadProcess, ?mockedCallProcess :: CallProcess) => Env
+        mockedEnv = env {envReadProcess = ?mockedReadProcess, envCallProcess = ?mockedCallProcess}
 
-        withMockedEnv :: (?cabalInstallResult :: IO String, ?mockedCallProcess :: CallProcess) => WithEnv Env a -> IO a
+        withMockedEnv :: (?mockedReadProcess :: ReadProcess, ?mockedCallProcess :: CallProcess) => WithEnv Env a -> IO a
         withMockedEnv = withEnv mockedEnv
 
     it "returns install plan" $ do
       withCabalFile $ \_ -> do
-        let ?cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
-            ?mockedCallProcess = stub cabalSandboxInit
+        let cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
+        let ?mockedCallProcess = stub cabalSandboxInit
+            ?mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests"], "", cabalInstallResult)
         withMockedEnv (cabalInstallPlan facts [] []) `shouldReturn` [Package "setenv" "0.1.1.3"]
 
     it "takes add-source dependencies into account" $ do
@@ -81,12 +81,13 @@ spec = do
 
         dependencyPath <- createCachedAddSourceDependency addSourceCache cachedDependency version
 
-        let ?cabalInstallResult = readFile "cabal-output"
-            ?mockedCallProcess = stub [
+        let cabalInstallResult = readFile "cabal-output"
+        let ?mockedCallProcess = stub [
                 cabalSandboxInit
               , ("cabal", ["sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
               ]
-        withMockedEnv (cabalInstallPlan facts {factsAddSourceCache = addSourceCache} [] [cachedDependency]) `shouldReturn` [dependency]
+            ?mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests", "--constraint=setenv == 0.1.0"], "", cabalInstallResult)
+        withMockedEnv (cabalInstallPlan facts {factsAddSourceCache = addSourceCache} [] [(cachedDependency, makeVersion [0,1,0])]) `shouldReturn` [dependency]
 
   describe "copyFreezeFile" $ do
     it "copies freeze file" $ do
