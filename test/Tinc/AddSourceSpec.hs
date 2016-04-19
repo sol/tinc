@@ -6,10 +6,12 @@ module Tinc.AddSourceSpec (spec) where
 
 import           Helper
 import           Hpack.Config as Hpack hiding (Local)
+import           Data.Tree
 import           System.Directory
 import           System.FilePath
 import           System.IO.Error
 import           System.IO.Temp
+import           Test.QuickCheck hiding (output)
 import           GHC.Fingerprint
 
 import           Test.Mockery.Action
@@ -276,3 +278,37 @@ spec = do
           touch (dir </> "foo.cabal")
           touch (dir </> "bar.cabal")
           findCabalFile dir (Git "<repo>" () Nothing) `shouldThrow` errorCall "Multiple cabal files found in git repository <repo>"
+
+  describe "removeDuplicates" $ do
+    let
+      foo = AddSource "foo"
+      foo1 = foo "foo-hash1"
+      foo2 = foo "foo-hash2"
+      bar = AddSource "bar" "bar-hash"
+      baz = AddSource "baz" "baz-hash"
+
+    it "removes duplicates" $ do
+      removeDuplicates [Node foo1 [], Node foo2 []] `shouldBe` [foo1]
+
+    context "with a duplicate dependency in a single tree" $ do
+      it "uses breadth-first precedence" $ do
+        let
+          deps = [Node bar [Node foo2 [], Node baz [Node foo1 []]]]
+        forAll (permuteForest deps) $ \x -> do
+          removeDuplicates x `shouldMatchList` [foo2, bar, baz]
+
+    context "with a duplicate dependency in different trees" $ do
+      it "uses breadth-first precedence" $ do
+        let
+          deps = [
+              Node bar [Node foo2 []]
+            , Node baz [Node bar [Node foo1 []]]
+            ]
+        forAll (permuteForest deps) $ \x -> do
+          removeDuplicates x `shouldMatchList` [foo2, bar, baz]
+
+permuteTree :: Tree a -> Gen (Tree a)
+permuteTree (Node a forest) = Node a <$> permuteForest forest
+
+permuteForest :: Forest a -> Gen (Forest a)
+permuteForest xs = mapM permuteTree xs >>= shuffle

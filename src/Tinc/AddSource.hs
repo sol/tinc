@@ -17,6 +17,7 @@ module Tinc.AddSource (
 , CachedRev(..)
 , mapLocalDependencyToGitDependency
 , parseAddSourceDependencies
+, removeDuplicates
 , populateAddSourceCache_impl
 
 , copyPackageConfig
@@ -101,7 +102,7 @@ addSourcePath (Path cache) (AddSource name rev) = Path $ cache </> name </> rev
 
 extractAddSourceDependencies :: Path GitCache -> Path AddSourceCache -> [Hpack.Dependency] -> IO [AddSource]
 extractAddSourceDependencies gitCache addSourceCache additionalDeps = do
-  parseAddSourceDependencies additionalDeps >>= fmap (concatMap flatten) . unfoldForestM go
+  parseAddSourceDependencies additionalDeps >>= fmap removeDuplicates . unfoldForestM go
   where
     go :: AddSourceDependency Ref -> IO (AddSource, [AddSourceDependency Ref])
     go dep = do
@@ -109,6 +110,14 @@ extractAddSourceDependencies gitCache addSourceCache additionalDeps = do
       cachedDep <- cacheGitRev gitCache resolvedDep >>= populateAddSourceCache_impl gitCache addSourceCache
       deps <- addSourceDependenciesFrom addSourceCache (resolvedDep, cachedDep)
       return (cachedDep, deps)
+
+removeDuplicates :: Forest AddSource -> [AddSource]
+removeDuplicates = nubByPackageName . concat . removeFakeRoot . levels . addFakeRoot
+  where
+    fakeRoot = AddSource "fake-root" "fake-root"
+    addFakeRoot = Node fakeRoot
+    removeFakeRoot = drop 1
+    nubByPackageName = nubBy ((==) `on` addSourcePackageName)
 
 mapLocalDependencyToGitDependency :: Source Rev -> AddSourceDependency Ref -> AddSourceDependency Ref
 mapLocalDependencyToGitDependency source (AddSourceDependency name dep) = case (source, dep) of

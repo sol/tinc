@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.11.2.
+-- This file has been generated from package.yaml by hpack version 0.12.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -110,6 +110,7 @@ test-suite spec
     , HUnit >= 1.3
     , safe
     , unix
+    , QuickCheck
   other-modules:
       Run
       Tinc.AddSource
