@@ -18,35 +18,6 @@ import           Tinc.AddSource
 
 spec :: Spec
 spec = do
-  describe "extractAddSourceDependencies_impl" $ do
-    let
-      fooDep = AddSourceDependency "foo" (Git "sol/foo" "foo-rev" Nothing)
-      barDep = AddSourceDependency "bar" (Git "sol/bar" "bar-rev" Nothing)
-
-      fooAddSource = AddSource "foo" "foo-rev"
-      barAddSource = AddSource "bar" "bar-rev"
-
-      deps = [fooDep]
-
-      populateAddSourceCache (AddSourceDependency name (Git _ (Rev rev) Nothing)) = return (AddSource name rev)
-      resolveGitReferences = return
-      cacheGitRev = return
-
-    it "populates the add-source cache" $ do
-      let
-        addSourceDependenciesFrom = stub [((fooDep, fooAddSource), return [])]
-
-      withMock populateAddSourceCache $ \populate -> do
-        extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences cacheGitRev populate deps `shouldReturn` [fooAddSource]
-
-    it "takes transitive add-source dependencies into account" $ do
-      let
-        addSourceDependenciesFrom = stub [
-            ((fooDep, fooAddSource), return [barDep])
-          , ((barDep, barAddSource), return [])
-          ]
-      extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences cacheGitRev populateAddSourceCache deps `shouldReturn` [fooAddSource, barAddSource]
-
   describe "mapLocalDependencyToGitDependency" $ do
     context "with a git dependency" $ do
       it "is the identity" $ do

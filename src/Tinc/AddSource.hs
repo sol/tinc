@@ -15,7 +15,6 @@ module Tinc.AddSource (
 , Ref(..)
 , Rev(..)
 , CachedRev(..)
-, extractAddSourceDependencies_impl
 , mapLocalDependencyToGitDependency
 , parseAddSourceDependencies
 , populateAddSourceCache_impl
@@ -38,6 +37,7 @@ import           Data.Function
 import           Data.List
 import           Data.Maybe
 import           Data.String
+import           Data.Tree
 import           Distribution.Package
 import           Distribution.PackageDescription hiding (Git)
 import           Distribution.PackageDescription.Parse
@@ -100,19 +100,15 @@ addSourcePath :: Path AddSourceCache -> AddSource -> Path AddSource
 addSourcePath (Path cache) (AddSource name rev) = Path $ cache </> name </> rev
 
 extractAddSourceDependencies :: Path GitCache -> Path AddSourceCache -> [Hpack.Dependency] -> IO [AddSource]
-extractAddSourceDependencies gitCache addSourceCache additionalDeps =
-  parseAddSourceDependencies additionalDeps >>= extractAddSourceDependencies_impl (addSourceDependenciesFrom addSourceCache) resolveGitReferences (cacheGitRev gitCache) (populateAddSourceCache_impl gitCache addSourceCache)
-
-extractAddSourceDependencies_impl :: AddSourceDependenciesFrom rev ref -> ResolveGitReferences ref rev -> CacheGitRev rev cachedRev -> PopulateAddSourceCache cachedRev -> [AddSourceDependency ref] -> IO [AddSource]
-extractAddSourceDependencies_impl addSourceDependenciesFrom_ resolveGitReferences_ cacheGitRev_ populateAddSourceCache_ = go
+extractAddSourceDependencies gitCache addSourceCache additionalDeps = do
+  parseAddSourceDependencies additionalDeps >>= fmap (concatMap flatten) . unfoldForestM go
   where
-    go deps = do
-      case deps of
-        [] -> return []
-        _ -> do
-          resolvedDeps <- mapM resolveGitReferences_ deps
-          xs <- mapM cacheGitRev_ resolvedDeps >>= mapM populateAddSourceCache_
-          (xs ++) <$> (mapM addSourceDependenciesFrom_ (zip resolvedDeps xs) >>= go . concat)
+    go :: AddSourceDependency Ref -> IO (AddSource, [AddSourceDependency Ref])
+    go dep = do
+      resolvedDep <- resolveGitReferences dep
+      cachedDep <- cacheGitRev gitCache resolvedDep >>= populateAddSourceCache_impl gitCache addSourceCache
+      deps <- addSourceDependenciesFrom addSourceCache (resolvedDep, cachedDep)
+      return (cachedDep, deps)
 
 mapLocalDependencyToGitDependency :: Source Rev -> AddSourceDependency Ref -> AddSourceDependency Ref
 mapLocalDependencyToGitDependency source (AddSourceDependency name dep) = case (source, dep) of
