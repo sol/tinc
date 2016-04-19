@@ -16,7 +16,7 @@ module Tinc.AddSource (
 , Rev(..)
 , CachedRev(..)
 , extractAddSourceDependencies_impl
-, resolveLocalAddSourceDependency
+, mapLocalDependencyToGitDependency
 , parseAddSourceDependencies
 , populateAddSourceCache_impl
 
@@ -114,8 +114,8 @@ extractAddSourceDependencies_impl addSourceDependenciesFrom_ resolveGitReference
           xs <- mapM cacheGitRev_ resolvedDeps >>= mapM populateAddSourceCache_
           (xs ++) <$> (mapM addSourceDependenciesFrom_ (zip resolvedDeps xs) >>= go . concat)
 
-resolveLocalAddSourceDependency :: Source Rev -> AddSourceDependency Ref -> AddSourceDependency Ref
-resolveLocalAddSourceDependency source (AddSourceDependency name dep) = case (source, dep) of
+mapLocalDependencyToGitDependency :: Source Rev -> AddSourceDependency Ref -> AddSourceDependency Ref
+mapLocalDependencyToGitDependency source (AddSourceDependency name dep) = case (source, dep) of
   (_, Git _ _ _) -> AddSourceDependency name dep
   (Git url (Rev rev) subdir, Local path) -> AddSourceDependency name (Git url (Ref rev) (Just p))
       where
@@ -162,7 +162,7 @@ cachedRevPath (Path cache) (CachedRev rev) = Path (cache </> rev)
 type AddSourceDependenciesFrom rev ref = (AddSourceDependency rev, AddSource) -> IO [AddSourceDependency ref]
 
 addSourceDependenciesFrom :: Path AddSourceCache -> AddSourceDependenciesFrom Rev Ref
-addSourceDependenciesFrom addSourceCache (AddSourceDependency _ source, addSource) = map (resolveLocalAddSourceDependency source) <$> do
+addSourceDependenciesFrom addSourceCache (AddSourceDependency _ source, addSource) = map (mapLocalDependencyToGitDependency source) <$> do
   exists <- doesFileExist config
   if exists
     then Hpack.readPackageConfig config >>= either die (return . filterAddSource . Hpack.packageDependencies . snd)

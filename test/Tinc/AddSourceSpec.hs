@@ -47,11 +47,11 @@ spec = do
           ]
       extractAddSourceDependencies_impl addSourceDependenciesFrom resolveGitReferences cacheGitRev populateAddSourceCache deps `shouldReturn` [fooAddSource, barAddSource]
 
-  describe "resolveLocalAddSourceDependency" $ do
+  describe "mapLocalDependencyToGitDependency" $ do
     context "with a git dependency" $ do
       it "is the identity" $ do
         let dep = AddSourceDependency "bar" (Git "sol/bar" "some-rev" Nothing) :: AddSourceDependency Ref
-        resolveLocalAddSourceDependency undefined dep `shouldBe` dep
+        mapLocalDependencyToGitDependency undefined dep `shouldBe` dep
 
     context "with a local dependency" $ do
       let dep = AddSourceDependency "bar" (Local "./bar") :: AddSourceDependency Ref
@@ -60,20 +60,20 @@ spec = do
           let
             source = Git "sol/foo" "some-rev" Nothing
             expected = AddSourceDependency "bar" (Git "sol/foo" "some-rev" (Just "bar"))
-          resolveLocalAddSourceDependency source dep `shouldBe` expected
+          mapLocalDependencyToGitDependency source dep `shouldBe` expected
 
         it "takes the subdir of the git dependency into account" $ do
           let
             source = Git "sol/foo" "some-rev" (Just "foo")
             expected = AddSourceDependency "bar" (Git "sol/foo" "some-rev" (Just "foo/bar"))
-          resolveLocalAddSourceDependency source dep `shouldBe` expected
+          mapLocalDependencyToGitDependency source dep `shouldBe` expected
 
       context "when source is Local" $ do
         it "makes the path of the dependency relative to the source" $ do
           let
             source = Local "../packages/foo"
             expected = AddSourceDependency "bar" (Local "../packages/foo/bar")
-          resolveLocalAddSourceDependency source dep `shouldBe` expected
+          mapLocalDependencyToGitDependency source dep `shouldBe` expected
 
   describe "parseAddSourceDependencies" $ do
     it "extracts git dependencies from package.yaml" $ do
