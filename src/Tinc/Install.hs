@@ -68,7 +68,7 @@ installDependencies dryRun facts@Facts{..} = do
       where
         printInstallPlan :: [Package] -> IO ()
         printInstallPlan packages = do
-          mapM_ (putStrLn . ("Installing " ++) . showPackage) packages
+          mapM_ (putStrLn . ("Using " ++) . showPackage) packages
 
 data InstallPlan = InstallPlan {
   _installPlanReusable :: [CachedPackage]

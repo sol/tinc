@@ -1,6 +1,6 @@
 { nixpkgs }:
 rec {
-  compiler = nixpkgs.haskell.packages."ghc7103";
+  compiler = nixpkgs.haskellPackages;
   resolver =
     let
       callPackage = compiler.callPackage;

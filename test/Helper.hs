@@ -33,7 +33,7 @@ facts = Facts {
 , factsAddSourceCache = error "factsAddSoruceCache"
 , factsNixCache = error "factsNixCache"
 , factsUseNix = False
-, factsNixResolver = defaultNixResolver
+, factsNixResolver = Nothing
 , factsPlugins = []
 , factsGhcInfo = error "factsGhcInfo"
 }
