@@ -49,7 +49,7 @@ EOF
 
   nix-build -o result-shell -E "$EXPR"
 
-  if [ ! -z "$1" ]; then
+  if [ ! -z "$*" ]; then
     exec nix-shell --run "$*"
   else
     exec nix-shell
