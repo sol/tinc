@@ -56,8 +56,11 @@ defaultFile = "default.nix"
 shellFile :: FilePath
 shellFile = "shell.nix"
 
+formatNixResolver :: Facts -> String
+formatNixResolver Facts{..} = "haskell.packages." ++ show factsNixResolver
+
 cabal :: Facts -> [String] -> (String, [String])
-cabal Facts{..} args = ("nix-shell", ["-p", "haskell.packages." ++ show factsNixResolver ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
+cabal facts args = ("nix-shell", ["-p", formatNixResolver facts ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
 
 nixShell :: String -> [String] -> (String, [String])
 nixShell command args = ("nix-shell", [shellFile, "--run", unwords $ command : map translate args])
@@ -130,23 +133,22 @@ indent n = map f
       _ -> replicate n ' ' ++ xs
 
 resolverDerivation :: Facts -> [(Package, [HaskellDependency], [SystemDependency])] -> IO NixExpression
-resolverDerivation Facts{..} dependencies = do
+resolverDerivation facts@Facts{..} dependencies = do
   overrides <- concat <$> mapM getPkgDerivation dependencies
   return . unlines $ [
       "rec {"
-    , "  compiler = " ++ show factsNixResolver ++ ";"
-    , "  resolver = { nixpkgs ? import <nixpkgs> {}, compiler ? compiler }:"
+    , "  compiler = nixpkgs." ++ formatNixResolver facts ++ ";"
+    , "  resolver = { nixpkgs, compiler }:"
     ] ++ indent 4 [
       "let"
-    , "  oldResolver = builtins.getAttr compiler nixpkgs.haskell.packages;"
-    , "  callPackage = oldResolver.callPackage;"
+    , "  callPackage = compiler.callPackage;"
     , ""
     , "  overrideFunction = self: super: rec {"
     ] ++ indent 8 overrides ++
     indent 4 [
       "  };"
     , ""
-    , "  newResolver = oldResolver.override {"
+    , "  newResolver = compiler.override {"
     , "    overrides = overrideFunction;"
     , "  };"
     , ""

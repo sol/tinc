@@ -96,11 +96,10 @@ spec = do
             ]
           resolver = unlines [
               "rec {"
-            , "  compiler = " ++ show (factsNixResolver facts) ++ ";"
-            , "  resolver = { nixpkgs ? import <nixpkgs> {}, compiler ? compiler }:"
+            , "  compiler = nixpkgs.haskell.packages.\"ghc7103\";"
+            , "  resolver = { nixpkgs, compiler }:"
             , "    let"
-            , "      oldResolver = builtins.getAttr compiler nixpkgs.haskell.packages;"
-            , "      callPackage = oldResolver.callPackage;"
+            , "      callPackage = compiler.callPackage;"
             , ""
             , "      overrideFunction = self: super: rec {"
             , "        foo = callPackage"
@@ -117,7 +116,7 @@ spec = do
             , "          { inherit foo; inherit (nixpkgs) baz; };"
             , "      };"
             , ""
-            , "      newResolver = oldResolver.override {"
+            , "      newResolver = compiler.override {"
             , "        overrides = overrideFunction;"
             , "      };"
             , ""
