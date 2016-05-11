@@ -1,9 +1,9 @@
+{ nixpkgs }:
 rec {
-  compiler = "ghc7103";
-  resolver = { nixpkgs ? import <nixpkgs> {}, compiler ? compiler }:
+  compiler = nixpkgs.haskell.packages."ghc7103";
+  resolver =
     let
-      oldResolver = builtins.getAttr compiler nixpkgs.haskell.packages;
-      callPackage = oldResolver.callPackage;
+      callPackage = compiler.callPackage;
 
       overrideFunction = self: super: rec {
         HUnit = callPackage
@@ -1078,7 +1078,7 @@ rec {
           { inherit aeson base-compat Glob hspec mockery QuickCheck temporary text unordered-containers yaml; };
       };
 
-      newResolver = oldResolver.override {
+      newResolver = compiler.override {
         overrides = overrideFunction;
       };
 

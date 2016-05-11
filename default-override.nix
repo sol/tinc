@@ -1,14 +1,13 @@
-let
-  tinc = import ./tinc.nix;
-in { nixpkgs ? import <nixpkgs> {}, compiler ? tinc.compiler }:
+{ nixpkgs ? import <nixpkgs> {} }:
   let
-    resolver = tinc.resolver { inherit nixpkgs compiler; };
+    tinc = import ./tinc.nix { inherit nixpkgs; };
+    resolver = tinc.resolver;
     oldDrv = resolver.callPackage ./package.nix {};
     makeWrapper = nixpkgs.makeWrapper;
-    ghcPackages = nixpkgs.haskell.packages.ghc7103;
-    ghc = ghcPackages.ghc;
-    cabal2nix = ghcPackages.cabal2nix;
-    cabal-install = ghcPackages.cabal-install;
+    compiler = tinc.compiler;
+    ghc = compiler.ghc;
+    cabal2nix = compiler.cabal2nix;
+    cabal-install = compiler.cabal-install;
   in nixpkgs.lib.overrideDerivation oldDrv (oldAttrs: {
     doCheck = false;
     configureFlags = [ "--disable-tests" ];

@@ -95,9 +95,10 @@ spec = do
             , "mkDerivation { some derivation; }"
             ]
           resolver = unlines [
-              "rec {"
+              "{ nixpkgs }:"
+            , "rec {"
             , "  compiler = nixpkgs.haskell.packages.\"ghc7103\";"
-            , "  resolver = { nixpkgs, compiler }:"
+            , "  resolver ="
             , "    let"
             , "      callPackage = compiler.callPackage;"
             , ""

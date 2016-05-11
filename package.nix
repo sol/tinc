@@ -1,8 +1,8 @@
 { mkDerivation, aeson, base, bytestring, Cabal, containers
 , directory, exceptions, filelock, filepath, gitrev, graph-wrapper
-, hpack, hspec, HUnit, language-dot, mockery, parsec, process, safe
-, stdenv, temporary, time, transformers, unix, unix-compat
-, with-location, yaml
+, hpack, hspec, HUnit, language-dot, mockery, parsec, process
+, QuickCheck, safe, stdenv, temporary, time, transformers, unix
+, unix-compat, with-location, yaml
 }:
 mkDerivation {
   pname = "tinc";
@@ -18,7 +18,7 @@ mkDerivation {
   testHaskellDepends = [
     aeson base bytestring Cabal containers directory exceptions
     filelock filepath gitrev graph-wrapper hpack hspec HUnit
-    language-dot mockery parsec process safe temporary time
+    language-dot mockery parsec process QuickCheck safe temporary time
     transformers unix unix-compat with-location yaml
   ];
   homepage = "https://github.com/sol/tinc#readme";

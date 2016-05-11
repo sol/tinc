@@ -108,9 +108,8 @@ cabalToNix uri = do
 defaultDerivation :: NixExpression
 defaultDerivation = unlines [
     "let"
-  , "  tinc = import ./" ++ resolverFile ++ ";"
-  , "  default ={ nixpkgs ? import <nixpkgs> {}, compiler ? tinc.compiler }:"
-  , "    (tinc.resolver { inherit nixpkgs compiler; }).callPackage ./" ++ packageFile ++ " {};"
+  , "  default = { nixpkgs ? import <nixpkgs> {} }:"
+  , "    (import ./" ++ resolverFile ++ " { inherit nixpkgs; }).resolver.callPackage ./" ++ packageFile ++ " {};"
   , "  overrideFile = ./default-override.nix;"
   , "  expr = if builtins.pathExists overrideFile then import overrideFile else default;"
   , "in expr"
@@ -118,11 +117,8 @@ defaultDerivation = unlines [
 
 shellDerivation :: NixExpression
 shellDerivation = unlines [
-    "let"
-  , "  tinc = import ./" ++ resolverFile ++ ";"
-  , "in"
-  , "{ nixpkgs ? import <nixpkgs> {}, compiler ? tinc.compiler }:"
-  , "(import ./" ++ defaultFile ++ " { inherit nixpkgs compiler; }).env"
+    "{ nixpkgs ? import <nixpkgs> {} }:"
+  , "(import ./" ++ defaultFile ++ " { inherit nixpkgs; }).env"
   ]
 
 indent :: Int -> [String] -> [String]
@@ -136,9 +132,10 @@ resolverDerivation :: Facts -> [(Package, [HaskellDependency], [SystemDependency
 resolverDerivation facts@Facts{..} dependencies = do
   overrides <- concat <$> mapM getPkgDerivation dependencies
   return . unlines $ [
-      "rec {"
+      "{ nixpkgs }:"
+    , "rec {"
     , "  compiler = nixpkgs." ++ formatNixResolver facts ++ ";"
-    , "  resolver = { nixpkgs, compiler }:"
+    , "  resolver ="
     ] ++ indent 4 [
       "let"
     , "  callPackage = compiler.callPackage;"
