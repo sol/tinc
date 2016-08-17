@@ -11,7 +11,7 @@ import           Test.Mockery.Action
 
 import           Data.List
 import           Data.Version (makeVersion)
-import           System.Directory
+import           System.Directory hiding (withCurrentDirectory)
 import           System.FilePath
 
 import           Tinc.Facts

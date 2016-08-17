@@ -47,7 +47,7 @@ import           Distribution.PackageDescription.Parse
 import           Distribution.Verbosity
 import           GHC.Fingerprint
 import qualified Hpack.Config as Hpack
-import           System.Directory hiding (getDirectoryContents)
+import           System.Directory hiding (getDirectoryContents, withCurrentDirectory)
 import           System.FilePath
 import           System.IO.Temp
 import           Data.Aeson

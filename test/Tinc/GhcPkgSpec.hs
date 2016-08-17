@@ -14,7 +14,9 @@ globalPackages = [
     "array"
   , "base"
   , "binary"
+#if __GLASGOW_HASKELL__ < 800
   , "bin-package-db"
+#endif
   , "bytestring"
   , "Cabal"
   , "containers"
@@ -41,6 +43,11 @@ globalPackages = [
   , "haskell98"
   , "old-locale"
   , "old-time"
+#endif
+#if __GLASGOW_HASKELL__ > 710
+  , "ghc-boot"
+  , "ghc-boot-th"
+  , "ghci"
 #endif
   ]
 

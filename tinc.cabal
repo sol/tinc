@@ -47,7 +47,7 @@ executable tinc
     , aeson >= 0.11.0
     , bytestring
     , yaml
-    , Cabal == 1.22.*
+    , Cabal == 1.24.*
     , gitrev
     , unix-compat
     , with-location
@@ -100,7 +100,7 @@ test-suite spec
     , aeson >= 0.11.0
     , bytestring
     , yaml
-    , Cabal == 1.22.*
+    , Cabal == 1.24.*
     , gitrev
     , unix-compat
     , with-location

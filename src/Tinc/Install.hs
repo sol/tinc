@@ -17,7 +17,7 @@ import           Control.Monad.Catch
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Data.List
-import           System.Directory hiding (getDirectoryContents)
+import           System.Directory hiding (getDirectoryContents,withCurrentDirectory)
 import           System.IO.Temp
 import           System.FilePath
 import           Control.Exception (IOException)
