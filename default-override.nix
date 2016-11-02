@@ -9,8 +9,6 @@
     cabal2nix = compiler.cabal2nix;
     cabal-install = compiler.cabal-install;
   in nixpkgs.lib.overrideDerivation oldDrv (oldAttrs: {
-    doCheck = false;
-    configureFlags = [ "--disable-tests" ];
     postInstall = ''
       source ${makeWrapper}/nix-support/setup-hook
       wrapProgram $out/bin/tinc \
