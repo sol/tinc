@@ -40,3 +40,5 @@ To change the default, you can set the environment variable
 export TINC_USE_NIX=yes  # use nix, even if not installed under /nix
 export TINC_USE_NIX=no   # do not use nix, even if installed under /nix
 ```
+
+More information can be found in [NIX.md](NIX.md).
