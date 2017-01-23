@@ -6,6 +6,7 @@
     - [Missing dependencies](#missing-dependencies)
     - [Plugins](#plugins)
     - [Overriding attributes in `default.nix`](#overriding-attributes-in-defaultnix)
+    - [Using curated packages from Stack](#using-curated-packages-from-stack)
 
 <!-- markdown-toc end -->
 # `tinc` in Nix mode
@@ -144,3 +145,11 @@ Plugins are simply shell scripts named like `tinc-shell` or `tinc-install` in `$
 
 ## Overriding attributes in `default.nix`
 To override attributes (like `doCheck`, `configureFlags`, `postInstall`, etc) in the generated `default.nix`, create the file `default-override.nix`. `tinc` will never overwrite this file but `default.nix` will use it if it exists. See [example](default-override.nix) in `tinc` repository.
+
+## Using curated packages from Stack
+Instead of using cabal's solver to generate the install plan, you can opt for curated packages from Stack. Just download `cabal.config` from one of the LTS resolvers and place it beside your project `.cabal`.
+
+  ```
+  wget https://www.stackage.org/lts-7.16/cabal.config
+  tinc shell
+  ```
