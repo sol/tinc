@@ -4,15 +4,15 @@ dependencies:
 - name: ansi-terminal
   version: '0.6.2.3'
 - name: async
-  version: '2.1.0'
+  version: '2.1.1'
 - name: attoparsec
-  version: '0.13.0.2'
+  version: '0.13.1.0'
 - name: base-compat
   version: '0.9.1'
 - name: conduit
-  version: '1.2.7'
+  version: '1.2.8'
 - name: dlist
-  version: '0.8.0.1'
+  version: '0.8.0.2'
 - name: enclosed-exceptions
   version: '1.0.2'
 - name: exceptions
@@ -24,7 +24,7 @@ dependencies:
 - name: gitrev
   version: '1.2.0'
 - name: Glob
-  version: '0.7.11'
+  version: '0.7.14'
 - name: graph-wrapper
   version: '0.2.5.1'
 - name: hashable
@@ -32,15 +32,15 @@ dependencies:
 - name: hpack
   version: '0.14.1'
 - name: hspec
-  version: '2.2.3'
+  version: '2.2.4'
 - name: hspec-core
-  version: '2.2.3'
+  version: '2.2.4'
 - name: hspec-discover
-  version: '2.2.3'
+  version: '2.2.4'
 - name: hspec-expectations
   version: '0.7.2'
 - name: HUnit
-  version: '1.3.1.1'
+  version: '1.3.1.2'
 - name: language-dot
   version: '0.1.0'
 - name: lifted-base
@@ -48,9 +48,9 @@ dependencies:
 - name: logging-facade
   version: '0.1.1'
 - name: mmorph
-  version: '1.0.6'
+  version: '1.0.9'
 - name: mockery
-  version: '0.3.3'
+  version: '0.3.4'
 - name: monad-control
   version: '1.0.1.0'
 - name: mtl
@@ -60,15 +60,15 @@ dependencies:
 - name: primitive
   version: '0.6.1.0'
 - name: QuickCheck
-  version: '2.9.1'
+  version: '2.8.2'
 - name: quickcheck-io
-  version: '0.1.3'
+  version: '0.1.4'
 - name: random
   version: '1.1'
 - name: resourcet
-  version: '1.1.7.5'
+  version: '1.1.9'
 - name: safe
-  version: '0.3.9'
+  version: '0.3.10'
 - name: scientific
   version: '0.3.4.9'
 - name: semigroups
@@ -92,12 +92,12 @@ dependencies:
 - name: transformers-compat
   version: '0.5.1.4'
 - name: unix-compat
-  version: '0.4.2.0'
+  version: '0.4.3.1'
 - name: unordered-containers
-  version: '0.2.7.1'
+  version: '0.2.7.2'
 - name: vector
   version: '0.11.0.0'
 - name: with-location
   version: '0.1.0'
 - name: yaml
-  version: '0.8.18.1'
+  version: '0.8.21.1'

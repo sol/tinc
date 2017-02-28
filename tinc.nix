@@ -11,8 +11,8 @@ rec {
             { mkDerivation, base, deepseq, filepath, stdenv }:
             mkDerivation {
               pname = "HUnit";
-              version = "1.3.1.1";
-              sha256 = "1y4fv8r7xi302ahj6p71hvsgz3rkb2c4vw09j935ns5bj11grrck";
+              version = "1.3.1.2";
+              sha256 = "10akdh4fl615rrshxi3m5gf414il1q42z4zqyb6q4jasmscvzpms";
               libraryHaskellDepends = [ base deepseq ];
               testHaskellDepends = [ base deepseq filepath ];
               homepage = "https://github.com/hspec/HUnit#readme";
@@ -30,10 +30,7 @@ rec {
               pname = "ansi-terminal";
               version = "0.6.2.3";
               sha256 = "0hpfw0k025y681m9ml1c712skrb1p4vh7z5x1f0ci9ww7ssjrh2d";
-              isLibrary = true;
-              isExecutable = true;
               libraryHaskellDepends = [ base unix ];
-              executableHaskellDepends = [ base unix ];
               homepage = "https://github.com/feuerbach/ansi-terminal";
               description = "Simple ANSI terminal support, with Windows compatibility";
               license = stdenv.lib.licenses.bsd3;
@@ -63,8 +60,8 @@ rec {
             { mkDerivation, base, Cabal, deepseq, QuickCheck, stdenv }:
             mkDerivation {
               pname = "dlist";
-              version = "0.8.0.1";
-              sha256 = "1rlq492b6kw58wrkpp5islfdfq3dl4rl32lcal7ik50bpnc9hp9v";
+              version = "0.8.0.2";
+              sha256 = "1ca1hvl5kd4api4gjyhwwavdx8snq6gf1jr6ab0zmjx7p77pwfbp";
               libraryHaskellDepends = [ base deepseq ];
               testHaskellDepends = [ base Cabal QuickCheck ];
               homepage = "https://github.com/spl/dlist";
@@ -77,12 +74,11 @@ rec {
           { inherit QuickCheck; };
         fail = callPackage
           (
-            { mkDerivation, base, stdenv }:
+            { mkDerivation, stdenv }:
             mkDerivation {
               pname = "fail";
               version = "4.9.0.0";
               sha256 = "18nlj6xvnggy61gwbyrpmvbdkq928wv0wx2zcsljb52kbhddnp3d";
-              libraryHaskellDepends = [ base ];
               homepage = "https://prime.haskell.org/wiki/Libraries/Proposals/MonadFail";
               description = "Forward-compatible MonadFail class";
               license = stdenv.lib.licenses.bsd3;
@@ -153,8 +149,8 @@ rec {
             { mkDerivation, base, directory, filepath, hspec-meta, stdenv }:
             mkDerivation {
               pname = "hspec-discover";
-              version = "2.2.3";
-              sha256 = "0bx9nlc07vihkm0ykfz2fcwd5v6zszb1mw81mczi72k2mpbm6q6w";
+              version = "2.2.4";
+              sha256 = "1bz7wb8v0bx1amiz4bpj34xq97d1ia29n3f654wcrh6lacydp3dv";
               isLibrary = true;
               isExecutable = true;
               libraryHaskellDepends = [ base directory filepath ];
@@ -259,8 +255,8 @@ rec {
             { mkDerivation, base, stdenv }:
             mkDerivation {
               pname = "safe";
-              version = "0.3.9";
-              sha256 = "1jdnp5zhvalf1xy8i872n29nljfjz6lnl9ghj80ffisrnnkrwcfh";
+              version = "0.3.10";
+              sha256 = "16jbw4qr0knmwy60c71hwdvz8xrpn71kj155h544qhjbrzcllwns";
               libraryHaskellDepends = [ base ];
               homepage = "https://github.com/ndmitchell/safe#readme";
               description = "Library of safe (exception free) functions";
@@ -272,12 +268,12 @@ rec {
           { };
         semigroups = callPackage
           (
-            { mkDerivation, base, stdenv }:
+            { mkDerivation, base, stdenv, hashable, tagged, text, unordered-containers }:
             mkDerivation {
               pname = "semigroups";
               version = "0.18.2";
               sha256 = "1r6hsn3am3dpf4rprrj4m04d9318v9iq02bin0pl29dg4a3gzjax";
-              libraryHaskellDepends = [ base ];
+              libraryHaskellDepends = [ base hashable tagged text unordered-containers ];
               homepage = "http://github.com/ekmett/semigroups/";
               description = "Anything that associates";
               license = stdenv.lib.licenses.bsd3;
@@ -285,7 +281,7 @@ rec {
               doHaddock = false;
             }
           )
-          { };
+          { inherit hashable tagged text unordered-containers; };
         setenv = callPackage
           (
             { mkDerivation, base, stdenv, unix }:
@@ -325,8 +321,8 @@ rec {
             }:
             mkDerivation {
               pname = "async";
-              version = "2.1.0";
-              sha256 = "0brcy9bxhy0kxwvh3sfahgd2bg3zgbkhm5nrikf5r2y6z48pdhwk";
+              version = "2.1.1";
+              sha256 = "142gyyjvz3fh6a72s3wrnjlnffn2nj30is9vnymp960zj8v4n4r4";
               libraryHaskellDepends = [ base stm ];
               testHaskellDepends = [
                 base HUnit test-framework test-framework-hunit
@@ -470,8 +466,8 @@ rec {
             }:
             mkDerivation {
               pname = "QuickCheck";
-              version = "2.9.1";
-              sha256 = "0pyhakj0k43m1a42a5173ss1yv3yaym4ymdcs6dpz9lmz2z9qxpq";
+              version = "2.8.2";
+              sha256 = "1ai6k5v0bibaxq8xffcblc6rwmmk6gf8vjyd9p2h3y6vwbhlvilq";
               libraryHaskellDepends = [
                 base containers random template-haskell tf-random transformers
               ];
@@ -491,8 +487,8 @@ rec {
             { mkDerivation, base, HUnit, QuickCheck, stdenv }:
             mkDerivation {
               pname = "quickcheck-io";
-              version = "0.1.3";
-              sha256 = "1d68fcb9cx1bk8yzq28d4hbwjwj4y5y0kldd1nxlq7n54r75i66p";
+              version = "0.1.4";
+              sha256 = "179qcy15yxgllsjc2czm2jsxaryfd6mcsr07ac43kc3i11cm0dvb";
               libraryHaskellDepends = [ base HUnit QuickCheck ];
               homepage = "https://github.com/hspec/quickcheck-io#readme";
               description = "Use HUnit assertions as QuickCheck properties";
@@ -511,8 +507,10 @@ rec {
             }:
             mkDerivation {
               pname = "hspec-core";
-              version = "2.2.3";
-              sha256 = "0llnr7gg1xa1l8jz9ivhjq7q12773x2i5xp3wlyyvq0sj9cnkyh1";
+              version = "2.2.4";
+              sha256 = "0x845ngfl6vf65fnpb5mm3wj0ql45pz11bnm0x4gxc4ybd9c52ij";
+              revision = "1";
+              editedCabalFile = "9a0c9fc612eb71ee55ebcaacbce010b87ffef8a535ed6ee1f50d8bd952dc86c3";
               libraryHaskellDepends = [
                 ansi-terminal async base deepseq hspec-expectations HUnit
                 QuickCheck quickcheck-io random setenv tf-random time transformers
@@ -538,14 +536,17 @@ rec {
             }:
             mkDerivation {
               pname = "hspec";
-              version = "2.2.3";
-              sha256 = "0432dxkxrmsvz78g8inwhklid677161yp8r0pw8cd1bdx179j7ji";
+              version = "2.2.4";
+              sha256 = "1cf90gqvg1iknja6ymxqxyabpahcxni3blqllh81ywbir3whljvj";
+              revision = "1";
+              editedCabalFile = "eb22cb737adc3312b21699b6ac4137489590ada1ee9ee9ae21aae3c342b3880f";
               libraryHaskellDepends = [
                 base hspec-core hspec-discover hspec-expectations HUnit QuickCheck
                 transformers
               ];
               testHaskellDepends = [
-                base directory hspec-core hspec-meta stringbuilder
+                base directory hspec-core hspec-discover hspec-expectations
+                hspec-meta HUnit QuickCheck stringbuilder transformers
               ];
               homepage = "http://hspec.github.io/";
               description = "A Testing Framework for Haskell";
@@ -579,8 +580,8 @@ rec {
             }:
             mkDerivation {
               pname = "Glob";
-              version = "0.7.11";
-              sha256 = "0xy332m8wbr3cgvayqvhq7rli3yd3k71cdzqzsg159z6w05zj8qa";
+              version = "0.7.14";
+              sha256 = "0aw43izg8vlvjl40ms6k92w7gxg7n3l6smdvzla47fp82s4vhdr8";
               libraryHaskellDepends = [
                 base containers directory dlist filepath transformers
                 transformers-compat
@@ -630,8 +631,8 @@ rec {
             }:
             mkDerivation {
               pname = "mmorph";
-              version = "1.0.6";
-              sha256 = "1i8dzrc5qi3ryc9vrrmpn3sihmramsbhhd592w4w2k5g26qr3hql";
+              version = "1.0.9";
+              sha256 = "0qs5alhy719a14lrs7rnh2qsn1146czg68gvgylf4m5jh4w7vwp1";
               libraryHaskellDepends = [
                 base mtl transformers transformers-compat
               ];
@@ -689,8 +690,8 @@ rec {
             }:
             mkDerivation {
               pname = "mockery";
-              version = "0.3.3";
-              sha256 = "1m7sq2vclgir3qbpngzl3g87ks4034blwwf7p3h02c0jlcwpl5b1";
+              version = "0.3.4";
+              sha256 = "0f19b057cphfslw3brc690v4hq86xwjlllfc9idbilfgz7s3bzih";
               libraryHaskellDepends = [
                 base base-compat bytestring directory filepath logging-facade
                 temporary
@@ -807,8 +808,8 @@ rec {
             }:
             mkDerivation {
               pname = "resourcet";
-              version = "1.1.7.5";
-              sha256 = "0nj0gwfd05divpdn7m47gy6bpcrwn3zk81gc303k0smrbqi0xlq5";
+              version = "1.1.9";
+              sha256 = "1x9f2qz57agl3xljp1wi0ab51p13czrpf6qjp3506rl9dg99j6as";
               libraryHaskellDepends = [
                 base containers exceptions lifted-base mmorph monad-control mtl
                 transformers transformers-base transformers-compat
@@ -825,16 +826,16 @@ rec {
         conduit = callPackage
           (
             { mkDerivation, base, containers, exceptions, hspec, lifted-base
-            , mmorph, mtl, QuickCheck, resourcet, safe, stdenv, transformers
-            , transformers-base
+            , mmorph, monad-control, mtl, QuickCheck, resourcet, safe, stdenv
+            , transformers, transformers-base
             }:
             mkDerivation {
               pname = "conduit";
-              version = "1.2.7";
-              sha256 = "1r9vxpbcy441niw80byg68gkkn2xrqbz8l6x1q4d70fgassivcin";
+              version = "1.2.8";
+              sha256 = "1yqpvc60rblpdn9agjghmq7f6nz04nx5zi9qf7lbgwmdf16dzmc0";
               libraryHaskellDepends = [
-                base exceptions lifted-base mmorph mtl resourcet transformers
-                transformers-base
+                base exceptions lifted-base mmorph monad-control mtl resourcet
+                transformers transformers-base
               ];
               testHaskellDepends = [
                 base containers exceptions hspec mtl QuickCheck resourcet safe
@@ -847,14 +848,14 @@ rec {
               doHaddock = false;
             }
           )
-          { inherit exceptions hspec lifted-base mmorph mtl QuickCheck resourcet safe transformers-base; };
+          { inherit exceptions hspec lifted-base mmorph monad-control mtl QuickCheck resourcet safe transformers-base; };
         unix-compat = callPackage
           (
             { mkDerivation, base, stdenv, unix }:
             mkDerivation {
               pname = "unix-compat";
-              version = "0.4.2.0";
-              sha256 = "036nv05w0yjxc3rfpar60ddjrlzc40mdgr5k6ihvwlvqfmq1gw9m";
+              version = "0.4.3.1";
+              sha256 = "09vykw89x981fywy0w1pci2v8zy3ajyjwh9z2n610vjacmd1v03j";
               libraryHaskellDepends = [ base unix ];
               homepage = "http://github.com/jystic/unix-compat";
               description = "Portable POSIX-compatibility layer";
@@ -872,8 +873,8 @@ rec {
             }:
             mkDerivation {
               pname = "unordered-containers";
-              version = "0.2.7.1";
-              sha256 = "00npqiphivjp2d7ryqsdavfn4m5v3w1lq2azhdsrfh0wsvqpg4ig";
+              version = "0.2.7.2";
+              sha256 = "0vp5nfnvmnjbl9c8h6kcgx0rxmnzy0i4bikqcc2gc0dbzi246p3z";
               libraryHaskellDepends = [ base deepseq hashable ];
               testHaskellDepends = [
                 base ChasingBottoms containers hashable HUnit QuickCheck
@@ -943,19 +944,20 @@ rec {
           (
             { mkDerivation, array, base, bytestring, containers, deepseq
             , QuickCheck, quickcheck-unicode, scientific, stdenv, tasty
-            , tasty-quickcheck, text, transformers, vector
+            , tasty-quickcheck, text, transformers, vector, fail, semigroups
             }:
             mkDerivation {
               pname = "attoparsec";
-              version = "0.13.0.2";
-              sha256 = "0spcybahmqxnmngfa9cf5rh7n2r8njrgkgwb6iplmfj4ys0z7xv9";
+              version = "0.13.1.0";
+              sha256 = "0r1zrrkbqv8w4pb459fj5izd1h85p9nrsp3gyzj7qiayjpa79p2j";
               libraryHaskellDepends = [
                 array base bytestring containers deepseq scientific text
-                transformers
+                transformers fail semigroups
               ];
               testHaskellDepends = [
                 array base bytestring deepseq QuickCheck quickcheck-unicode
                 scientific tasty tasty-quickcheck text transformers vector
+                fail semigroups
               ];
               homepage = "https://github.com/bos/attoparsec";
               description = "Fast combinator parsing for bytestrings and text";
@@ -964,7 +966,7 @@ rec {
               doHaddock = false;
             }
           )
-          { inherit QuickCheck scientific text vector; };
+          { inherit QuickCheck scientific text vector fail semigroups; };
         aeson = callPackage
           (
             { mkDerivation, attoparsec, base, base-orphans, bytestring
@@ -978,6 +980,8 @@ rec {
               pname = "aeson";
               version = "0.11.2.1";
               sha256 = "0k5p06pik7iyjm1jjkjbpqqn0mqps6b8mz9p9sp9hmganl4cffyc";
+              revision = "1";
+              editedCabalFile = "e97fac43eddd037bf21752ea10150a224b9c08d267f634ea54f799023a6c5e13";
               libraryHaskellDepends = [
                 attoparsec base bytestring containers deepseq dlist fail ghc-prim
                 hashable mtl scientific syb tagged template-haskell text time
@@ -1019,24 +1023,25 @@ rec {
             { mkDerivation, aeson, aeson-qq, attoparsec, base, base-compat
             , bytestring, conduit, containers, directory, enclosed-exceptions
             , filepath, hspec, HUnit, mockery, resourcet, scientific
-            , semigroups, stdenv, text, transformers, unordered-containers
-            , vector
+            , semigroups, stdenv, template-haskell, temporary, text
+            , transformers, unordered-containers, vector
             }:
             mkDerivation {
               pname = "yaml";
-              version = "0.8.18.1";
-              sha256 = "0ymcr4y86i74my6agmp5pql7wzqr6va7dl13f4qdfg94kn3hwq94";
+              version = "0.8.21.1";
+              sha256 = "1chdg9kz0fsp2dfljc0na8r05rk080wamqznxzsmrihml80yiy7r";
               isLibrary = true;
               isExecutable = true;
               libraryHaskellDepends = [
                 aeson attoparsec base bytestring conduit containers directory
-                enclosed-exceptions filepath resourcet scientific semigroups text
-                transformers unordered-containers vector
+                enclosed-exceptions filepath resourcet scientific semigroups
+                template-haskell text transformers unordered-containers vector
               ];
               executableHaskellDepends = [ aeson base bytestring ];
               testHaskellDepends = [
-                aeson aeson-qq base base-compat bytestring conduit hspec HUnit
-                mockery resourcet text transformers unordered-containers vector
+                aeson aeson-qq base base-compat bytestring conduit directory hspec
+                HUnit mockery resourcet temporary text transformers
+                unordered-containers vector
               ];
               homepage = "http://github.com/snoyberg/yaml/";
               description = "Support for parsing and rendering YAML documents";
@@ -1045,7 +1050,7 @@ rec {
               doHaddock = false;
             }
           )
-          { inherit aeson attoparsec base-compat conduit enclosed-exceptions hspec HUnit mockery resourcet scientific semigroups text unordered-containers vector; };
+          { inherit aeson attoparsec base-compat conduit enclosed-exceptions hspec HUnit mockery resourcet scientific semigroups temporary text unordered-containers vector; };
         hpack = callPackage
           (
             { mkDerivation, aeson, aeson-qq, base, base-compat, containers
