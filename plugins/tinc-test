@@ -1,0 +1,6 @@
+#!/bin/sh
+set -o nounset
+set -o errexit
+
+tinc --fast
+cabal test --show-details=direct
