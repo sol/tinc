@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 module Tinc.GhcPkgSpec (spec) where
 
 import           Control.Monad
@@ -14,7 +13,6 @@ globalPackages = [
     "array"
   , "base"
   , "binary"
-  , "bin-package-db"
   , "bytestring"
   , "Cabal"
   , "containers"
@@ -22,7 +20,11 @@ globalPackages = [
   , "directory"
   , "filepath"
   , "ghc"
+  , "ghc-boot"
+  , "ghc-boot-th"
+  , "ghci"
   , "ghc-prim"
+  , "haskeline"
   , "hoopl"
   , "hpc"
   , "integer-gmp"
@@ -30,18 +32,11 @@ globalPackages = [
   , "process"
   , "rts"
   , "template-haskell"
-  , "time"
-  , "unix"
-  , "haskeline"
   , "terminfo"
+  , "time"
   , "transformers"
+  , "unix"
   , "xhtml"
-#if __GLASGOW_HASKELL__ < 710
-  , "haskell2010"
-  , "haskell98"
-  , "old-locale"
-  , "old-time"
-#endif
   ]
 
 spec :: Spec

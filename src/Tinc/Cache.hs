@@ -29,7 +29,7 @@ import qualified Data.ByteString as B
 import           Data.List
 import qualified Data.Map as Map
 import           Data.Yaml
-import           System.Directory hiding (getDirectoryContents)
+import           System.Directory hiding (getDirectoryContents, withCurrentDirectory)
 import           System.FilePath
 import           System.IO.Temp
 import           System.PosixCompat.Files

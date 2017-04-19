@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Helper (
@@ -8,8 +7,6 @@ module Helper (
 
 , module Tinc.Process
 , process
-
-, skipForGhc78
 ) where
 
 import           Test.Hspec
@@ -43,10 +40,3 @@ process = Process {
   readProcess = dummy "readProcess"
 , callProcess = dummy "callProcess"
 }
-
-skipForGhc78 :: Expectation -> Expectation
-#if __GLASGOW_HASKELL__ < 710
-skipForGhc78 _ = pending
-#else
-skipForGhc78 = id
-#endif

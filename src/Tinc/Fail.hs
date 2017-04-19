@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Tinc.Fail where
 

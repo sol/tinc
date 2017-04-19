@@ -23,11 +23,10 @@ spec = do
 
     context "when sandbox does not contain a package db" $ do
       it "throws an exception" $ do
-        skipForGhc78 $ do
-          withSystemTempDirectory "tinc" $ \ sandbox -> do
-            let p = sandbox </> ".cabal-sandbox"
-            createDirectory p
-            findPackageDb (Path sandbox) `shouldThrow` errorCall ("src/Tinc/Sandbox.hs: No package database found in " ++ show p)
+        withSystemTempDirectory "tinc" $ \ sandbox -> do
+          let p = sandbox </> ".cabal-sandbox"
+          createDirectory p
+          findPackageDb (Path sandbox) `shouldThrow` errorCall ("src/Tinc/Sandbox.hs: No package database found in " ++ show p)
 
   describe "listPackages" $ do
     it "returns canonical file pathas to package configs" $ do

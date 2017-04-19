@@ -30,16 +30,15 @@ spec = do
 
     context "on unexpected input" $ do
       it "throws an exception" $ do
-        skipForGhc78 $ do
-          parseInstallPlan "foo" `shouldThrow` (errorCall . unlines) [
-              "src/Tinc/Package.hs: unexpected output from `cabal install --dry-run':"
-            , ""
-            , "  \"foo\""
-            , ""
-            , "This is most likely a bug.  Please report an issue at:"
-            , ""
-            , "  https://github.com/sol/tinc/issues"
-            ]
+        parseInstallPlan "foo" `shouldThrow` (errorCall . unlines) [
+            "src/Tinc/Package.hs: unexpected output from `cabal install --dry-run':"
+          , ""
+          , "  \"foo\""
+          , ""
+          , "This is most likely a bug.  Please report an issue at:"
+          , ""
+          , "  https://github.com/sol/tinc/issues"
+          ]
 
   describe "parsePackage" $ do
     it "parses packages" $ do

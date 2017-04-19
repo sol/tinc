@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.12.0.
+-- This file has been generated from package.yaml by hpack version 0.17.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -28,10 +28,10 @@ executable tinc
   main-is: tinc.hs
   hs-source-dirs:
       src
-    , driver
+      driver
   ghc-options: -Wall
   build-depends:
-      base >= 4.8
+      base >= 4.9.1.0
     , graph-wrapper >= 0.2.5
     , language-dot
     , containers
@@ -47,7 +47,7 @@ executable tinc
     , aeson >= 0.11.0
     , bytestring
     , yaml
-    , Cabal == 1.22.*
+    , Cabal
     , gitrev
     , unix-compat
     , with-location
@@ -80,11 +80,11 @@ test-suite spec
   main-is: Spec.hs
   hs-source-dirs:
       src
-    , test
+      test
   ghc-options: -Wall
   cpp-options: -DTEST
   build-depends:
-      base >= 4.8
+      base >= 4.9.1.0
     , graph-wrapper >= 0.2.5
     , language-dot
     , containers
@@ -100,7 +100,7 @@ test-suite spec
     , aeson >= 0.11.0
     , bytestring
     , yaml
-    , Cabal == 1.22.*
+    , Cabal
     , gitrev
     , unix-compat
     , with-location

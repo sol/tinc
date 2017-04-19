@@ -6,7 +6,7 @@ import           Control.Monad.IO.Class
 import           Data.Char
 import           Data.List
 import           GHC.Fingerprint
-import           System.Directory hiding (getDirectoryContents)
+import           System.Directory hiding (getDirectoryContents, withCurrentDirectory)
 import qualified System.Directory as Directory
 import           System.FilePath
 import           System.Process
