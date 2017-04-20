@@ -3,4 +3,4 @@ set -o nounset
 set -o errexit
 
 tinc --fast
-cabal test --show-details=direct
+cabal exec -- cabal test --show-details=direct
