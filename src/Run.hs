@@ -44,15 +44,17 @@ tinc args = do
 
 callExec :: Facts -> String -> [String] -> IO ()
 callExec Facts{..} name args = do
-  pid <- if factsUseNix
-    then uncurry spawnProcess $ nixShell name args
-    else spawnProcess "cabal" ("exec" : "--" : name : args)
-  waitForProcess pid >>= throwIO
+  let
+    cmd
+      | factsUseNix = nixShell name args
+      | otherwise = ("cabal", "exec" : "--" : name : args)
+  uncurry rawSystemExit cmd
 
 callPlugin :: String -> [String] -> IO ()
-callPlugin name args = do
-  pid <- spawnProcess name args
-  waitForProcess pid >>= throwIO
+callPlugin = rawSystemExit
+
+rawSystemExit :: FilePath -> [String] -> IO ()
+rawSystemExit path args = rawSystem path args >>= throwIO
 
 withCacheLock :: Path CacheDir -> IO a -> IO a
 withCacheLock cache action = do
