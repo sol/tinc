@@ -149,6 +149,8 @@ spec = do
             , "library"
             , "  build-depends:"
             , "      foo"
+            , "  other-modules:"
+            , "      Paths_foo"
             , "  default-language: Haskell2010"
             , ""
             , "executable tinc-generated"
