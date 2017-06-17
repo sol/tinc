@@ -33,7 +33,6 @@ facts = Facts {
 , factsNixResolver = Nothing
 , factsPlugins = []
 , factsGhcInfo = error "factsGhcInfo"
-, factsContinuousIntegrationMode = False
 }
 
 process :: WithLocation (Process IO)
