@@ -25,6 +25,7 @@ data Facts = Facts {
 , factsNixResolver :: Maybe String
 , factsPlugins :: Plugins
 , factsGhcInfo :: GhcInfo
+, factsContinuousIntegrationMode :: Bool
 } deriving (Eq, Show)
 
 tincEnvVar :: String
@@ -40,6 +41,9 @@ isInNixStore = ("/nix/" `isPrefixOf`)
 getNixResolver :: IO (Maybe String)
 getNixResolver = lookupEnv "TINC_NIX_RESOLVER"
 
+getContinuousIntegrationMode :: IO Bool
+getContinuousIntegrationMode = (== Just "true") <$> lookupEnv "CONTINUOUS_INTEGRATION"
+
 discoverFacts :: FilePath -> IO Facts
 discoverFacts executablePath = getGhcInfo >>= discoverFacts_impl executablePath
 
@@ -48,6 +52,7 @@ discoverFacts_impl executablePath ghcInfo = do
   home <- getHomeDirectory
   useNix_ <- useNix executablePath
   nixResolver <- getNixResolver
+  continuousIntegrationMode <- getContinuousIntegrationMode
   let pluginsDir :: FilePath
       pluginsDir = home </> ".tinc" </> "plugins"
 
@@ -79,6 +84,7 @@ discoverFacts_impl executablePath ghcInfo = do
   , factsNixResolver = nixResolver
   , factsPlugins = plugins
   , factsGhcInfo = ghcInfo
+  , factsContinuousIntegrationMode = continuousIntegrationMode
   }
 
 listAllPlugins :: FilePath -> IO Plugins

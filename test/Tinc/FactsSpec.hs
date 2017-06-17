@@ -78,6 +78,18 @@ spec = do
             Facts{..} <- discoverFacts_impl "/some/path/to/tinc" ghcInfo
             factsUseNix `shouldBe` False
 
+    describe "factsContinuousIntegrationMode" $ do
+      context "by default" $ do
+        it "is False" $ do
+          withModifiedEnvironment [("CONTINUOUS_INTEGRATION", "")] $ do
+            Facts{..} <- discoverFacts_impl "/some/path/to/tinc" ghcInfo
+            factsContinuousIntegrationMode `shouldBe` False
+
+      context "when CONTINUOUS_INTEGRATION=true" $ do
+        it "is False" $ do
+          withModifiedEnvironment [("CONTINUOUS_INTEGRATION", "true")] $ do
+            Facts{..} <- discoverFacts_impl "/some/path/to/tinc" ghcInfo
+            factsContinuousIntegrationMode `shouldBe` True
 
   describe "listPlugins" $ do
     it "lists plugins" $ do

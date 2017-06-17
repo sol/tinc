@@ -28,14 +28,14 @@ tinc args = do
   facts@Facts{..} <- getExecutablePath >>= discoverFacts
   case args of
     [] -> do
-      withCacheLock factsCache $ do
+      withCacheLock facts $ do
         installDependencies False facts
     ["--fast"] -> do
       recent <- tincEnvCreationTime facts >>= isRecent
       unless recent $ do
-        withCacheLock factsCache $ do
+        withCacheLock facts $ do
           installDependencies False facts
-    ["--dry-run"] -> withCacheLock factsCache $
+    ["--dry-run"] -> withCacheLock facts $
       installDependencies True facts
     ["--version"] -> putStrLn $(gitHash)
     "exec" : name : rest -> callExec facts name rest
@@ -56,9 +56,16 @@ callPlugin = rawSystemExit
 rawSystemExit :: FilePath -> [String] -> IO ()
 rawSystemExit path args = rawSystem path args >>= throwIO
 
-withCacheLock :: Path CacheDir -> IO a -> IO a
-withCacheLock cache action = do
-  putStrLn $ "Acquiring " ++ lock
-  withFileLock lock Exclusive $ \ _ -> action
+withCacheLock :: Facts -> IO a -> IO a
+withCacheLock Facts{..} action = do
+  if factsContinuousIntegrationMode
+    then do
+      -- In CI-mode we do not lock the cache.  This is to prevent the cache
+      -- from getting "dirty" when no packages need to be installed.
+      putStrLn $ "NOTE: Running in CI-mode, not locking cache!"
+      action
+    else do
+      putStrLn $ "Acquiring " ++ lock
+      withFileLock lock Exclusive $ \ _ -> action
   where
-    lock = path cache </> "tinc.lock"
+    lock = path factsCache </> "tinc.lock"
