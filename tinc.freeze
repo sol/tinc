@@ -30,11 +30,11 @@ dependencies:
 - name: hpack
   version: '0.18.0'
 - name: hspec
-  version: '2.4.3'
+  version: '2.4.4'
 - name: hspec-core
-  version: '2.4.3'
+  version: '2.4.4'
 - name: hspec-discover
-  version: '2.4.3'
+  version: '2.4.4'
 - name: hspec-expectations
   version: '0.8.2'
 - name: HUnit
@@ -50,7 +50,7 @@ dependencies:
 - name: mmorph
   version: '1.1.0'
 - name: mockery
-  version: '0.3.4'
+  version: '0.3.5'
 - name: monad-control
   version: '1.0.2.0'
 - name: mtl
@@ -60,9 +60,9 @@ dependencies:
 - name: primitive
   version: '0.6.2.0'
 - name: QuickCheck
-  version: '2.9.2'
+  version: '2.10.0.1'
 - name: quickcheck-io
-  version: '0.1.4'
+  version: '0.2.0'
 - name: random
   version: '1.1'
 - name: resourcet
@@ -102,4 +102,4 @@ dependencies:
 - name: with-location
   version: '0.1.0'
 - name: yaml
-  version: '0.8.23'
+  version: '0.8.23.1'
