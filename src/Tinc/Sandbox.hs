@@ -96,4 +96,4 @@ packageFromPackageConfig :: FilePath -> Package
 packageFromPackageConfig = parsePackage . reverse . drop 1 . dropWhile (/= '-') . reverse
 
 recache :: MonadProcess m => Path PackageDb -> m ()
-recache packageDb = callProcessM "ghc-pkg" ["--no-user-package-db", "recache", "--package-db", path packageDb]
+recache packageDb = callProcessM "ghc-pkg" ["--no-user-package-conf", "recache", "--package-conf", path packageDb]

@@ -124,7 +124,7 @@ spec = do
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource = ("cabal", ["sandbox", "add-source", path addSourceCache </> "foo" </> "abc"], writeFile "add-source" "foo")
                     cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
-                    recache = ("ghc-pkg", ["--no-user-package-db", "recache", "--package-db", packageDb], return ())
+                    recache = ("ghc-pkg", ["--no-user-package-conf", "recache", "--package-conf", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = dummy "envReadProcess", envCallProcess = mockedCallProcess}
             _ <- withEnv mockedEnv $
@@ -142,7 +142,7 @@ spec = do
                     cabalAddSource packageCachePath =
                       ("cabal", ["sandbox", "add-source", path addSourceCache </> packageCachePath], return ())
                     cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], return ())
-                    recache = ("ghc-pkg", ["--no-user-package-db", "recache", "--package-db", packageDb], return ())
+                    recache = ("ghc-pkg", ["--no-user-package-conf", "recache", "--package-conf", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = dummy "envReadProcess", envCallProcess = mockedCallProcess}
             let barPackageConfig = Path (path cache </> "foo")

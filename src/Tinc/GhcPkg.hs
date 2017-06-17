@@ -17,7 +17,7 @@ class (Functor m, Applicative m, Monad m) => GhcPkg m where
 
 instance GhcPkg IO where
   readGhcPkg (packageDbsToArgs -> packageDbs) args = do
-    readProcess "ghc-pkg" ("--no-user-package-db" : "--simple-output" : packageDbs ++ args) ""
+    readProcess "ghc-pkg" ("--no-user-package-conf" : "--simple-output" : packageDbs ++ args) ""
 
 listGlobalPackages :: GhcPkg m => m [Package]
 listGlobalPackages = parsePackages <$> readGhcPkg [] ["list"]
@@ -26,4 +26,4 @@ listGlobalPackages = parsePackages <$> readGhcPkg [] ["list"]
     parsePackages = map parsePackage . words
 
 packageDbsToArgs :: [Path PackageDb] -> [String]
-packageDbsToArgs packageDbs = concatMap (\ packageDb -> ["--package-db", path packageDb]) packageDbs
+packageDbsToArgs packageDbs = concatMap (\ packageDb -> ["--package-conf", path packageDb]) packageDbs
