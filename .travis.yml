@@ -23,7 +23,7 @@ install:
   - tinc
 
 script:
-  - cabal configure --enable-tests --ghc-options=-Werror && cabal build && cabal test
+  - cabal configure --enable-tests --ghc-options=-Werror && cabal build && cabal test --show-details=direct
 
 before_deploy:
   - mkdir -p build
