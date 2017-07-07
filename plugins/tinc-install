@@ -33,5 +33,5 @@ if [ "$TINC_USE_NIX" = "yes" ]; then
   NAME=`sed -rn '/pname/ s/.*"(.*)";/\1/p' package.nix`
   nix-env -i "$NAME" -f default.nix
 else
-  cabal install --prefix ~/.tinc
+  cabal install --prefix ~/.tinc ${1:-}
 fi
