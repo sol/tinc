@@ -33,5 +33,5 @@ if [ "$TINC_USE_NIX" = "yes" ]; then
   NAME=`sed -rn '/pname/ s/.*"(.*)";/\1/p' package.nix`
   nix-env -i "$NAME" -f default.nix
 else
-  cabal install --prefix ~/.tinc ${1:-}
+  cabal install --prefix ~/.tinc ${1:-} # we pass $1 here, as a workaround for https://github.com/haskell/cabal/issues/4593
 fi
