@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Util where
 
 import           Control.Monad.Catch
@@ -10,6 +11,10 @@ import           System.Directory hiding (getDirectoryContents, withCurrentDirec
 import qualified System.Directory as Directory
 import           System.FilePath
 import           System.Process
+import qualified Data.ByteString as B
+import           Data.Store
+
+import           Tinc.Fail
 
 strip :: String -> String
 strip = dropWhile isSpace . reverse . dropWhile isSpace . reverse
@@ -55,14 +60,27 @@ cachedIO :: FilePath -> IO String -> IO String
 cachedIO = cachedIOAfter (return ())
 
 cachedIOAfter :: MonadIO m => m () -> FilePath -> m String -> m String
-cachedIOAfter actionAfter file action = do
+cachedIOAfter = cachedIOAfterWith writeFile (fmap Just <$> readFile)
+
+cachedIOAfterStore :: (MonadIO m, Store a) => m () -> FilePath -> m a -> m a
+cachedIOAfterStore actionAfter file = cachedIOAfterWith store load actionAfter (file ++ ".store-" ++ VERSION_store)
+  where
+    store name = B.writeFile name . encode
+    load name = either (const Nothing) Just . decode <$> B.readFile name
+
+cachedIOAfterWith :: MonadIO m => (FilePath -> a -> IO ()) -> (FilePath -> IO (Maybe a)) -> m () -> FilePath -> m a -> m a
+cachedIOAfterWith store load actionAfter file action = do
   exists <- liftIO $ doesFileExist file
   if exists
     then do
-      liftIO $ readFile file
+      liftIO $ do
+        r <- load file
+        case r of
+          Just x -> return x
+          Nothing -> dieLoc (file ++ ": parse error")
     else do
       result <- action
-      liftIO $ writeFile (file ++ ".tmp") result
+      liftIO $ store (file ++ ".tmp") result
       liftIO $ renameFile (file ++ ".tmp") file
       actionAfter
       return result

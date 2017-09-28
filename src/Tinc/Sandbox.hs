@@ -7,15 +7,16 @@ module Tinc.Sandbox (
 , Sandbox
 
 , findPackageDb
+, touchPackageCache
 , initSandbox
-, recache
 
 , cabalSandboxDirectory
 , cabalSandboxBinDirectory
 
-, listPackages
+, cachedListPackages
 
 #ifdef TEST
+, listPackages
 , packageFromPackageConfig
 , registerPackage
 #endif
@@ -27,6 +28,7 @@ import           Data.List
 import           Data.Maybe
 import           System.Directory hiding (getDirectoryContents)
 import           System.FilePath
+import           System.PosixCompat.Files
 
 import           Util
 import           Tinc.Fail
@@ -42,6 +44,9 @@ data Sandbox
 
 currentDirectory :: Path Sandbox
 currentDirectory = "."
+
+touchPackageCache :: Path PackageDb -> IO ()
+touchPackageCache packageDb = touchFile (path packageDb </> "package.cache")
 
 initSandbox :: (MonadIO m, Fail m, MonadProcess m) => [Path AddSource] -> [Path PackageConfig] -> m (Path PackageDb)
 initSandbox addSourceDependencies packageConfigs = do
@@ -85,15 +90,32 @@ registerPackageConfigs packageDb packages = do
 registerPackage :: Path PackageDb -> Path PackageConfig -> IO ()
 registerPackage packageDb package = linkFile (path package) (path packageDb)
 
-listPackages :: MonadIO m => Path PackageDb -> m [(Package, Path PackageConfig)]
+cachedListPackages :: MonadIO m => Path PackageDb -> m [(Package, Path PackageConfig)]
+cachedListPackages p = do
+  map (fmap Path) <$> cachedIOAfterStore (liftIO $ touchPackageCache p) cacheFile (listPackages p)
+  where
+    cacheFile = path p </> "packages.v1"
+
+listPackages :: MonadIO m => Path PackageDb -> m [(Package, FilePath)]
 listPackages p = do
   packageConfigs <- liftIO $ filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path p)
   absolutePackageConfigs <- liftIO . mapM canonicalizePath $ map (path p </>) packageConfigs
-  let packages = map packageFromPackageConfig packageConfigs
-  return (zip packages (map Path absolutePackageConfigs))
+  packages <- mapM (liftIO . packageFromPackageConfig) absolutePackageConfigs
+  return (zip packages absolutePackageConfigs)
 
-packageFromPackageConfig :: FilePath -> Package
-packageFromPackageConfig = parsePackage . reverse . drop 1 . dropWhile (/= '-') . reverse
+packageFromPackageConfig :: FilePath -> IO Package
+packageFromPackageConfig conf = do
+  input <- readFile conf
+  case parsePackageConfig (lines input) of
+    Just x -> return x
+    Nothing -> dieLoc (conf ++ ": parse error")
+
+parsePackageConfig :: [String] -> Maybe Package
+parsePackageConfig input = Package <$> name <*> (Version <$> version <*> pure Nothing)
+  where
+    name = readField "name" input
+    version = readField "version" input
+    readField field = listToMaybe . mapMaybe (stripPrefix $ field ++ ": ")
 
 recache :: MonadProcess m => Path PackageDb -> m ()
 recache packageDb = callProcessM "ghc-pkg" ["--no-user-package-conf", "recache", "--package-conf", path packageDb]

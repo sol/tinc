@@ -37,6 +37,7 @@ dependencies:
   - unix-compat
   - with-location
   - time
+  - store
 
 source-dirs: src
 

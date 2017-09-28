@@ -20,9 +20,11 @@ import           System.Directory
 import           Tinc.Cache
 import           Tinc.GhcPkg
 import           Tinc.Package
-import           Tinc.Sandbox hiding (recache)
+import           Tinc.Sandbox
 import           Tinc.AddSource
 import           Tinc.Types
+
+import           Tinc.SandboxSpec (writePackageConfig)
 
 data ReadGhcPkgEnv = ReadGhcPkgEnv {
   envReadGhcPkg :: [Path PackageDb] -> [String] -> IO String
@@ -54,7 +56,7 @@ spec = do
               packageDbs = [globalPackageDb, packageDb]
 
               mockedEnv = ghcPkgEnv {envReadGhcPkg = stub (packageDbs, ["dot"], return graph)}
-          touch $ path packageConfig
+          writePackageConfig (package, path packageConfig)
           touch $ path packageDb </> "package.cache"
 
           withEnv mockedEnv (readPackageGraph [] globalPackageDb packageDb)

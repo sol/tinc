@@ -32,7 +32,6 @@ import           Data.Yaml
 import           System.Directory hiding (getDirectoryContents, withCurrentDirectory)
 import           System.FilePath
 import           System.IO.Temp
-import           System.PosixCompat.Files
 import           Data.Function
 
 import           Tinc.Fail
@@ -82,7 +81,7 @@ data PackageLocation = GlobalPackage | PackageConfig (Path PackageConfig)
 
 readPackageGraph :: (MonadIO m, Fail m, GhcPkg m) => [Package] -> Path PackageDb -> Path PackageDb -> m (PackageGraph PackageLocation)
 readPackageGraph globalPackages globalPackageDb packageDb = do
-  packageConfigs <- liftIO $ listPackages packageDb
+  packageConfigs <- liftIO $ cachedListPackages packageDb
   let globalValues = map (, GlobalPackage) globalPackages
   let values = map (fmap PackageConfig) packageConfigs
   dot <- readDotFile
@@ -92,9 +91,6 @@ readPackageGraph globalPackages globalPackageDb packageDb = do
     readDotFile = do
       cachedIOAfter (liftIO $ touchPackageCache packageDb) dotFile $ do
         readGhcPkg [globalPackageDb, packageDb] ["dot"]
-
-touchPackageCache :: Path PackageDb -> IO ()
-touchPackageCache packageDb = touchFile (path packageDb </> "package.cache")
 
 addSourceHashesFile :: FilePath
 addSourceHashesFile = "add-source.yaml"
@@ -180,7 +176,7 @@ populateCache cacheDir addSourceCache missing reusable = either return populate 
           writeAddSourceHashes packageDb populateCacheActionWriteAddSourceHashes
           writeFile validMarker ""
         callProcessM "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage populateCacheActionInstallPlan)
-        map (uncurry CachedPackage) <$> listPackages packageDb
+        map (uncurry CachedPackage) <$> cachedListPackages packageDb
 
 newCacheEntry :: Path CacheDir -> IO FilePath
 newCacheEntry cacheDir = do

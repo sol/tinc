@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 module Tinc.Package (
   Package(..)
 , setAddSourceHash
@@ -9,13 +11,15 @@ module Tinc.Package (
 
 import           Data.List
 import           Data.String
+import           Data.Store
+import           GHC.Generics
 
 import           Tinc.Fail
 
 data Package = Package {
   packageName :: String
 , packageVersion :: Version
-} deriving (Eq, Ord, Show)
+} deriving (Eq, Ord, Show, Generic, Store)
 
 setAddSourceHash :: String -> Package -> Package
 setAddSourceHash hash (Package name (Version number _)) =
@@ -24,7 +28,7 @@ setAddSourceHash hash (Package name (Version number _)) =
 data Version = Version {
   versionNumber :: String
 , versionAddSourceHash :: Maybe String
-} deriving (Eq, Ord, Show)
+} deriving (Eq, Ord, Show, Generic, Store)
 
 instance IsString Version where
   fromString version = Version version Nothing
