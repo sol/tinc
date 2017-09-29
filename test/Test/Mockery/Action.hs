@@ -14,19 +14,18 @@ import           Control.Monad
 import           Data.IORef
 import           Data.List
 import           Test.Hspec
-import           Data.WithLocation
 
-failure :: WithLocation (String -> IO a)
+failure :: HasCallStack => String -> IO a
 failure err = expectationFailure err >> return undefined
 
-dummy :: WithLocation (Dummy a => String -> a)
+dummy :: HasCallStack => Dummy a => String -> a
 dummy = dummyNamed . Just
 
-dummy_ :: WithLocation (Dummy a => a)
+dummy_ :: HasCallStack => Dummy a => a
 dummy_ = dummyNamed Nothing
 
 class Dummy a where
-  dummyNamed :: WithLocation (Maybe String -> a)
+  dummyNamed :: HasCallStack => Maybe String -> a
 
 instance Dummy (IO r) where
   dummyNamed name = dummyNamed name ()
@@ -53,7 +52,7 @@ instance Dummy (a -> b -> c -> d -> e -> f -> IO r) where
 
 class Stub a where
   type Action_ a
-  stub :: WithLocation(a -> Action_ a)
+  stub :: HasCallStack => a -> Action_ a
 
 instance (MonadIO m, Eq a, Show a) => Stub (a, m r) where
   type Action_ (a, m r) = (a -> m r)
@@ -91,7 +90,7 @@ instance (MonadIO m, Eq a, Show a, Eq b, Show b, Eq c, Show c) => Stub [(a, b, c
       actual = (a1, b1, c1)
       expected = map (\(a, b, c, r) -> ((a, b, c), r)) options
 
-unexpectedParameters :: WithLocation ((MonadIO m, Show a) => Bool -> [a] -> a -> m r)
+unexpectedParameters :: HasCallStack => (MonadIO m, Show a) => Bool -> [a] -> a -> m r
 unexpectedParameters plural expected actual = do
   liftIO . failure . unlines $ [
       message
@@ -112,8 +111,8 @@ unexpectedParameters plural expected actual = do
       _ -> "        but got: " ++ show actual
 
 class Mockable a where
-  withMock :: WithLocation(a -> (a -> IO x) -> IO x)
-  mockChain :: WithLocation ([a] -> (a -> IO x) -> IO x)
+  withMock :: HasCallStack => a -> (a -> IO x) -> IO x
+  mockChain :: HasCallStack => [a] -> (a -> IO x) -> IO x
 
 instance Mockable (a -> IO r) where
   withMock action inner = withMock (\() -> action) $ inner . ($ ())

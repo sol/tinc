@@ -35,6 +35,7 @@ executable tinc
     , aeson >=0.11.0
     , base >=4.9.1.0
     , bytestring
+    , call-stack
     , containers
     , directory
     , exceptions
@@ -51,7 +52,6 @@ executable tinc
     , time
     , transformers
     , unix-compat
-    , with-location
     , yaml
   other-modules:
       Run
@@ -92,6 +92,7 @@ test-suite spec
     , aeson >=0.11.0
     , base >=4.9.1.0
     , bytestring
+    , call-stack
     , containers
     , directory
     , exceptions
@@ -112,7 +113,6 @@ test-suite spec
     , transformers
     , unix
     , unix-compat
-    , with-location
     , yaml
   other-modules:
       Run

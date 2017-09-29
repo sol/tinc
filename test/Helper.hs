@@ -12,7 +12,6 @@ module Helper (
 import           Test.Hspec
 import           Test.Mockery.Directory
 import           Test.Mockery.Action
-import           Data.WithLocation
 
 import qualified Data.Graph.Wrapper as G
 import           Data.List
@@ -35,7 +34,7 @@ facts = Facts {
 , factsGhcInfo = error "factsGhcInfo"
 }
 
-process :: WithLocation (Process IO)
+process :: HasCallStack => Process IO
 process = Process {
   readProcess = dummy "readProcess"
 , callProcess = dummy "callProcess"

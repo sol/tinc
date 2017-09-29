@@ -2,16 +2,21 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Tinc.Fail where
 
-import           Data.WithLocation
+import           Data.CallStack
 import           Control.Exception
 
 class (Functor m, Applicative m, Monad m) => Fail m where
   die :: String -> m a
 
-  dieLoc :: WithLocation(Fail m => String -> m a)
-  dieLoc message = die (maybe "" ((++ ": ") . locationFile) location ++ message)
+  dieLoc :: HasCallStack => String -> m a
+  dieLoc message = die (maybe "" ((++ ": ") . srcLocFile) location ++ message)
+    where
+      location :: HasCallStack => Maybe SrcLoc
+      location = case reverse callStack of
+        (_, loc) : _ -> Just loc
+        _ -> Nothing
 
-  bug :: WithLocation (Fail m => String -> m a)
+  bug :: (HasCallStack, Fail m) => String -> m a
   bug message = (dieLoc . unlines) [
       message
     , "This is most likely a bug.  Please report an issue at:"

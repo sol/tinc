@@ -179,8 +179,6 @@ dependencies:
   version: '0.7.0.1'
 - name: void
   version: '0.7.2'
-- name: with-location
-  version: '0.1.0'
 - name: yaml
   version: '0.8.23.3'
 - name: zlib
