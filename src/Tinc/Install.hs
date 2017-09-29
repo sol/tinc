@@ -88,7 +88,7 @@ solveDependencies facts@Facts{..} = do
   addSourceDependencies <- AddSource.extractAddSourceDependencies factsGitCache factsAddSourceCache additionalDeps
   cabalInstallPlan facts additionalDeps addSourceDependencies
 
-cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Facts -> [Hpack.Dependency] -> [AddSourceWithVersion] -> m [Package]
+cabalInstallPlan :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Facts -> Hpack.Dependencies -> [AddSourceWithVersion] -> m [Package]
 cabalInstallPlan facts@Facts{..} additionalDeps addSourceDependenciesWithVersions = withSystemTempDirectory "tinc" $ \dir -> do
   liftIO $ copyFreezeFile dir
   cabalFile <- liftIO (generateCabalFile additionalDeps)
@@ -129,13 +129,13 @@ copyFreezeFile dst = do
   where
     cabalFreezeFile = "cabal.config"
 
-generateCabalFile :: [Hpack.Dependency] -> IO (FilePath, String)
+generateCabalFile :: Hpack.Dependencies -> IO (FilePath, String)
 generateCabalFile additionalDeps = do
   hasHpackConfig <- Hpack.doesConfigExist
   cabalFiles <- getCabalFiles "."
   case cabalFiles of
     _ | hasHpackConfig -> renderHpack
-    [] | not (null additionalDeps) -> return generated
+    [] | not (additionalDeps == mempty) -> return generated
     [cabalFile] -> reuseExisting cabalFile
     [] -> die "No cabal file found."
     _ -> die "Multiple cabal files found."

@@ -1,12 +1,12 @@
 dependencies:
 - name: aeson
-  version: '1.2.1.0'
+  version: '1.2.2.0'
 - name: ansi-terminal
-  version: '0.6.3.1'
+  version: '0.7.1.1'
 - name: async
   version: '2.1.1.1'
 - name: attoparsec
-  version: '0.13.1.0'
+  version: '0.13.2.0'
 - name: base-compat
   version: '0.9.3'
 - name: base-orphans
@@ -25,10 +25,12 @@ dependencies:
   version: '1.0.2'
 - name: call-stack
   version: '0.1.0'
+- name: colour
+  version: '2.3.3'
 - name: comonad
   version: '5.0.2'
 - name: conduit
-  version: '1.2.11'
+  version: '1.2.12.1'
 - name: contravariant
   version: '1.4'
 - name: cryptohash
@@ -38,13 +40,13 @@ dependencies:
 - name: distributive
   version: '0.5.3'
 - name: dlist
-  version: '0.8.0.2'
+  version: '0.8.0.3'
 - name: exceptions
   version: '0.8.3'
 - name: fail
   version: '4.9.0.0'
 - name: filelock
-  version: '0.1.0.1'
+  version: '0.1.1.2'
 - name: foundation
   version: '0.0.15'
 - name: free
@@ -58,7 +60,7 @@ dependencies:
 - name: hashable
   version: '1.2.6.1'
 - name: hpack
-  version: '0.18.1'
+  version: '0.19.1'
 - name: hspec
   version: '2.4.4'
 - name: hspec-core
@@ -72,7 +74,7 @@ dependencies:
 - name: HUnit
   version: '1.6.0.0'
 - name: integer-logarithms
-  version: '1.0.1'
+  version: '1.0.2'
 - name: language-dot
   version: '0.1.0'
 - name: lifted-base
@@ -88,7 +90,7 @@ dependencies:
 - name: mockery
   version: '0.3.5'
 - name: monad-control
-  version: '1.0.2.0'
+  version: '1.0.2.2'
 - name: mono-traversable
   version: '1.0.2.1'
 - name: mtl
@@ -114,7 +116,7 @@ dependencies:
 - name: safe
   version: '0.3.15'
 - name: scientific
-  version: '0.3.4.15'
+  version: '0.3.5.2'
 - name: semigroupoids
   version: '5.2.1'
 - name: semigroups
@@ -140,11 +142,13 @@ dependencies:
 - name: tagged
   version: '0.8.5'
 - name: temporary
-  version: '1.2.1'
+  version: '1.2.1.1'
 - name: text
   version: '1.2.2.2'
 - name: tf-random
   version: '0.5'
+- name: th-abstraction
+  version: '0.2.6.0'
 - name: th-expand-syns
   version: '0.4.3.0'
 - name: th-lift
@@ -178,6 +182,6 @@ dependencies:
 - name: with-location
   version: '0.1.0'
 - name: yaml
-  version: '0.8.23.1'
+  version: '0.8.23.3'
 - name: zlib
   version: '0.6.1.2'

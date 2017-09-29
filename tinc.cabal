@@ -42,7 +42,7 @@ executable tinc
     , filepath
     , gitrev
     , graph-wrapper >=0.2.5
-    , hpack ==0.18.*
+    , hpack >=0.19.1
     , language-dot
     , parsec
     , process >=1.2
@@ -99,7 +99,7 @@ test-suite spec
     , filepath
     , gitrev
     , graph-wrapper >=0.2.5
-    , hpack ==0.18.*
+    , hpack >=0.19.1
     , hspec
     , language-dot
     , mockery >=0.3.3

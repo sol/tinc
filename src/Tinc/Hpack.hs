@@ -14,12 +14,12 @@ import           Tinc.Fail
 doesConfigExist :: IO Bool
 doesConfigExist = doesFileExist Hpack.packageConfig
 
-readConfig :: [Hpack.Dependency] -> IO Hpack.Package
+readConfig :: Hpack.Dependencies -> IO Hpack.Package
 readConfig additionalDeps = Hpack.readPackageConfig Hpack.packageConfig >>= either die (return . addDependencies . snd)
   where
     addDependencies :: Hpack.Package -> Hpack.Package
     addDependencies p
-      | null additionalDeps = p
+      | additionalDeps == mempty = p
       | otherwise = (Hpack.renamePackage "tinc-generated" p) {Hpack.packageExecutables = mkExecutable additionalDeps : Hpack.packageExecutables p}
 
 render :: Hpack.Package -> (FilePath, String)
@@ -31,8 +31,8 @@ render pkg = (name, contents)
     contents :: String
     contents = renderPackage defaultRenderSettings 2 [] [] pkg
 
-mkPackage :: [Hpack.Dependency] -> Hpack.Package
+mkPackage :: Hpack.Dependencies -> Hpack.Package
 mkPackage deps = (Hpack.package "tinc-generated" "0.0.0"){Hpack.packageExecutables = [mkExecutable deps]}
 
-mkExecutable :: [Hpack.Dependency] -> Hpack.Section Hpack.Executable
+mkExecutable :: Hpack.Dependencies -> Hpack.Section Hpack.Executable
 mkExecutable deps = (Hpack.section $ Hpack.Executable "tinc-generated" "Generated.hs" []){Hpack.sectionDependencies = deps}

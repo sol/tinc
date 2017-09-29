@@ -51,8 +51,8 @@ import           System.Directory hiding (getDirectoryContents, withCurrentDirec
 import           System.FilePath
 import           System.IO.Temp
 import           Data.Aeson
-import           Data.Aeson.Types
 import           GHC.Generics
+import           GHC.Exts
 
 import           Tinc.Fail
 import           Tinc.Types
@@ -104,9 +104,9 @@ instance ToJSON AddSource where
 addSourcePath :: Path AddSourceCache -> AddSource -> Path AddSource
 addSourcePath (Path cache) (AddSource name rev) = Path $ cache </> name </> rev
 
-extractAddSourceDependencies :: Path GitCache -> Path AddSourceCache -> [Hpack.Dependency] -> IO [AddSourceWithVersion]
+extractAddSourceDependencies :: Path GitCache -> Path AddSourceCache -> Hpack.Dependencies -> IO [AddSourceWithVersion]
 extractAddSourceDependencies gitCache addSourceCache additionalDeps = do
-  parseAddSourceDependencies additionalDeps >>= fmap removeDuplicates . unfoldForestM go
+  parseAddSourceDependencies (toList additionalDeps) >>= fmap removeDuplicates . unfoldForestM go
   where
     go :: AddSourceDependency Ref -> IO (AddSourceWithVersion, [AddSourceDependency Ref])
     go dep@(AddSourceDependency _ source) = do
@@ -180,23 +180,23 @@ addSourceDependenciesFrom addSourceCache (AddSourceDependency _ source, addSourc
   where
     config = path (addSourcePath addSourceCache addSource) </> Hpack.packageConfig
 
-filterAddSource :: [Hpack.Dependency] -> [AddSourceDependency Ref]
-filterAddSource deps = [AddSourceDependency name (toSource addSource) | Hpack.Dependency name (Just addSource) <- deps]
+filterAddSource :: [(String, Hpack.DependencyVersion)] -> [AddSourceDependency Ref]
+filterAddSource deps = [AddSourceDependency name (toSource addSource) | (name, Hpack.SourceDependency addSource) <- deps]
   where
-    toSource :: Hpack.AddSource -> Source Ref
+    toSource :: Hpack.SourceDependency -> Source Ref
     toSource x = case x of
       Hpack.GitRef repo ref subdir -> Git repo (Ref ref) subdir
       Hpack.Local dir -> Local dir
 
-parseAddSourceDependencies :: [Hpack.Dependency] ->  IO [AddSourceDependency Ref]
+parseAddSourceDependencies :: [(String, Hpack.DependencyVersion)] ->  IO [AddSourceDependency Ref]
 parseAddSourceDependencies additionalDeps = do
   exists <- doesConfigExist
   packageDeps <- if exists
     then do
-      pkg <- readConfig []
+      pkg <- readConfig mempty
       return $ Hpack.packageDependencies pkg
     else return []
-  let deps = nubBy ((==) `on` Hpack.dependencyName) (additionalDeps ++ packageDeps)
+  let deps = nubBy ((==) `on` fst) (additionalDeps ++ packageDeps)
   return (filterAddSource deps)
 
 type PopulateAddSourceCache cachedRev = AddSourceDependency cachedRev -> IO AddSource

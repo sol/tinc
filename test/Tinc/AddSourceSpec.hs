@@ -75,7 +75,7 @@ spec = do
 
     it "extracts git dependencies from list of additional dependencies " $ do
       inTempDirectory $ do
-        parseAddSourceDependencies [Dependency "foo" (Just $ GitRef "https://github.com/sol/hpack" "master" Nothing), "bar"] `shouldReturn`
+        parseAddSourceDependencies [("foo", SourceDependency $ GitRef "https://github.com/sol/hpack" "master" Nothing), ("bar", AnyVersion)] `shouldReturn`
           [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
 
     context "when the same git dependency is specified in both package.yaml and tinc.yaml" $ do
@@ -89,7 +89,7 @@ spec = do
             , "  - bar"
             , "library: {}"
             ]
-          parseAddSourceDependencies [Dependency "foo" (Just $ GitRef "https://github.com/sol/hpack" "dev" Nothing), "bar"] `shouldReturn`
+          parseAddSourceDependencies [("foo", SourceDependency $ GitRef "https://github.com/sol/hpack" "dev" Nothing), ("bar", AnyVersion)] `shouldReturn`
             [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "dev" Nothing)]
 
     context "when package.yaml can not be parsed" $ do

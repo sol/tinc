@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLists #-}
 module Tinc.ConfigSpec where
 
 import           Test.Hspec
 import           Test.Mockery.Directory
+import           Hpack.Config
 
 import           Tinc.Config
 
@@ -15,9 +17,9 @@ spec = do
             "dependencies:"
           , "  - foo"
           ]
-        getAdditionalDependencies `shouldReturn` ["foo"]
+        getAdditionalDependencies `shouldReturn` [("foo", AnyVersion)]
 
     context "when tinc.yaml does not exist" $ do
       it "returns an empty list" $ do
         inTempDirectory $ do
-          getAdditionalDependencies `shouldReturn` []
+          getAdditionalDependencies `shouldReturn` mempty

@@ -14,6 +14,9 @@ import           Data.Version (makeVersion)
 import           System.Directory hiding (withCurrentDirectory)
 import           System.FilePath
 
+import           Hpack.Config (DependencyVersion(..))
+import           GHC.Exts
+
 import           Tinc.Facts
 import           Tinc.Install
 import           Tinc.Package
@@ -68,7 +71,7 @@ spec = do
         let cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
         let ?mockedCallProcess = stub cabalSandboxInit
             ?mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests"], "", cabalInstallResult)
-        withMockedEnv (cabalInstallPlan facts [] []) `shouldReturn` [Package "setenv" "0.1.1.3"]
+        withMockedEnv (cabalInstallPlan facts mempty []) `shouldReturn` [Package "setenv" "0.1.1.3"]
 
     it "takes add-source dependencies into account" $ do
       withCabalFile $ \sandbox -> do
@@ -87,7 +90,7 @@ spec = do
               , ("cabal", ["sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
               ]
             ?mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests", "--constraint=setenv == 0.1.0"], "", cabalInstallResult)
-        withMockedEnv (cabalInstallPlan facts {factsAddSourceCache = addSourceCache} [] [(cachedDependency, makeVersion [0,1,0])]) `shouldReturn` [dependency]
+        withMockedEnv (cabalInstallPlan facts {factsAddSourceCache = addSourceCache} mempty [(cachedDependency, makeVersion [0,1,0])]) `shouldReturn` [dependency]
 
   describe "copyFreezeFile" $ do
     it "copies freeze file" $ do
@@ -106,7 +109,7 @@ spec = do
     context "when there are additional dependencies" $ do
       it "generates a cabal file" $ do
         inTempDirectory $ do
-          generateCabalFile ["foo"] `shouldReturn` ("tinc-generated.cabal", unlines [
+          generateCabalFile (fromList [("foo", AnyVersion)]) `shouldReturn` ("tinc-generated.cabal", unlines [
               "name: tinc-generated"
             , "version: 0.0.0"
             , "build-type: Simple"
@@ -125,7 +128,7 @@ spec = do
           writeFile "package.yaml" $ unlines [
               "name: foo"
             ]
-          generateCabalFile [] `shouldReturn` ("foo.cabal", unlines [
+          generateCabalFile mempty `shouldReturn` ("foo.cabal", unlines [
               "name: foo"
             , "version: 0.0.0"
             , "build-type: Simple"
@@ -140,7 +143,7 @@ spec = do
             , "library:"
             , "  dependencies: foo"
             ]
-          generateCabalFile ["bar"] `shouldReturn` ("tinc-generated.cabal", unlines [
+          generateCabalFile (fromList [("bar", AnyVersion)]) `shouldReturn` ("tinc-generated.cabal", unlines [
               "name: tinc-generated"
             , "version: 0.0.0"
             , "build-type: Simple"
@@ -164,22 +167,22 @@ spec = do
       it "returns contents" $ do
         inTempDirectory $ do
           writeFile "foo.cabal" "foo"
-          generateCabalFile [] `shouldReturn` ("foo.cabal", "foo")
+          generateCabalFile mempty `shouldReturn` ("foo.cabal", "foo")
 
       context "when there are additional dependencies" $ do
         it "ignores them (for now)" $ do
           inTempDirectory $ do
             writeFile "foo.cabal" "foo"
-            generateCabalFile ["foo"] `shouldReturn` ("foo.cabal", "foo")
+            generateCabalFile (fromList [("foo", AnyVersion)]) `shouldReturn` ("foo.cabal", "foo")
 
     context "when there are multiple cabal files" $ do
       it "fails" $ do
         inTempDirectory $ do
           touch "foo.cabal"
           touch "bar.cabal"
-          generateCabalFile [] `shouldThrow` errorCall "Multiple cabal files found."
+          generateCabalFile mempty `shouldThrow` errorCall "Multiple cabal files found."
 
     context "when there is no cabal file" $ do
       it "fails" $ do
         inTempDirectory $ do
-          generateCabalFile [] `shouldThrow` errorCall "No cabal file found."
+          generateCabalFile mempty `shouldThrow` errorCall "No cabal file found."

@@ -13,7 +13,7 @@ import           System.Directory
 import           Tinc.Fail
 
 data Config = Config {
-  dependencies :: [Dependency]
+  dependencies :: Dependencies
 } deriving (Eq, Show, Generic)
 
 instance FromJSON Config
@@ -21,12 +21,12 @@ instance FromJSON Config
 configFile :: FilePath
 configFile = "tinc.yaml"
 
-getAdditionalDependencies :: IO [Dependency]
+getAdditionalDependencies :: IO Dependencies
 getAdditionalDependencies = do
   exists <- doesFileExist configFile
   if exists
     then readConfig
-    else return []
+    else return mempty
 
-readConfig :: IO [Dependency]
+readConfig :: IO Dependencies
 readConfig = decodeYaml configFile >>= either die (return . dependencies)
