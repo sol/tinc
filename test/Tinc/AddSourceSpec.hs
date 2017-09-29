@@ -78,6 +78,28 @@ spec = do
         parseAddSourceDependencies [("foo", SourceDependency $ GitRef "https://github.com/sol/hpack" "master" Nothing), ("bar", AnyVersion)] `shouldReturn`
           [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
 
+    context "when both source dependencies and regular dependencies are present" $ do
+      it "gives source dependencies precedence" $ do
+        inTempDirectory $ do
+          writeFile "package.yaml" $ unlines [
+              "executables:"
+            , "  a:"
+            , "    main: Main.hs"
+            , "    dependencies:"
+            , "      - foo"
+            , "  b:"
+            , "    main: Main.hs"
+            , "    dependencies:"
+            , "      - name: foo"
+            , "        git: https://github.com/sol/hpack"
+            , "        ref: master"
+            , "  c:"
+            , "    main: Main.hs"
+            , "    dependencies:"
+            , "      - foo"
+            ]
+          parseAddSourceDependencies [] `shouldReturn` [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
+
     context "when the same git dependency is specified in both package.yaml and tinc.yaml" $ do
       it "gives tinc.yaml precedence" $ do
         inTempDirectory $ do

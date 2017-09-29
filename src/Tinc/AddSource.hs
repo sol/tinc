@@ -196,8 +196,8 @@ parseAddSourceDependencies additionalDeps = do
       pkg <- readConfig mempty
       return $ Hpack.packageDependencies pkg
     else return []
-  let deps = nubBy ((==) `on` fst) (additionalDeps ++ packageDeps)
-  return (filterAddSource deps)
+  let deps = additionalDeps ++ packageDeps
+  return (nubBy ((==) `on` _addSourceDependencyName) $ filterAddSource deps)
 
 type PopulateAddSourceCache cachedRev = AddSourceDependency cachedRev -> IO AddSource
 
