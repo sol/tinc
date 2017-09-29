@@ -12,6 +12,11 @@ spec = do
       showPackage (Package "foo" "0.1.0" {versionAddSourceHash = Just "32509a18bb6ddc01014863d135a247bd65d16c38"})
         `shouldBe` "foo-0.1.0"
 
+  describe "showPackageDetailed" $ do
+    it "includes add-source hash" $ do
+      showPackageDetailed (Package "foo" "0.1.0" {versionAddSourceHash = Just "32509a18bb6ddc01014863d135a247bd65d16c38"})
+        `shouldBe` "foo-0.1.0 (32509a18bb6ddc01014863d135a247bd65d16c38)"
+
   describe "parseInstallPlan" $ do
     it "parses output from `cabal install --dry-run`" $ do
       output <- readFile "test/resources/cabal-1.22.4.0-dry-run.txt"

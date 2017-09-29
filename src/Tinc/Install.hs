@@ -57,8 +57,8 @@ installDependencies dryRun facts@Facts{..} = do
       where
         printInstallPlan :: InstallPlan -> IO ()
         printInstallPlan (InstallPlan reusable missing) = do
-          mapM_ (putStrLn . ("Reusing " ++) . showPackage) (map cachedPackageName reusable)
-          mapM_ (putStrLn . ("Installing " ++) . showPackage) missing
+          mapM_ (putStrLn . ("Reusing " ++) . showPackageDetailed) (map cachedPackageName reusable)
+          mapM_ (putStrLn . ("Installing " ++) . showPackageDetailed) missing
     doNix =
           tee printInstallPlan
       >=> unless dryRun . (
@@ -68,7 +68,7 @@ installDependencies dryRun facts@Facts{..} = do
       where
         printInstallPlan :: [Package] -> IO ()
         printInstallPlan packages = do
-          mapM_ (putStrLn . ("Using " ++) . showPackage) packages
+          mapM_ (putStrLn . ("Using " ++) . showPackageDetailed) packages
 
 data InstallPlan = InstallPlan {
   _installPlanReusable :: [CachedPackage]

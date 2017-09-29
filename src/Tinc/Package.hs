@@ -5,6 +5,7 @@ module Tinc.Package (
 , setAddSourceHash
 , Version(..)
 , showPackage
+, showPackageDetailed
 , parsePackage
 , parseInstallPlan
 ) where
@@ -38,6 +39,12 @@ showPackage (Package name version) = name ++ "-" ++ showVersion version
 
 showVersion :: Version -> String
 showVersion (Version v _) = v
+
+showPackageDetailed :: Package -> String
+showPackageDetailed (Package name version) = name ++ "-" ++ showVersionDetailed version
+
+showVersionDetailed :: Version -> String
+showVersionDetailed (Version v mHash) = v ++ maybe "" (\ hash -> " (" ++ hash ++ ")") mHash
 
 parsePackage :: String -> Package
 parsePackage s = case break (== '-') (reverse s) of
