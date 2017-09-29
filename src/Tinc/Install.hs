@@ -103,13 +103,13 @@ cabalInstallPlan facts@Facts{..} additionalDeps addSourceDependenciesWithVersion
     addSourceConstraints = map addSourceConstraint addSourceDependenciesWithVersions
     args = ["--only-dependencies", "--enable-tests"] ++ addSourceConstraints
     markAddSourceDependencies = map addAddSourceHash
-    addAddSourceHash :: Package -> Package
-    addAddSourceHash p@(Package name version) = case lookup name addSourceHashes of
-      Just rev -> Package name version {versionAddSourceHash = Just rev}
-      Nothing -> p
+    addAddSourceHash :: SimplePackage -> Package
+    addAddSourceHash (SimplePackage name version) = case lookup name addSourceHashes of
+      Just rev -> Package name (Version version (Just rev))
+      Nothing -> Package name (Version version Nothing)
     addSourceHashes = [(name, rev) | AddSource name rev <- addSourceDependencies]
 
-cabalDryInstall :: (MonadIO m, Fail m, MonadProcess m, MonadCatch m) => Facts -> [String] -> [Constraint] -> m [Package]
+cabalDryInstall :: (MonadIO m, Fail m, MonadProcess m, MonadCatch m) => Facts -> [String] -> [Constraint] -> m [SimplePackage]
 cabalDryInstall facts args constraints = go >>= parseInstallPlan
   where
     install xs = uncurry readProcessM (cabal facts ("install" : "--dry-run" : xs)) ""

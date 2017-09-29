@@ -69,17 +69,20 @@ findReusablePackages (Cache globalPackages packageGraphs) installPlan = reusable
     findReusable packageGraph =
       [CachedPackage p c | (p, PackageConfig c)  <- calculateReusablePackages packages packageGraph]
       where
-        packages = nubBy ((==) `on` packageName) (installPlan ++ globalPackages)
+        packages = nubBy ((==) `on` packageName) (installPlan ++ map fromSimplePackage globalPackages)
 
 data Cache = Cache {
-  _cacheGlobalPackages :: [Package]
+  _cacheGlobalPackages :: [SimplePackage]
 , _cachePackageGraphs :: [PackageGraph PackageLocation]
 }
 
 data PackageLocation = GlobalPackage | PackageConfig (Path PackageConfig)
   deriving (Eq, Ord, Show)
 
-readPackageGraph :: (MonadIO m, Fail m, GhcPkg m) => [Package] -> Path PackageDb -> Path PackageDb -> m (PackageGraph PackageLocation)
+fromSimplePackage :: SimplePackage -> Package
+fromSimplePackage (SimplePackage name version) = Package name (Version version Nothing)
+
+readPackageGraph :: (MonadIO m, Fail m, GhcPkg m) => [SimplePackage] -> Path PackageDb -> Path PackageDb -> m (PackageGraph PackageLocation)
 readPackageGraph globalPackages globalPackageDb packageDb = do
   packageConfigs <- liftIO $ cachedListPackages packageDb
   let globalValues = map (, GlobalPackage) globalPackages
@@ -110,12 +113,14 @@ writeAddSourceHashes packageDb addSourceHashes
       encodeFile (path packageDb </> addSourceHashesFile) addSourceHashes
       touchPackageCache packageDb
 
-addAddSourceHash :: Map.Map String String -> Package -> PackageLocation -> Package
-addAddSourceHash hashes package location = case location of
-  PackageConfig _ -> maybe package (\ hash -> setAddSourceHash hash package) (Map.lookup (packageName package) hashes)
+addAddSourceHash :: Map.Map String String -> SimplePackage -> PackageLocation -> Package
+addAddSourceHash hashes (SimplePackage name version) location = case location of
+  PackageConfig _ -> maybe package (\ hash -> Package name (Version version $ Just hash)) (Map.lookup (packageName package) hashes)
   GlobalPackage -> package
+  where
+    package = Package name (Version version Nothing)
 
-addAddSourceHashes :: Path PackageDb -> PackageGraph PackageLocation -> IO (PackageGraph PackageLocation)
+addAddSourceHashes :: Path PackageDb -> SimplePackageGraph PackageLocation -> IO (PackageGraph PackageLocation)
 addAddSourceHashes packageDb graph = do
   hashes <- mkMap <$> readAddSourceHashes packageDb
   return $ mapIndex (addAddSourceHash hashes) graph
@@ -176,7 +181,11 @@ populateCache cacheDir addSourceCache missing reusable = either return populate 
           writeAddSourceHashes packageDb populateCacheActionWriteAddSourceHashes
           writeFile validMarker ""
         callProcessM "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage populateCacheActionInstallPlan)
-        map (uncurry CachedPackage) <$> cachedListPackages packageDb
+        map (uncurry CachedPackage)
+          . ignore_add_source_hashes_for_now_as_we_currently_do_not_need_them
+          <$> cachedListPackages packageDb
+
+    ignore_add_source_hashes_for_now_as_we_currently_do_not_need_them = map (\ (a, b) -> (fromSimplePackage a, b))
 
 newCacheEntry :: Path CacheDir -> IO FilePath
 newCacheEntry cacheDir = do

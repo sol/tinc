@@ -2,6 +2,7 @@
 {-# LANGUAGE ViewPatterns #-}
 module Tinc.PackageGraph (
   PackageGraph
+, SimplePackageGraph
 , fromDot
 , calculateReusablePackages
 , mapIndex
@@ -45,14 +46,16 @@ calculateReusablePackages installPlan cache = filter p cachedPackages
 
 -- * dot
 
-fromDot :: Fail m => [(Package, v)] -> String -> m (PackageGraph v)
+type SimplePackageGraph a = Graph SimplePackage a
+
+fromDot :: Fail m => [(SimplePackage, v)] -> String -> m (SimplePackageGraph v)
 fromDot values dot = case parseDot "<input>" dot of
   Right (Dot.Graph _ _ _ statements) ->
     fmap fromMap $
     foldM collectStatements (Map.fromList $ map (fmap (,[])) values) statements
   Left parseError -> dieLoc $ unlines $ map messageString $ errorMessages parseError
 
-type PackageMap v = Map Package (v, [Package])
+type PackageMap v = Map SimplePackage (v, [SimplePackage])
 
 collectStatements :: Fail m => PackageMap v -> Statement -> m (PackageMap v)
 collectStatements packageMap s = case s of
@@ -71,7 +74,7 @@ fromMap = fromList . map f . Map.toList
   where
     f (i, (v, xs)) = (i, v, xs)
 
-toPackage :: NodeId -> Package
+toPackage :: NodeId -> SimplePackage
 toPackage (NodeId i _) = parsePackage $ case i of
   NameId s -> s
   StringId s -> s

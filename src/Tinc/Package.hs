@@ -2,10 +2,10 @@
 {-# LANGUAGE DeriveAnyClass #-}
 module Tinc.Package (
   Package(..)
-, setAddSourceHash
 , Version(..)
 , showPackage
 , showPackageDetailed
+, SimplePackage(..)
 , parsePackage
 , parseInstallPlan
 ) where
@@ -20,16 +20,12 @@ import           Tinc.Fail
 data Package = Package {
   packageName :: String
 , packageVersion :: Version
-} deriving (Eq, Ord, Show, Generic, Store)
-
-setAddSourceHash :: String -> Package -> Package
-setAddSourceHash hash (Package name (Version number _)) =
-  Package name (Version number (Just hash))
+} deriving (Eq, Ord, Show)
 
 data Version = Version {
   versionNumber :: String
 , versionAddSourceHash :: Maybe String
-} deriving (Eq, Ord, Show, Generic, Store)
+} deriving (Eq, Ord, Show)
 
 instance IsString Version where
   fromString version = Version version Nothing
@@ -46,12 +42,17 @@ showPackageDetailed (Package name version) = name ++ "-" ++ showVersionDetailed 
 showVersionDetailed :: Version -> String
 showVersionDetailed (Version v mHash) = v ++ maybe "" (\ hash -> " (" ++ hash ++ ")") mHash
 
-parsePackage :: String -> Package
-parsePackage s = case break (== '-') (reverse s) of
-  (v, '-' : p) -> Package (reverse p) (Version (reverse v) Nothing)
-  _ -> Package s (Version "" Nothing)
+data SimplePackage = SimplePackage {
+  simplePackageName :: String
+, simplePackageVersion :: String
+} deriving (Eq, Ord, Show, Generic, Store)
 
-parseInstallPlan :: Fail m => String -> m [Package]
+parsePackage :: String -> SimplePackage
+parsePackage s = case break (== '-') (reverse s) of
+  (v, '-' : p) -> SimplePackage (reverse p) (reverse v)
+  _ -> SimplePackage s ""
+
+parseInstallPlan :: Fail m => String -> m [SimplePackage]
 parseInstallPlan input = case lines input of
   "Resolving dependencies..." : what : packages | needsInstalls what -> return (parse packages)
   "Resolving dependencies..." : what : _ | alreadyInstalled what -> return []

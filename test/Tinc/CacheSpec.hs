@@ -36,6 +36,12 @@ ghcPkgEnv = ReadGhcPkgEnv readGhcPkg
 instance GhcPkg (WithEnv ReadGhcPkgEnv) where
   readGhcPkg packageDbs args = WithEnv $ asks envReadGhcPkg >>= liftIO . ($ args) . ($ packageDbs)
 
+toSimplePackage :: Package -> SimplePackage
+toSimplePackage (Package name (Version version _)) = SimplePackage name version
+
+fromSimplePackage :: SimplePackage -> Package
+fromSimplePackage (SimplePackage name version) = Package name (Version version Nothing)
+
 spec :: Spec
 spec = do
   describe "readPackageGraph" $ do
@@ -56,7 +62,7 @@ spec = do
               packageDbs = [globalPackageDb, packageDb]
 
               mockedEnv = ghcPkgEnv {envReadGhcPkg = stub (packageDbs, ["dot"], return graph)}
-          writePackageConfig (package, path packageConfig)
+          writePackageConfig (toSimplePackage package, path packageConfig)
           touch $ path packageDb </> "package.cache"
 
           withEnv mockedEnv (readPackageGraph [] globalPackageDb packageDb)
@@ -64,7 +70,7 @@ spec = do
 
   describe "addAddSourceHashes" $ do
     let hash = "8cd0e753e18b1576cbe3eb2e61977a3b0debf430"
-        foo = Package "foo" "0.1.0"
+        foo = SimplePackage "foo" "0.1.0"
         writeAddSourceHashes packageDb =
           writeFile (path packageDb </> "add-source.yaml") "- {package-name: foo, hash: 8cd0e753e18b1576cbe3eb2e61977a3b0debf430}"
 
@@ -74,7 +80,7 @@ spec = do
             graph = G.fromList [(foo, fooConfig, [])]
         writeAddSourceHashes packageDb
         addAddSourceHashes packageDb graph `shouldReturn`
-          G.fromList [(setAddSourceHash hash foo, fooConfig, [])]
+          G.fromList [(Package "foo" (Version "0.1.0" $ Just hash), fooConfig, [])]
 
     it "doesn't attach add-source hashes to global packages" $ do
       withSystemTempDirectory "tinc" $ \ (Path -> packageDb) -> do
@@ -82,7 +88,7 @@ spec = do
             graph = G.fromList [(foo, fooConfig, [])]
         writeAddSourceHashes packageDb
         addAddSourceHashes packageDb graph `shouldReturn`
-          G.fromList [(foo, fooConfig, [])]
+          G.fromList [(fromSimplePackage foo, fooConfig, [])]
 
   describe "populateCacheAction" $ do
     let addSourceCache = "/path/to/add-source-cache"

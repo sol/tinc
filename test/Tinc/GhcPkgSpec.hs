@@ -44,4 +44,4 @@ spec = do
   describe "listGlobalPackages" $ before_ (getExecutablePath >>= useNix >>= (`when` pending)) $ do
     it "lists packages from global package database" $ do
       packages <- listGlobalPackages
-      map packageName packages `shouldMatchList` globalPackages
+      map simplePackageName packages `shouldMatchList` globalPackages

@@ -42,17 +42,17 @@ spec = do
           "}" :
           []
         expected =
-          (Package "a" "", (), [Package "b" ""]) :
-          (Package "b" "", (), [Package "c" ""]) :
-          (Package "c" "", (), []) :
-          (Package "d" "", (), []) :
+          (SimplePackage "a" "", (), [SimplePackage "b" ""]) :
+          (SimplePackage "b" "", (), [SimplePackage "c" ""]) :
+          (SimplePackage "c" "", (), []) :
+          (SimplePackage "d" "", (), []) :
           []
 
         values =
-          (Package "a" "", ()) :
-          (Package "b" "", ()) :
-          (Package "d" "", ()) :
-          (Package "c" "", ()) :
+          (SimplePackage "a" "", ()) :
+          (SimplePackage "b" "", ()) :
+          (SimplePackage "d" "", ()) :
+          (SimplePackage "c" "", ()) :
           []
 
     it "parses dot graphs" $ do
@@ -61,9 +61,9 @@ spec = do
     context "when it encounters an outgoing node with a missing value" $ do
       it "returns an error" $ do
         fromDot (drop 1 values) dot `shouldThrow`
-          errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (Package "a" ""))
+          errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (SimplePackage "a" ""))
 
     context "when it encounters an ingoing node with a missing value" $ do
       it "returns an error" $ do
         fromDot (init values) dot `shouldThrow`
-          errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (Package "c" ""))
+          errorCall ("src/Tinc/PackageGraph.hs: No value for package: " ++ show (SimplePackage "c" ""))

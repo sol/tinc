@@ -90,28 +90,28 @@ registerPackageConfigs packageDb packages = do
 registerPackage :: Path PackageDb -> Path PackageConfig -> IO ()
 registerPackage packageDb package = linkFile (path package) (path packageDb)
 
-cachedListPackages :: MonadIO m => Path PackageDb -> m [(Package, Path PackageConfig)]
+cachedListPackages :: MonadIO m => Path PackageDb -> m [(SimplePackage, Path PackageConfig)]
 cachedListPackages p = do
   map (fmap Path) <$> cachedIOAfterStore (liftIO $ touchPackageCache p) cacheFile (listPackages p)
   where
-    cacheFile = path p </> "packages.v1"
+    cacheFile = path p </> "packages.v2"
 
-listPackages :: MonadIO m => Path PackageDb -> m [(Package, FilePath)]
+listPackages :: MonadIO m => Path PackageDb -> m [(SimplePackage, FilePath)]
 listPackages p = do
   packageConfigs <- liftIO $ filter (".conf" `isSuffixOf`) <$> getDirectoryContents (path p)
   absolutePackageConfigs <- liftIO . mapM canonicalizePath $ map (path p </>) packageConfigs
   packages <- mapM (liftIO . packageFromPackageConfig) absolutePackageConfigs
   return (zip packages absolutePackageConfigs)
 
-packageFromPackageConfig :: FilePath -> IO Package
+packageFromPackageConfig :: FilePath -> IO SimplePackage
 packageFromPackageConfig conf = do
   input <- readFile conf
   case parsePackageConfig (lines input) of
     Just x -> return x
     Nothing -> dieLoc (conf ++ ": parse error")
 
-parsePackageConfig :: [String] -> Maybe Package
-parsePackageConfig input = Package <$> name <*> (Version <$> version <*> pure Nothing)
+parsePackageConfig :: [String] -> Maybe SimplePackage
+parsePackageConfig input = SimplePackage <$> name <*> version
   where
     name = readField "name" input
     version = readField "version" input

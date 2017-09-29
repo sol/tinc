@@ -12,8 +12,8 @@ import           Tinc.Package
 import           Tinc.Sandbox
 import           Tinc.Types
 
-writePackageConfig :: (Package, FilePath) -> IO ()
-writePackageConfig (Package name (Version version _), packageConfig) = do
+writePackageConfig :: (SimplePackage, FilePath) -> IO ()
+writePackageConfig (SimplePackage name version, packageConfig) = do
   writeFile packageConfig $ unlines [
       "name: " ++ name
     , "version: " ++ version
@@ -38,9 +38,9 @@ spec = do
   describe "listPackages" $ do
     it "lists packages package database" $ withSystemTempDirectory "tinc" $ \ p -> do
       let packages = [
-              (Package "foo" "2.1.7", p </> "foo-2.1.7-8b77e2706d2c2c9243c5d86e44c11aa6.conf")
-            , (Package "bar" "0.0.0", p </> "bar-0.0.0-57c8091ea57afec62c051eda2322cc2f.conf")
-            , (Package "baz" "0.6.1", p </> "baz-0.6.1-91bc956c71d416cc2ca71cc535d34d6f.conf")
+              (SimplePackage "foo" "2.1.7", p </> "foo-2.1.7-8b77e2706d2c2c9243c5d86e44c11aa6.conf")
+            , (SimplePackage "bar" "0.0.0", p </> "bar-0.0.0-57c8091ea57afec62c051eda2322cc2f.conf")
+            , (SimplePackage "baz" "0.6.1", p </> "baz-0.6.1-91bc956c71d416cc2ca71cc535d34d6f.conf")
             ]
       mapM_ writePackageConfig packages
       listPackages (Path p) >>= (`shouldMatchList` packages)
@@ -53,7 +53,7 @@ spec = do
       inTempDirectory $ do
         let packageDb = ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d"
             packageConfig = "foo" </> "foo-0.1.0-8b77e2.conf"
-            package = Package "foo" "0.1.0"
+            package = SimplePackage "foo" "0.1.0"
 
         createDirectoryIfMissing True (path packageDb)
         createDirectoryIfMissing False "bar"
@@ -74,4 +74,4 @@ spec = do
             "name: tinc"
           , "version: 0.1.0"
           ]
-        packageFromPackageConfig conf `shouldReturn` Package "tinc" "0.1.0"
+        packageFromPackageConfig conf `shouldReturn` SimplePackage "tinc" "0.1.0"
