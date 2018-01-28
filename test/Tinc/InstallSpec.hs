@@ -143,8 +143,8 @@ spec = do
             , "library:"
             , "  dependencies: foo"
             ]
-          generateCabalFile (fromList [("bar", AnyVersion)]) `shouldReturn` ("tinc-generated.cabal", unlines [
-              "name: tinc-generated"
+          generateCabalFile (fromList [("bar", AnyVersion)]) `shouldReturn` ("foo.cabal", unlines [
+              "name: foo"
             , "version: 0.0.0"
             , "build-type: Simple"
             , "cabal-version: >= 1.10"

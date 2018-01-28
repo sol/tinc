@@ -22,7 +22,7 @@ readConfig additionalDeps = Hpack.readPackageConfig Hpack.packageConfig >>= eith
     addDependencies :: Hpack.Package -> Hpack.Package
     addDependencies p
       | additionalDeps == mempty = p
-      | otherwise = (Hpack.renamePackage "tinc-generated" p) {Hpack.packageExecutables = [mkExecutable additionalDeps] <> Hpack.packageExecutables p}
+      | otherwise = p {Hpack.packageExecutables = [mkExecutable additionalDeps] <> Hpack.packageExecutables p}
 
 render :: Hpack.Package -> (FilePath, String)
 render pkg = (name, contents)
