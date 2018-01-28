@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedLists #-}
 module Tinc.Hpack (
   readConfig
 , doesConfigExist
@@ -5,6 +6,7 @@ module Tinc.Hpack (
 , mkPackage
 ) where
 
+import           Data.Monoid
 import           System.Directory hiding (getDirectoryContents)
 import qualified Hpack.Config as Hpack
 import           Hpack.Run
@@ -20,7 +22,7 @@ readConfig additionalDeps = Hpack.readPackageConfig Hpack.packageConfig >>= eith
     addDependencies :: Hpack.Package -> Hpack.Package
     addDependencies p
       | additionalDeps == mempty = p
-      | otherwise = (Hpack.renamePackage "tinc-generated" p) {Hpack.packageExecutables = mkExecutable additionalDeps : Hpack.packageExecutables p}
+      | otherwise = (Hpack.renamePackage "tinc-generated" p) {Hpack.packageExecutables = [mkExecutable additionalDeps] <> Hpack.packageExecutables p}
 
 render :: Hpack.Package -> (FilePath, String)
 render pkg = (name, contents)
@@ -34,5 +36,6 @@ render pkg = (name, contents)
 mkPackage :: Hpack.Dependencies -> Hpack.Package
 mkPackage deps = (Hpack.package "tinc-generated" "0.0.0"){Hpack.packageExecutables = [mkExecutable deps]}
 
-mkExecutable :: Hpack.Dependencies -> Hpack.Section Hpack.Executable
-mkExecutable deps = (Hpack.section $ Hpack.Executable "tinc-generated" "Generated.hs" []){Hpack.sectionDependencies = deps}
+mkExecutable :: Hpack.Dependencies -> (String, Hpack.Section Hpack.Executable)
+mkExecutable deps =
+  ("tinc-generated", (Hpack.section $ Hpack.Executable (Just "Generated.hs") []){Hpack.sectionDependencies = deps})

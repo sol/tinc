@@ -1,12 +1,12 @@
 dependencies:
 - name: aeson
-  version: '1.2.2.0'
+  version: '1.2.3.0'
 - name: ansi-terminal
-  version: '0.7.1.1'
+  version: '0.8'
 - name: async
   version: '2.1.1.1'
 - name: attoparsec
-  version: '0.13.2.0'
+  version: '0.13.2.2'
 - name: base-compat
   version: '0.9.3'
 - name: base-orphans
@@ -14,23 +14,23 @@ dependencies:
 - name: base64-bytestring
   version: '1.0.0.1'
 - name: basement
-  version: '0.0.2'
+  version: '0.0.5'
 - name: bifunctors
-  version: '5.4.2'
+  version: '5.5'
 - name: blaze-builder
   version: '0.4.0.2'
 - name: byteable
   version: '0.1.1'
 - name: cabal-doctest
-  version: '1.0.2'
+  version: '1.0.4'
 - name: call-stack
   version: '0.1.0'
 - name: colour
-  version: '2.3.3'
+  version: '2.3.4'
 - name: comonad
   version: '5.0.2'
 - name: conduit
-  version: '1.2.12.1'
+  version: '1.2.13'
 - name: contravariant
   version: '1.4'
 - name: cryptohash
@@ -48,29 +48,29 @@ dependencies:
 - name: filelock
   version: '0.1.1.2'
 - name: foundation
-  version: '0.0.15'
+  version: '0.0.18'
 - name: free
   version: '4.12.4'
 - name: gitrev
   version: '1.3.1'
 - name: Glob
-  version: '0.8.0'
+  version: '0.9.1'
 - name: graph-wrapper
   version: '0.2.5.1'
 - name: hashable
   version: '1.2.6.1'
 - name: hpack
-  version: '0.19.1'
+  version: '0.21.2'
 - name: hspec
-  version: '2.4.4'
+  version: '2.4.7'
 - name: hspec-core
-  version: '2.4.4'
+  version: '2.4.7'
 - name: hspec-discover
-  version: '2.4.4'
+  version: '2.4.7'
 - name: hspec-expectations
   version: '0.8.2'
 - name: hspec-smallcheck
-  version: '0.4.2'
+  version: '0.5.0'
 - name: HUnit
   version: '1.6.0.0'
 - name: integer-logarithms
@@ -84,7 +84,7 @@ dependencies:
 - name: logict
   version: '0.6.0.2'
 - name: memory
-  version: '0.14.8'
+  version: '0.14.12'
 - name: mmorph
   version: '1.1.0'
 - name: mockery
@@ -92,11 +92,11 @@ dependencies:
 - name: monad-control
   version: '1.0.2.2'
 - name: mono-traversable
-  version: '1.0.2.1'
+  version: '1.0.8.1'
 - name: mtl
   version: '2.2.1'
 - name: network
-  version: '2.6.3.2'
+  version: '2.6.3.3'
 - name: parsec
   version: '3.1.11'
 - name: prelude-extras
@@ -106,15 +106,15 @@ dependencies:
 - name: profunctors
   version: '5.2.1'
 - name: QuickCheck
-  version: '2.10.0.1'
+  version: '2.11.3'
 - name: quickcheck-io
   version: '0.2.0'
 - name: random
   version: '1.1'
 - name: resourcet
-  version: '1.1.9'
+  version: '1.1.11'
 - name: safe
-  version: '0.3.15'
+  version: '0.3.16'
 - name: scientific
   version: '0.3.5.2'
 - name: semigroupoids
@@ -124,7 +124,7 @@ dependencies:
 - name: setenv
   version: '0.1.1.3'
 - name: smallcheck
-  version: '1.1.2'
+  version: '1.1.3.1'
 - name: split
   version: '0.2.3.2'
 - name: StateVar
@@ -144,13 +144,13 @@ dependencies:
 - name: temporary
   version: '1.2.1.1'
 - name: text
-  version: '1.2.2.2'
+  version: '1.2.3.0'
 - name: tf-random
   version: '0.5'
 - name: th-abstraction
   version: '0.2.6.0'
 - name: th-expand-syns
-  version: '0.4.3.0'
+  version: '0.4.4.0'
 - name: th-lift
   version: '0.7.7'
 - name: th-lift-instances
@@ -168,7 +168,9 @@ dependencies:
 - name: transformers-compat
   version: '0.5.1.4'
 - name: unix-compat
-  version: '0.4.3.1'
+  version: '0.5.0.1'
+- name: unliftio-core
+  version: '0.1.1.0'
 - name: unordered-containers
   version: '0.2.8.0'
 - name: uuid-types
@@ -180,6 +182,6 @@ dependencies:
 - name: void
   version: '0.7.2'
 - name: yaml
-  version: '0.8.23.3'
+  version: '0.8.28'
 - name: zlib
   version: '0.6.1.2'
