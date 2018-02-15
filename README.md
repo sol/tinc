@@ -40,3 +40,9 @@ To change the default, you can set the environment variable
 export TINC_USE_NIX=yes  # use nix, even if not installed under /nix
 export TINC_USE_NIX=no   # do not use nix, even if installed under /nix
 ```
+
+If you want to install `tinc` with `nix-env` you can do so by running
+```
+nix-env -i -f default.nix
+```
+inside this repository.
