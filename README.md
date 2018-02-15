@@ -46,3 +46,10 @@ If you want to install `tinc` with `nix-env` you can do so by running
 nix-env -i -f default.nix
 ```
 inside this repository.
+
+## Enabling plug-ins
+`tinc` comes with a number of useful plug-ins. To enable them symlink `plugins` to `~/.tinc/plugins`:
+
+```
+mkdir -p ~/.tinc/ && ln -s `pwd`/plugins/ ~/.tinc/
+```
