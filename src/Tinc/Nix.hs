@@ -60,7 +60,7 @@ formatNixResolver :: Facts -> String
 formatNixResolver Facts{..} = maybe "haskellPackages" (("haskell.packages." ++) . show) factsNixResolver
 
 cabal :: Facts -> [String] -> (String, [String])
-cabal facts args = ("nix-shell", ["-p", formatNixResolver facts ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
+cabal facts args = ("nix-shell", ["-p", "curl", formatNixResolver facts ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
 
 nixShell :: String -> [String] -> (String, [String])
 nixShell command args = ("nix-shell", [shellFile, "--run", unwords $ command : map translate args])
