@@ -7,11 +7,11 @@ addons:
     sources:
       - hvr-ghc
     packages:
-      - ghc-8.0.2
-      - cabal-install-1.24
+      - ghc-8.2.2
+      - cabal-install-2.0
 
 before_install:
-  - export PATH=$HOME/.tinc/bin:/opt/ghc/8.0.2/bin:/opt/cabal/1.24/bin:$PATH
+  - export PATH=$HOME/.tinc/bin:/opt/ghc/8.2.2/bin:/opt/cabal/2.0/bin:$PATH
   - curl -sSL https://github.com/sol/tinc/raw/master/get-tinc.sh | bash
   - tinc --version
   - ghc --version

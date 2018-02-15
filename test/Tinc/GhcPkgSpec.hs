@@ -37,6 +37,7 @@ globalPackages = [
   , "transformers"
   , "unix"
   , "xhtml"
+  , "ghc-compact"
   ]
 
 spec :: Spec

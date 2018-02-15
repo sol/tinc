@@ -41,6 +41,9 @@ import           Data.Maybe
 import           Data.String
 import           Data.Tree
 import           Data.Version
+
+import qualified Distribution.Version as Cabal
+
 import           Distribution.Package hiding (Package)
 import           Distribution.PackageDescription hiding (Git)
 import           Distribution.PackageDescription.Parse
@@ -292,8 +295,8 @@ data CabalPackage = CabalPackage {
 parseCabalFile :: FilePath -> Source a -> IO CabalPackage
 parseCabalFile dir source = do
   cabalFile <- findCabalFile dir source
-  pkg <- package . packageDescription <$> readPackageDescription silent cabalFile
-  case versionBranch (pkgVersion pkg) of
+  pkg <- package . packageDescription <$> readGenericPackageDescription silent cabalFile
+  case Cabal.versionNumbers (pkgVersion pkg) of
     [] -> die $ "the cabal file in " ++ subject source ++ " does not specify a version"
     v -> return $ CabalPackage (unPackageName $ pkgName pkg) (makeVersion v)
 
