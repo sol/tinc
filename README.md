@@ -53,3 +53,41 @@ inside this repository.
 ```
 mkdir -p ~/.tinc/ && ln -s `pwd`/plugins/ ~/.tinc/
 ```
+
+# Additional dependencies and dependencies from GitHub
+
+You can specify additional dependencies in a file named `tinc.yaml`.  These
+dependencies may be from a variety of sources:
+
+```yaml
+dependencies:
+  # additional dependency from Hackage
+  - foo
+
+  # override version constraint in package.yaml
+  - foo == 0.1.0
+
+  # dependency from GitHub
+  - name: foo
+    github: owner/repo
+    ref: master
+    subdir: some-dir # optional subdirectory
+
+  # dependency from arbitrary Git repositories
+  - name: foo
+    git: http://...
+    ref: master
+
+  # local dependency (will use cabal sdist)
+  - name: foo
+    path: ../foo/
+```
+
+(Note: The accepted syntax for dependencies is the same as what is accepted in
+`package.yaml`.)
+
+Dependencies from `tinc.yaml` will be added to your sandbox or can override
+existing dependencies from `package.yaml`.
+
+You can also use `tinc.yaml` without any `package.yaml` file (or `.cabal` file)
+to create a sandbox with dependencies.
