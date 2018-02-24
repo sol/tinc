@@ -29,7 +29,6 @@ facts = Facts {
 , factsAddSourceCache = error "factsAddSoruceCache"
 , factsNixCache = error "factsNixCache"
 , factsUseNix = False
-, factsNixResolver = Nothing
 , factsPlugins = []
 , factsGhcInfo = error "factsGhcInfo"
 }
