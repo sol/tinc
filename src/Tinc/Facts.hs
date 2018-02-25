@@ -22,7 +22,6 @@ data Facts = Facts {
 , factsAddSourceCache :: Path AddSourceCache
 , factsNixCache :: Path NixCache
 , factsUseNix :: Bool
-, factsNixResolver :: Maybe String
 , factsPlugins :: Plugins
 , factsGhcInfo :: GhcInfo
 } deriving (Eq, Show)
@@ -37,9 +36,6 @@ useNix executablePath = do
 isInNixStore :: FilePath -> Bool
 isInNixStore = ("/nix/" `isPrefixOf`)
 
-getNixResolver :: IO (Maybe String)
-getNixResolver = lookupEnv "TINC_NIX_RESOLVER"
-
 discoverFacts :: FilePath -> IO Facts
 discoverFacts executablePath = getGhcInfo >>= discoverFacts_impl executablePath
 
@@ -47,7 +43,6 @@ discoverFacts_impl :: FilePath -> GhcInfo -> IO Facts
 discoverFacts_impl executablePath ghcInfo = do
   home <- getHomeDirectory
   useNix_ <- useNix executablePath
-  nixResolver <- getNixResolver
   let pluginsDir :: FilePath
       pluginsDir = home </> ".tinc" </> "plugins"
 
@@ -76,7 +71,6 @@ discoverFacts_impl executablePath ghcInfo = do
   , factsAddSourceCache = addSourceCache
   , factsNixCache = nixCache
   , factsUseNix = useNix_
-  , factsNixResolver = nixResolver
   , factsPlugins = plugins
   , factsGhcInfo = ghcInfo
   }

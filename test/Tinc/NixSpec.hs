@@ -17,10 +17,13 @@ spec = do
 
   describe "cabal" $ do
     it "executes cabal in an empty ghc environment" $ do
-      cabal facts ["sandbox", "init"] `shouldBe` ("nix-shell", ["-p", "curl", "haskellPackages.ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal sandbox init"])
+      cabal ["sandbox", "init"] Nothing `shouldBe` ("nix-shell", ["-p", "curl", "haskellPackages.ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal sandbox init"])
+
+    it "executes cabal in an empty ghcjs environment" $ do
+      cabal ["sandbox", "init"] (Just "ghcjsHEAD") `shouldBe` ("nix-shell", ["-p", "curl", "haskell.packages.ghcjsHEAD.ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal sandbox init"])
 
     it "escapes arguments" $ do
-      cabal facts ["sandbox init"] `shouldBe` ("nix-shell", ["-p", "curl", "haskellPackages.ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal 'sandbox init'"])
+      cabal ["sandbox init"] Nothing `shouldBe` ("nix-shell", ["-p", "curl", "haskellPackages.ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", "cabal 'sandbox init'"])
 
   describe "nixShell" $ do
     it "executes command in project environment" $ do
@@ -59,7 +62,7 @@ spec = do
             , "    { mkDerivation, bar, baz }:"
             , "    mkDerivation { some derivation; }"
             , "  )"
-            , "  { inherit bar baz; };"
+            , "  { };"
             ]
         pkgImport (Package "foo" "0.1.0", ["bar", "baz"], []) derivation `shouldBe` inlined
 
@@ -114,7 +117,7 @@ spec = do
             , "            { mkDerivation, base, foo, baz }:"
             , "            mkDerivation { some derivation; }"
             , "          )"
-            , "          { inherit foo; inherit (nixpkgs) baz; };"
+            , "          { inherit (nixpkgs) baz; };"
             , "      };"
             , ""
             , "      newResolver = compiler.override {"
@@ -174,9 +177,9 @@ spec = do
 
   describe "derivationFile" $ do
     it "returns path to derivation file" $ do
-      derivationFile cache (Package "foo" "0.1.0") `shouldBe` "/path/to/nix/cache/foo-0.1.0.nix"
+      derivationFile cache (Package "foo" "0.1.0") Nothing `shouldBe` "/path/to/nix/cache/foo-0.1.0.nix"
 
     context "when package has a git revision" $ do
       it "includes the git revision in the filename" $ do
         let package = Package "foo" (Version "0.1.0" $ Just "some-git-rev")
-        derivationFile cache package `shouldBe` "/path/to/nix/cache/foo-0.1.0-some-git-rev.nix"
+        derivationFile cache package Nothing `shouldBe` "/path/to/nix/cache/foo-0.1.0-some-git-rev.nix"

@@ -112,7 +112,9 @@ cabalInstallPlan facts@Facts{..} additionalDeps addSourceDependenciesWithVersion
 cabalDryInstall :: (MonadIO m, Fail m, MonadProcess m, MonadCatch m) => Facts -> [String] -> [Constraint] -> m [SimplePackage]
 cabalDryInstall facts args constraints = go >>= parseInstallPlan
   where
-    install xs = uncurry readProcessM (cabal facts ("install" : "--dry-run" : xs)) ""
+    install xs = do
+      compiler <- liftIO getCompiler
+      uncurry readProcessM (cabal facts ("install" : "--dry-run" : xs) compiler) ""
 
     go = do
       r <- try $ install (args ++ constraints)

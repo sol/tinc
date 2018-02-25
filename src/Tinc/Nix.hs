@@ -7,6 +7,7 @@ module Tinc.Nix (
 , nixShell
 , resolverFile
 , createDerivations
+, cabalCompilerParams
 #ifdef TEST
 , Function (..)
 , defaultDerivation
@@ -29,6 +30,7 @@ import           System.Process.Internals (translate)
 import           System.Process
 import           System.IO
 
+import           Tinc.Config
 import           Tinc.Facts
 import           Tinc.Package
 import           Tinc.Types
@@ -56,19 +58,23 @@ defaultFile = "default.nix"
 shellFile :: FilePath
 shellFile = "shell.nix"
 
-formatNixResolver :: Facts -> String
-formatNixResolver Facts{..} = maybe "haskellPackages" (("haskell.packages." ++) . show) factsNixResolver
+formatCompiler :: Maybe String -> String
+formatCompiler = maybe "haskellPackages" (\c -> "haskell.packages." ++ c)
 
-cabal :: Facts -> [String] -> (String, [String])
-cabal facts args = ("nix-shell", ["-p", "curl", formatNixResolver facts ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
+formattedCompiler :: IO String
+formattedCompiler = fmap formatCompiler getCompiler
+
+cabal :: [String] -> Maybe String -> (String, [String])
+cabal args compiler = ("nix-shell", ["-p", "curl", (formatCompiler compiler) ++ ".ghcWithPackages (p: [ p.cabal-install ])", "--pure", "--run", unwords $ "cabal" : map translate args])
 
 nixShell :: String -> [String] -> (String, [String])
 nixShell command args = ("nix-shell", [shellFile, "--run", unwords $ command : map translate args])
 
 createDerivations :: Facts -> [Package] -> IO ()
 createDerivations facts@Facts{..} dependencies = do
+  compiler <- getCompiler
   mapM_ (populateCache factsAddSourceCache factsNixCache) dependencies
-  pkgDerivation <- cabalToNix "."
+  pkgDerivation <- cabalToNix compiler "."
 
   let knownHaskellDependencies = map packageName dependencies
   mapM (readDependencies factsNixCache knownHaskellDependencies) dependencies >>= resolverDerivation facts >>= writeFile resolverFile
@@ -78,14 +84,17 @@ createDerivations facts@Facts{..} dependencies = do
 
 populateCache :: Path AddSourceCache -> Path NixCache -> Package -> IO ()
 populateCache addSourceCache cache pkg = do
-  _ <- cachedIO (derivationFile cache pkg) $ disableDocumentation . disableTests <$> go
+  compiler <- getCompiler
+  let cacheFile = derivationFile cache pkg compiler
+  createDirectoryIfMissing True $ takeDirectory cacheFile
+  _ <- cachedIO cacheFile $ disableDocumentation . disableTests <$> go compiler
   return ()
   where
-    go = case pkg of
-      Package _ (Version _ Nothing) -> cabalToNix ("cabal://" ++ showPackage pkg)
+    go compiler = case pkg of
+      Package _ (Version _ Nothing) -> cabalToNix compiler ("cabal://" ++ showPackage pkg)
       Package name (Version _ (Just ref)) -> do
         let p = path . addSourcePath addSourceCache $ AddSource name ref
-        canonicalizePath p >>= cabalToNix
+        canonicalizePath p >>= cabalToNix compiler
 
 disable :: String -> NixExpression -> NixExpression
 disable s xs = case lines xs of
@@ -100,10 +109,17 @@ disableTests = disable "doCheck"
 disableDocumentation :: NixExpression -> NixExpression
 disableDocumentation = disable "doHaddock"
 
-cabalToNix :: String -> IO NixExpression
-cabalToNix uri = do
-  hPutStrLn stderr $ "cabal2nix " ++ uri
-  readProcess "cabal2nix" [uri] ""
+cabalCompilerParams :: Maybe String -> [String]
+cabalCompilerParams Nothing           = []
+cabalCompilerParams (Just compiler)
+  | isInfixOf "ghcjs" $ fmap toLower compiler = ["--compiler=ghcjs"]
+  | otherwise                                 = []
+
+cabalToNix :: Maybe String -> String -> IO NixExpression
+cabalToNix compiler uri = do
+  let params = (cabalCompilerParams compiler) ++ [uri]--["--hackage-db", homeDir </> ".cabal/packages/hackage.haskell.org/01-index.tar", uri]
+  hPutStrLn stderr $ "cabal2nix " ++ (intercalate " " params)
+  readProcess "cabal2nix" params ""
 
 defaultDerivation :: NixExpression
 defaultDerivation = unlines [
@@ -129,12 +145,13 @@ indent n = map f
       _ -> replicate n ' ' ++ xs
 
 resolverDerivation :: Facts -> [(Package, [HaskellDependency], [SystemDependency])] -> IO NixExpression
-resolverDerivation facts@Facts{..} dependencies = do
+resolverDerivation Facts{..} dependencies = do
   overrides <- concat <$> mapM getPkgDerivation dependencies
+  compiler <- formattedCompiler
   return . unlines $ [
       "{ nixpkgs }:"
     , "rec {"
-    , "  compiler = nixpkgs." ++ formatNixResolver facts ++ ";"
+    , "  compiler = nixpkgs." ++ compiler ++ ";"
     , "  resolver ="
     ] ++ indent 4 [
       "let"
@@ -152,30 +169,35 @@ resolverDerivation facts@Facts{..} dependencies = do
     , "in newResolver;"
     ] ++ ["}"]
   where
-    getPkgDerivation packageDeps@(package, _, _) = pkgImport packageDeps <$> readFile (derivationFile factsNixCache package)
+    getPkgDerivation packageDeps@(package, _, _) = do
+      compiler <- getCompiler
+      let derivation = derivationFile factsNixCache package compiler
+      pkgImport packageDeps <$> readFile derivation
 
 pkgImport :: (Package, [HaskellDependency], [SystemDependency]) -> NixExpression -> [String]
-pkgImport ((Package name _), haskellDependencies, systemDependencies) derivation = begin : indent 2 definition
+pkgImport ((Package name _), _, systemDependencies) derivation = begin : indent 2 definition
   where
     begin = name ++ " = callPackage"
     derivationLines = lines derivation
     inlineDerivation = ["("] ++ indent 2 derivationLines ++ [")"]
-    args = "{ " ++ inheritHaskellDependencies ++ inheritSystemDependencies ++ "};"
+    args = "{ " ++ inheritSystemDependencies ++ "};"
     definition = inlineDerivation ++ [args]
-    inheritHaskellDependencies
-      | null haskellDependencies = ""
-      | otherwise = "inherit " ++ intercalate " " haskellDependencies ++ "; "
     inheritSystemDependencies
       | null systemDependencies = ""
       | otherwise = "inherit (nixpkgs) " ++ intercalate " " systemDependencies ++ "; "
 
 readDependencies :: Path NixCache -> [HaskellDependency] -> Package -> IO (Package, [HaskellDependency], [SystemDependency])
 readDependencies cache knownHaskellDependencies package = do
-  (\(haskellDeps, systemDeps) -> (package, haskellDeps, systemDeps)) . (`extractDependencies` knownHaskellDependencies)  . parseNixFunction <$> readFile (derivationFile cache package)
+  compiler <- getCompiler
+  let derivation = derivationFile cache package compiler
+  (\(haskellDeps, systemDeps) -> (package, haskellDeps, systemDeps)) . (`extractDependencies` knownHaskellDependencies) . parseNixFunction <$> readFile derivation
 
-derivationFile :: Path NixCache -> Package -> FilePath
-derivationFile cache package = path cache </> showPackage package ++ rev ++ ".nix"
+derivationFile :: Path NixCache -> Package -> Maybe String -> FilePath
+derivationFile cache package compiler =
+  basePath </> showPackage package ++ rev ++ ".nix"
   where
+    rootPath = path cache
+    basePath = maybe rootPath (\c -> rootPath </> c) compiler
     rev = case packageVersion package of
       Version _ (Just hash) -> "-" ++ hash
       _ -> ""
