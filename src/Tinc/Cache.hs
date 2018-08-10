@@ -25,7 +25,6 @@ module Tinc.Cache (
 import           Control.Monad.Catch
 import           Control.Monad
 import           Control.Monad.IO.Class
-import qualified Data.ByteString as B
 import           Data.List
 import qualified Data.Map as Map
 import           Data.Yaml
@@ -103,7 +102,7 @@ readAddSourceHashes packageDb = do
   let file = path packageDb </> addSourceHashesFile
   exists <- doesFileExist file
   if exists
-    then B.readFile file >>= either dieLoc return . decodeEither
+    then decodeFileEither file >>= either (dieLoc . show) return
     else return []
 
 writeAddSourceHashes :: Path PackageDb -> [AddSource] -> IO ()
