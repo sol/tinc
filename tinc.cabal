@@ -1,8 +1,10 @@
--- This file has been generated from package.yaml by hpack version 0.26.0.
+cabal-version: >= 1.10
+
+-- This file has been generated from package.yaml by hpack version 0.29.6.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 22e06ea3abfeff5a6fde52d39e3f6a8cdaf826d72a974f416e07b4bd9238490d
+-- hash: ed20df242ea05f53d17b3a2f096078a9b8fd26417ddc988630b76277bb904538
 
 name:           tinc
 version:        0.1.0
@@ -16,8 +18,6 @@ copyright:      (c) 2015 Sönke Hahn,
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
-cabal-version:  >= 1.10
-
 extra-source-files:
     test/resources/cabal-1.22.4.0-dry-run-all-already-installed.txt
     test/resources/cabal-1.22.4.0-dry-run.txt
@@ -45,7 +45,7 @@ executable tinc
     , filepath
     , gitrev
     , graph-wrapper >=0.2.5
-    , hpack >=0.19.1 && <0.22.0
+    , hpack >=0.29.7
     , language-dot
     , parsec
     , process >=1.2
@@ -102,7 +102,7 @@ test-suite spec
     , filepath
     , gitrev
     , graph-wrapper >=0.2.5
-    , hpack >=0.19.1 && <0.22.0
+    , hpack >=0.29.7
     , hspec
     , language-dot
     , mockery >=0.3.3

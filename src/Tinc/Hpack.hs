@@ -9,33 +9,35 @@ module Tinc.Hpack (
 import           Data.Monoid
 import           System.Directory hiding (getDirectoryContents)
 import qualified Hpack.Config as Hpack
-import           Hpack.Run
+import qualified Hpack.Render as Hpack
 
 import           Tinc.Fail
 
 doesConfigExist :: IO Bool
 doesConfigExist = doesFileExist Hpack.packageConfig
 
-readConfig :: Hpack.Dependencies -> IO Hpack.Package
-readConfig additionalDeps = Hpack.readPackageConfig Hpack.packageConfig >>= either die (return . addDependencies . snd)
+readConfig :: Hpack.Dependencies -> IO (String, Hpack.Package)
+readConfig additionalDeps = do
+  r <- Hpack.readPackageConfig Hpack.defaultDecodeOptions >>= either die return
+  return $ (Hpack.decodeResultCabalVersion r, addDependencies (Hpack.decodeResultPackage r))
   where
     addDependencies :: Hpack.Package -> Hpack.Package
     addDependencies p
       | additionalDeps == mempty = p
       | otherwise = p {Hpack.packageExecutables = [mkExecutable additionalDeps] <> Hpack.packageExecutables p}
 
-render :: Hpack.Package -> (FilePath, String)
-render pkg = (name, contents)
+render :: (String, Hpack.Package) -> (FilePath, String)
+render (cabalVersion, pkg) = (name, cabalVersion ++ contents)
   where
     name :: String
     name = Hpack.packageName pkg ++ ".cabal"
 
     contents :: String
-    contents = renderPackage defaultRenderSettings 2 [] [] pkg
+    contents = Hpack.renderPackageWith Hpack.defaultRenderSettings 2 [] [] pkg
 
-mkPackage :: Hpack.Dependencies -> Hpack.Package
-mkPackage deps = (Hpack.package "tinc-generated" "0.0.0"){Hpack.packageExecutables = [mkExecutable deps]}
+mkPackage :: Hpack.Dependencies -> (String, Hpack.Package)
+mkPackage deps = ("cabal-version: >= 1.10\n", (Hpack.package "tinc-generated" "0.0.0"){Hpack.packageExecutables = [mkExecutable deps]})
 
 mkExecutable :: Hpack.Dependencies -> (String, Hpack.Section Hpack.Executable)
 mkExecutable deps =
-  ("tinc-generated", (Hpack.section $ Hpack.Executable (Just "Generated.hs") []){Hpack.sectionDependencies = deps})
+  ("tinc-generated", (Hpack.section $ Hpack.Executable (Just "Generated.hs") [] []){Hpack.sectionDependencies = deps})

@@ -46,7 +46,7 @@ import qualified Distribution.Version as Cabal
 
 import           Distribution.Package hiding (Package)
 import           Distribution.PackageDescription hiding (Git)
-import           Distribution.PackageDescription.Parse
+import           Distribution.PackageDescription.Parsec (readGenericPackageDescription)
 import           Distribution.Verbosity
 import           GHC.Fingerprint
 import qualified Hpack.Config as Hpack
@@ -178,9 +178,10 @@ addSourceDependenciesFrom :: Path AddSourceCache -> AddSourceDependenciesFrom Re
 addSourceDependenciesFrom addSourceCache (AddSourceDependency _ source, addSource) = map (mapLocalDependencyToGitDependency source) <$> do
   exists <- doesFileExist config
   if exists
-    then Hpack.readPackageConfig config >>= either die (return . filterAddSource . Hpack.packageDependencies . snd)
+    then Hpack.readPackageConfig options >>= either die (return . filterAddSource . Hpack.packageDependencies . Hpack.decodeResultPackage)
     else return []
   where
+    options = Hpack.defaultDecodeOptions {Hpack.decodeOptionsTarget = config}
     config = path (addSourcePath addSourceCache addSource) </> Hpack.packageConfig
 
 filterAddSource :: [(String, Hpack.DependencyVersion)] -> [AddSourceDependency Ref]
@@ -197,7 +198,7 @@ parseAddSourceDependencies additionalDeps = do
   packageDeps <- if exists
     then do
       pkg <- readConfig mempty
-      return $ Hpack.packageDependencies pkg
+      return $ Hpack.packageDependencies (snd pkg)
     else return []
   let deps = additionalDeps ++ packageDeps
   return (nubBy ((==) `on` _addSourceDependencyName) $ filterAddSource deps)

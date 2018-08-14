@@ -4,7 +4,6 @@ module Tinc.Config (
 , configFile
 ) where
 
-import           Data.Aeson
 import           GHC.Generics
 import           Hpack.Config
 import           Hpack.Yaml
@@ -13,10 +12,10 @@ import           System.Directory
 import           Tinc.Fail
 
 data Config = Config {
-  dependencies :: Dependencies
+  configDependencies :: Dependencies
 } deriving (Eq, Show, Generic)
 
-instance FromJSON Config
+instance FromValue Config
 
 configFile :: FilePath
 configFile = "tinc.yaml"
@@ -29,4 +28,4 @@ getAdditionalDependencies = do
     else return mempty
 
 readConfig :: IO Dependencies
-readConfig = decodeYaml configFile >>= either die (return . dependencies)
+readConfig = decodeYaml configFile >>= either die (return . configDependencies . fst) . (>>= decodeValue)

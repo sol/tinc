@@ -121,7 +121,7 @@ spec = do
               "ghc-options: 23"
             , "library: {}"
             ]
-          parseAddSourceDependencies [] `shouldThrow` errorCall "package.yaml: Error in $['ghc-options']: expected String, encountered Number"
+          parseAddSourceDependencies [] `shouldThrow` errorCall "package.yaml: Error while parsing $.ghc-options - expected String, encountered Number"
 
     context "when package.yaml does not exist" $ do
       it "returns an empty list" $ do
@@ -282,12 +282,6 @@ spec = do
         let cabalFile = dir </> "foo.cabal"
         writeFile cabalFile "name: foo\nversion: 0.1.0"
         parseCabalFile dir (Git "<repo>" () Nothing) `shouldReturn` CabalPackage "foo" (makeVersion [0,1,0])
-
-    it "complains about missing version" $ do
-      withSystemTempDirectory "tinc" $ \ dir -> do
-        let cabalFile = dir </> "foo.cabal"
-        writeFile cabalFile "name: foo"
-        parseCabalFile dir (Git "<repo>" () Nothing) `shouldThrow` errorCall "the cabal file in git repository <repo> does not specify a version"
 
     it "complains about invalid cabal files" $ do
       withSystemTempDirectory "tinc" $ \ dir -> do

@@ -110,10 +110,10 @@ spec = do
       it "generates a cabal file" $ do
         inTempDirectory $ do
           generateCabalFile (fromList [("foo", AnyVersion)]) `shouldReturn` ("tinc-generated.cabal", unlines [
-              "name: tinc-generated"
+              "cabal-version: >= 1.10"
+            , "name: tinc-generated"
             , "version: 0.0.0"
             , "build-type: Simple"
-            , "cabal-version: >= 1.10"
             , ""
             , "executable tinc-generated"
             , "  main-is: Generated.hs"
@@ -129,10 +129,11 @@ spec = do
               "name: foo"
             ]
           generateCabalFile mempty `shouldReturn` ("foo.cabal", unlines [
-              "name: foo"
+              "cabal-version: >= 1.10"
+            , ""
+            , "name: foo"
             , "version: 0.0.0"
             , "build-type: Simple"
-            , "cabal-version: >= 1.10"
             ])
 
     context "when there are both a package.yaml and additional dependencies" $ do
@@ -144,10 +145,11 @@ spec = do
             , "  dependencies: foo"
             ]
           generateCabalFile (fromList [("bar", AnyVersion)]) `shouldReturn` ("foo.cabal", unlines [
-              "name: foo"
+              "cabal-version: >= 1.10"
+            , ""
+            , "name: foo"
             , "version: 0.0.0"
             , "build-type: Simple"
-            , "cabal-version: >= 1.10"
             , ""
             , "library"
             , "  other-modules:"

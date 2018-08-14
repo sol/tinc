@@ -17,7 +17,7 @@ import           Data.List
 import           Data.Version (showVersion)
 import qualified Data.Yaml as Yaml
 import           Hpack.Yaml
-import           GHC.Generics
+import           Data.Aeson.Types
 import           Control.Exception
 import           Control.Monad
 import           System.IO.Error
@@ -75,7 +75,8 @@ readFreezeFile :: [AddSource] -> IO [Constraint]
 readFreezeFile (map addSourcePackageName -> addSourceDependencies) = do
   exists <- doesFileExist freezeFile
   if exists
-    then decodeYaml freezeFile >>= either die (return . map toConstraint . removeAddSourceDependencies . dependencies)
+    then decodeYaml freezeFile >>= (
+      either die (return . map toConstraint . removeAddSourceDependencies . dependencies)) .  (>>= parseEither parseJSON)
     else return []
   where
     removeAddSourceDependencies = filter ((`notElem` addSourceDependencies) . name)
