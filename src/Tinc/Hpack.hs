@@ -6,7 +6,6 @@ module Tinc.Hpack (
 , mkPackage
 ) where
 
-import           Data.Monoid
 import           System.Directory hiding (getDirectoryContents)
 import qualified Hpack.Config as Hpack
 import qualified Hpack.Render as Hpack

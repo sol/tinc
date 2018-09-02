@@ -16,9 +16,11 @@ extra-source-files:
 ghc-options: -Wall
 
 dependencies:
-  - base >= 4.10
+  - base >= 4.11
   - graph-wrapper >= 0.2.5
-  - language-dot
+  - name: language-dot
+    github: sol/language-dot
+    ref: master
   - containers
   - directory
   - filepath
@@ -28,7 +30,7 @@ dependencies:
   - temporary
   - exceptions
   - transformers
-  - hpack >= 0.29.7
+  - hpack >= 0.30.0
   - aeson >= 0.11.0
   - bytestring
   - yaml

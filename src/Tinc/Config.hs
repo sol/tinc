@@ -28,4 +28,4 @@ getAdditionalDependencies = do
     else return mempty
 
 readConfig :: IO Dependencies
-readConfig = decodeYaml configFile >>= either die (return . configDependencies . fst) . (>>= decodeValue)
+readConfig = decodeYaml configFile >>= either die (return . configDependencies . fst) . (>>= decodeValue . snd)

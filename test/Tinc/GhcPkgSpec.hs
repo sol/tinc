@@ -25,7 +25,6 @@ globalPackages = [
   , "ghci"
   , "ghc-prim"
   , "haskeline"
-  , "hoopl"
   , "hpc"
   , "integer-gmp"
   , "pretty"
@@ -38,6 +37,10 @@ globalPackages = [
   , "unix"
   , "xhtml"
   , "ghc-compact"
+  , "mtl"
+  , "parsec"
+  , "stm"
+  , "text"
   ]
 
 spec :: Spec

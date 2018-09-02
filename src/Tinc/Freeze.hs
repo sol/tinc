@@ -75,8 +75,8 @@ readFreezeFile :: [AddSource] -> IO [Constraint]
 readFreezeFile (map addSourcePackageName -> addSourceDependencies) = do
   exists <- doesFileExist freezeFile
   if exists
-    then decodeYaml freezeFile >>= (
-      either die (return . map toConstraint . removeAddSourceDependencies . dependencies)) .  (>>= parseEither parseJSON)
+    then decodeYaml freezeFile >>=
+      (either die (return . map toConstraint . removeAddSourceDependencies . dependencies)) . (>>= parseEither parseJSON . snd)
     else return []
   where
     removeAddSourceDependencies = filter ((`notElem` addSourceDependencies) . name)

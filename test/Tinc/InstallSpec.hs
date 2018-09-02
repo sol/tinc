@@ -129,7 +129,7 @@ spec = do
               "name: foo"
             ]
           generateCabalFile mempty `shouldReturn` ("foo.cabal", unlines [
-              "cabal-version: >= 1.10"
+              "cabal-version: 1.12"
             , ""
             , "name: foo"
             , "version: 0.0.0"
@@ -145,7 +145,7 @@ spec = do
             , "  dependencies: foo"
             ]
           generateCabalFile (fromList [("bar", AnyVersion)]) `shouldReturn` ("foo.cabal", unlines [
-              "cabal-version: >= 1.10"
+              "cabal-version: 1.12"
             , ""
             , "name: foo"
             , "version: 0.0.0"

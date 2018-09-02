@@ -1,10 +1,10 @@
-cabal-version: >= 1.10
+cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.29.6.
+-- This file has been generated from package.yaml by hpack version 0.30.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ed20df242ea05f53d17b3a2f096078a9b8fd26417ddc988630b76277bb904538
+-- hash: 48325911b668e2778e72766db3adb8835e5f8349956995a77feb7e7505b2a248
 
 name:           tinc
 version:        0.1.0
@@ -35,7 +35,7 @@ executable tinc
   build-depends:
       Cabal >=2.0.0.2
     , aeson >=0.11.0
-    , base >=4.10
+    , base >=4.11
     , bytestring
     , call-stack
     , containers
@@ -45,7 +45,7 @@ executable tinc
     , filepath
     , gitrev
     , graph-wrapper >=0.2.5
-    , hpack >=0.29.7
+    , hpack >=0.30.0
     , language-dot
     , parsec
     , process >=1.2
@@ -92,7 +92,7 @@ test-suite spec
     , HUnit >=1.4
     , QuickCheck
     , aeson >=0.11.0
-    , base >=4.10
+    , base >=4.11
     , bytestring
     , call-stack
     , containers
@@ -102,7 +102,7 @@ test-suite spec
     , filepath
     , gitrev
     , graph-wrapper >=0.2.5
-    , hpack >=0.29.7
+    , hpack >=0.30.0
     , hspec
     , language-dot
     , mockery >=0.3.3
