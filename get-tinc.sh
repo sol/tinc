@@ -12,7 +12,7 @@ url=$(curl -sSL https://api.github.com/repos/sol/tinc/releases/latest | jq -r ".
 
 echo "Downloading $url"
 
-curl -sSL "$url" | gunzip > "$tinc.tmp"
+curl --fail --silent --show-error --location "$url" | gunzip > "$tinc.tmp"
 chmod +x "$tinc.tmp"
 mv "$tinc.tmp" "$tinc"
 
