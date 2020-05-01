@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.30.0.
+-- This file has been generated from package.yaml by hpack version 0.32.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 48325911b668e2778e72766db3adb8835e5f8349956995a77feb7e7505b2a248
+-- hash: 9228008be7d5ad1d50e3eac816cd6c090eae43862ef583d34d78204f5cadfb88
 
 name:           tinc
 version:        0.1.0
@@ -31,7 +31,7 @@ executable tinc
   hs-source-dirs:
       src
       driver
-  ghc-options: -Wall
+  ghc-options: -Wall -fwarn-redundant-constraints
   build-depends:
       Cabal >=2.0.0.2
     , aeson >=0.11.0
@@ -85,7 +85,7 @@ test-suite spec
   hs-source-dirs:
       src
       test
-  ghc-options: -Wall
+  ghc-options: -Wall -fwarn-redundant-constraints
   cpp-options: -DTEST
   build-depends:
       Cabal >=2.0.0.2

@@ -16,7 +16,7 @@ class (Functor m, Applicative m, Monad m) => Fail m where
         (_, loc) : _ -> Just loc
         _ -> Nothing
 
-  bug :: (HasCallStack, Fail m) => String -> m a
+  bug :: HasCallStack => String -> m a
   bug message = (dieLoc . unlines) [
       message
     , "This is most likely a bug.  Please report an issue at:"
