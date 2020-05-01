@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -o nounset
 set -o errexit
 
@@ -6,8 +6,14 @@ dst="$HOME/.tinc/bin"
 tinc="$dst/tinc"
 
 mkdir -p "$dst"
-curl https://zalora-public.s3.amazonaws.com/tinc > "$tinc.tmp"
+
+os="${1:-${TRAVIS_OS_NAME:-linux}}"
+url=$(curl -sSL https://api.github.com/repos/sol/tinc/releases/latest | jq -r ".assets[] | select(.name | test(\"$os\")) | .browser_download_url")
+
+echo "Downloading $url"
+
+curl -sSL "$url" | gunzip > "$tinc.tmp"
 chmod +x "$tinc.tmp"
 mv "$tinc.tmp" "$tinc"
 
-echo "Installed tinc to $tinc."
+echo "Installed tinc to $tinc"
