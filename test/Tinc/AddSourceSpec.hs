@@ -121,7 +121,7 @@ spec = do
               "ghc-options: 23"
             , "library: {}"
             ]
-          parseAddSourceDependencies [] `shouldThrow` errorCall "package.yaml: Error while parsing $.ghc-options - expected String, encountered Number"
+          parseAddSourceDependencies [] `shouldThrow` errorCall "package.yaml: Error while parsing $.ghc-options - expected String, but encountered Number"
 
     context "when package.yaml does not exist" $ do
       it "returns an empty list" $ do

@@ -18,9 +18,7 @@ ghc-options: -Wall
 dependencies:
   - base >= 4.11
   - graph-wrapper >= 0.2.5
-  - name: language-dot
-    github: sol/language-dot
-    ref: master
+  - language-dot
   - containers
   - directory
   - filepath
