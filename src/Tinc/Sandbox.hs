@@ -51,17 +51,17 @@ touchPackageCache packageDb = touchFile (path packageDb </> "package.cache")
 initSandbox :: (MonadIO m, Fail m, MonadProcess m) => [Path SourceDependency] -> [Path PackageConfig] -> m (Path PackageDb)
 initSandbox sourceDependencies packageConfigs = do
   deleteSandbox
-  callProcessM "cabal" ["sandbox", "init"]
+  callProcessM "cabal" ["v1-sandbox", "init"]
   packageDb <- findPackageDb currentDirectory
   registerPackageConfigs packageDb packageConfigs
-  mapM_ (\ dep -> callProcessM "cabal" ["sandbox", "add-source", path dep]) sourceDependencies
+  mapM_ (\ dep -> callProcessM "cabal" ["v1-sandbox", "add-source", path dep]) sourceDependencies
   liftIO $ createDirectoryIfMissing False cabalSandboxBinDirectory
   return packageDb
 
 deleteSandbox :: (MonadIO m, MonadProcess m) => m ()
 deleteSandbox = do
   exists <- liftIO $ doesDirectoryExist cabalSandboxDirectory
-  when exists (callProcessM "cabal" ["sandbox", "delete"])
+  when exists (callProcessM "cabal" ["v1-sandbox", "delete"])
 
 findPackageDb :: (MonadIO m, Fail m) => Path Sandbox -> m (Path PackageDb)
 findPackageDb sandbox = do

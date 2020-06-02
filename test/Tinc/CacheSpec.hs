@@ -121,7 +121,7 @@ spec = do
         populateCacheAction sourceDependencyCache missing reusable `shouldBe` Left reusable
 
   describe "populateCache" $ do
-    let cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
+    let cabalSandboxInit = ("cabal", ["v1-sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
 
     it "uses add-source dependencies" $
       inTempDirectory $ do
@@ -130,8 +130,8 @@ spec = do
             let mockedCallProcess command args = stub [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
-                    cabalAddSource = ("cabal", ["sandbox", "add-source", path sourceDependencyCache </> "foo" </> "abc"], writeFile "add-source" "foo")
-                    cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
+                    cabalAddSource = ("cabal", ["v1-sandbox", "add-source", path sourceDependencyCache </> "foo" </> "abc"], writeFile "add-source" "foo")
+                    cabalInstall = ("cabal", ["v1-install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
                     recache = ("ghc-pkg", ["--no-user-package-conf", "recache", "--package-conf", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = dummy "envReadProcess", envCallProcess = mockedCallProcess}
@@ -148,8 +148,8 @@ spec = do
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource packageCachePath =
-                      ("cabal", ["sandbox", "add-source", path sourceDependencyCache </> packageCachePath], return ())
-                    cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], return ())
+                      ("cabal", ["v1-sandbox", "add-source", path sourceDependencyCache </> packageCachePath], return ())
+                    cabalInstall = ("cabal", ["v1-install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], return ())
                     recache = ("ghc-pkg", ["--no-user-package-conf", "recache", "--package-conf", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = dummy "envReadProcess", envCallProcess = mockedCallProcess}

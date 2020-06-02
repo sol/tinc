@@ -49,7 +49,7 @@ spec :: Spec
 spec = do
   describe "cabalInstallPlan" $ do
 
-    let cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
+    let cabalSandboxInit = ("cabal", ["v1-sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
 
         withCabalFile action = inTempDirectory $ do
           writeCabalFile "foo" "0.0.0" ["setenv <= 0.1.1.3"]
@@ -71,7 +71,7 @@ spec = do
       withCabalFile $ \_ -> do
         let cabalInstallResult = return $ mkCabalInstallOutput ["setenv-0.1.1.3"]
         let ?mockedCallProcess = stub cabalSandboxInit
-            ?mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests"], "", cabalInstallResult)
+            ?mockedReadProcess = stub ("cabal", ["v1-install", "--dry-run", "--only-dependencies", "--enable-tests"], "", cabalInstallResult)
         withMockedEnv (cabalInstallPlan facts mempty []) `shouldReturn` [Package "setenv" "0.1.1.3"]
 
     it "takes add-source dependencies into account" $ do
@@ -88,9 +88,9 @@ spec = do
         let cabalInstallResult = readFile "cabal-output"
         let ?mockedCallProcess = stub [
                 cabalSandboxInit
-              , ("cabal", ["sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
+              , ("cabal", ["v1-sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
               ]
-            ?mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests", "--constraint=setenv == 0.1.0"], "", cabalInstallResult)
+            ?mockedReadProcess = stub ("cabal", ["v1-install", "--dry-run", "--only-dependencies", "--enable-tests", "--constraint=setenv == 0.1.0"], "", cabalInstallResult)
         withMockedEnv (cabalInstallPlan facts {factsSourceDependencyCache = sourceDependencyCache} mempty [(cachedDependency, makeVersion [0,1,0])]) `shouldReturn` [dependency]
 
   describe "copyFreezeFile" $ do

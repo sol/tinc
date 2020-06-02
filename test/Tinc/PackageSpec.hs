@@ -36,7 +36,7 @@ spec = do
     context "on unexpected input" $ do
       it "throws an exception" $ do
         parseInstallPlan "foo" `shouldThrow` (errorCall . unlines) [
-            "src/Tinc/Package.hs: unexpected output from `cabal install --dry-run':"
+            "src/Tinc/Package.hs: unexpected output from `cabal v1-install --dry-run':"
           , ""
           , "  \"foo\""
           , ""

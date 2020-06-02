@@ -179,7 +179,7 @@ populateCache cacheDir sourceDependencyCache missing reusable = either return po
         liftIO $ do
           writeAddSourceHashes packageDb populateCacheActionWriteAddSourceHashes
           writeFile validMarker ""
-        callProcessM "cabal" ("install" : "--bindir=$prefix/bin/$pkgid" : map showPackage populateCacheActionInstallPlan)
+        callProcessM "cabal" ("v1-install" : "--bindir=$prefix/bin/$pkgid" : map showPackage populateCacheActionInstallPlan)
         map (uncurry CachedPackage)
           . ignore_add_source_hashes_for_now_as_we_currently_do_not_need_them
           <$> cachedListPackages packageDb
