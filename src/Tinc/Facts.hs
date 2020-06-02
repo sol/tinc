@@ -9,7 +9,7 @@ import           System.FilePath
 import           Data.Function
 
 import           Tinc.GhcInfo
-import           Tinc.AddSource
+import           Tinc.SourceDependency
 import           Tinc.Types
 
 data NixCache
@@ -19,7 +19,7 @@ type Plugin = (String, FilePath)
 data Facts = Facts {
   factsCache :: Path CacheDir
 , factsGitCache :: Path GitCache
-, factsAddSourceCache :: Path AddSourceCache
+, factsSourceDependencyCache :: Path SourceDependencyCache
 , factsNixCache :: Path NixCache
 , factsUseNix :: Bool
 , factsNixResolver :: Maybe String
@@ -57,8 +57,8 @@ discoverFacts_impl executablePath ghcInfo = do
       gitCache :: Path GitCache
       gitCache = Path (home </> ".tinc" </> "cache" </> "git")
 
-      addSourceCache :: Path AddSourceCache
-      addSourceCache = Path (home </> ".tinc" </> "cache" </> "add-source")
+      sourceDependencyCache :: Path SourceDependencyCache
+      sourceDependencyCache = Path (home </> ".tinc" </> "cache" </> "add-source")
 
       nixCache :: Path NixCache
       nixCache = Path (home </> ".tinc" </> "cache" </> "nix")
@@ -73,7 +73,7 @@ discoverFacts_impl executablePath ghcInfo = do
   return Facts {
     factsCache = cacheDir
   , factsGitCache = gitCache
-  , factsAddSourceCache = addSourceCache
+  , factsSourceDependencyCache = sourceDependencyCache
   , factsNixCache = nixCache
   , factsUseNix = useNix_
   , factsNixResolver = nixResolver

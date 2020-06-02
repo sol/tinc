@@ -21,7 +21,7 @@ import           Tinc.Cache
 import           Tinc.GhcPkg
 import           Tinc.Package
 import           Tinc.Sandbox
-import           Tinc.AddSource
+import           Tinc.SourceDependency
 import           Tinc.Types
 
 import           Tinc.SandboxSpec (writePackageConfig)
@@ -91,34 +91,34 @@ spec = do
           G.fromList [(fromSimplePackage foo, fooConfig, [])]
 
   describe "populateCacheAction" $ do
-    let addSourceCache = "/path/to/add-source-cache"
+    let sourceDependencyCache = "/path/to/add-source-cache"
 
     it "adds add-source dependencies to the sandbox" $ do
       let missing = [Package "foo" (Version "0.1.0" $ Just "foo-hash")]
-      populateCacheActionAddSource <$> populateCacheAction addSourceCache missing [] `shouldBe`
+      populateCacheActionAddSource <$> populateCacheAction sourceDependencyCache missing [] `shouldBe`
         Right ["/path/to/add-source-cache/foo/foo-hash"]
 
     it "does not add reusable add-source dependencies to the sandbox" $ do
       let missing = [Package "foo" "0.1.0"]
           reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "bar.conf"]
-      populateCacheActionAddSource <$> populateCacheAction addSourceCache missing reusable `shouldBe` Right []
+      populateCacheActionAddSource <$> populateCacheAction sourceDependencyCache missing reusable `shouldBe` Right []
 
     it "does not include reusable add-source dependencies in the install plan" $ do
       let missing = [Package "foo" "0.1.0"]
           reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "bar.conf"]
-      populateCacheActionInstallPlan <$> populateCacheAction addSourceCache missing reusable `shouldBe` Right missing
+      populateCacheActionInstallPlan <$> populateCacheAction sourceDependencyCache missing reusable `shouldBe` Right missing
 
     it "stores hashes of add-source dependencies in the cache" $ do
       let missing = [Package "foo" (Version "0.1.0" $ Just "foo-hash")]
           reusable = [CachedPackage (Package "bar" (Version "0.2.0" $ Just "bar-hash")) "bar.conf"]
-      populateCacheActionWriteAddSourceHashes <$> populateCacheAction addSourceCache missing reusable `shouldBe`
-        Right [AddSource "foo" "foo-hash", AddSource "bar" "bar-hash"]
+      populateCacheActionWriteAddSourceHashes <$> populateCacheAction sourceDependencyCache missing reusable `shouldBe`
+        Right [SourceDependency "foo" "foo-hash", SourceDependency "bar" "bar-hash"]
 
     context "when list of missing packages is empty" $ do
       let missing = []
       it "returns reusable packages" $ do
         let reusable = [CachedPackage (Package "foo" "0.1.0") "foo.conf", CachedPackage (Package "bar" "0.2.0") "bar.conf"]
-        populateCacheAction addSourceCache missing reusable `shouldBe` Left reusable
+        populateCacheAction sourceDependencyCache missing reusable `shouldBe` Left reusable
 
   describe "populateCache" $ do
     let cabalSandboxInit = ("cabal", ["sandbox", "init"], touch ".cabal-sandbox/x86_64-linux-ghc-7.8.4-packages.conf.d/package.cache")
@@ -126,29 +126,29 @@ spec = do
     it "uses add-source dependencies" $
       inTempDirectory $ do
         withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
-          withSystemTempDirectory "tinc" $ \ (Path -> addSourceCache) -> do
+          withSystemTempDirectory "tinc" $ \ (Path -> sourceDependencyCache) -> do
             let mockedCallProcess command args = stub [cabalSandboxInit, cabalAddSource, cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
-                    cabalAddSource = ("cabal", ["sandbox", "add-source", path addSourceCache </> "foo" </> "abc"], writeFile "add-source" "foo")
+                    cabalAddSource = ("cabal", ["sandbox", "add-source", path sourceDependencyCache </> "foo" </> "abc"], writeFile "add-source" "foo")
                     cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], (readFile "add-source" `shouldReturn` "foo") >> writeFile "install" "bar")
                     recache = ("ghc-pkg", ["--no-user-package-conf", "recache", "--package-conf", packageDb], return ())
 
                 mockedEnv = env {envReadProcess = dummy "envReadProcess", envCallProcess = mockedCallProcess}
             _ <- withEnv mockedEnv $
-              populateCache cache addSourceCache [Package "foo" "0.1.0"{versionAddSourceHash = Just "abc"}] []
+              populateCache cache sourceDependencyCache [Package "foo" "0.1.0"{versionAddSourceHash = Just "abc"}] []
             [sandbox] <- listSandboxes cache
             readFile (path sandbox </> "install") `shouldReturn` "bar"
 
     it "stores hashes of add-source dependencies in the cache" $
       inTempDirectory $ do
         withSystemTempDirectory "tinc" $ \ (Path -> cache) -> do
-          withSystemTempDirectory "tinc" $ \ (Path -> addSourceCache) -> do
+          withSystemTempDirectory "tinc" $ \ (Path -> sourceDependencyCache) -> do
             let mockedCallProcess command args = stub [cabalSandboxInit, cabalAddSource "foo/abc", cabalAddSource "bar/def", cabalInstall, recache] command args
                   where
                     packageDb = atDef "/path/to/some/tmp/dir" args 3
                     cabalAddSource packageCachePath =
-                      ("cabal", ["sandbox", "add-source", path addSourceCache </> packageCachePath], return ())
+                      ("cabal", ["sandbox", "add-source", path sourceDependencyCache </> packageCachePath], return ())
                     cabalInstall = ("cabal", ["install", "--bindir=$prefix/bin/$pkgid", "foo-0.1.0"], return ())
                     recache = ("ghc-pkg", ["--no-user-package-conf", "recache", "--package-conf", packageDb], return ())
 
@@ -156,12 +156,12 @@ spec = do
             let barPackageConfig = Path (path cache </> "foo")
             touch $ path barPackageConfig
             _ <- withEnv mockedEnv $
-              populateCache cache addSourceCache
+              populateCache cache sourceDependencyCache
                 [Package "foo" "0.1.0"{versionAddSourceHash = Just "abc"}]
                 [CachedPackage (Package "bar" "0.1.0"{versionAddSourceHash = Just "def"}) barPackageConfig]
             [sandbox] <- listSandboxes cache
             packageDb <- findPackageDb sandbox
-            readAddSourceHashes packageDb `shouldReturn` [AddSource "foo" "abc", AddSource "bar" "def"]
+            readAddSourceHashes packageDb `shouldReturn` [SourceDependency "foo" "abc", SourceDependency "bar" "def"]
 
     context "when list of missing packages is empty" $ do
       it "returns reusable packages" $ do

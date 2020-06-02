@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9228008be7d5ad1d50e3eac816cd6c090eae43862ef583d34d78204f5cadfb88
+-- hash: d5c81f8518229197883868fd51d3569bfe8ab94b97e6c6371d7068b437f0b4a6
 
 name:           tinc
 version:        0.1.0
@@ -57,7 +57,6 @@ executable tinc
     , yaml
   other-modules:
       Run
-      Tinc.AddSource
       Tinc.Cabal
       Tinc.Cache
       Tinc.Config
@@ -74,6 +73,7 @@ executable tinc
       Tinc.Process
       Tinc.RecentCheck
       Tinc.Sandbox
+      Tinc.SourceDependency
       Tinc.Types
       Util
       Paths_tinc
@@ -118,7 +118,6 @@ test-suite spec
     , yaml
   other-modules:
       Run
-      Tinc.AddSource
       Tinc.Cabal
       Tinc.Cache
       Tinc.Config
@@ -135,6 +134,7 @@ test-suite spec
       Tinc.Process
       Tinc.RecentCheck
       Tinc.Sandbox
+      Tinc.SourceDependency
       Tinc.Types
       Util
       All
@@ -144,7 +144,6 @@ test-suite spec
       RunSpec
       Test.Mockery.Action
       Test.Mockery.ActionSpec
-      Tinc.AddSourceSpec
       Tinc.CacheSpec
       Tinc.ConfigSpec
       Tinc.FactsSpec
@@ -157,6 +156,7 @@ test-suite spec
       Tinc.PackageSpec
       Tinc.RecentCheckSpec
       Tinc.SandboxSpec
+      Tinc.SourceDependencySpec
       UtilSpec
       Paths_tinc
   default-language: Haskell2010

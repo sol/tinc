@@ -14,13 +14,13 @@ import           Data.Version (makeVersion)
 import           System.Directory hiding (withCurrentDirectory)
 import           System.FilePath
 
-import           Hpack.Config (DependencyVersion(..))
+import qualified Hpack.Config as Hpack
 import           GHC.Exts
 
 import           Tinc.Facts
 import           Tinc.Install
 import           Tinc.Package
-import           Tinc.AddSource
+import           Tinc.SourceDependency
 import           Tinc.Types
 import           Util
 
@@ -35,14 +35,14 @@ writeCabalFile name version dependencies = do
     , "  build-depends: " ++ intercalate ", " dependencies
     ]
 
-createCachedAddSourceDependency :: Path AddSourceCache -> AddSource -> String -> IO FilePath
-createCachedAddSourceDependency addSourceCache AddSource{..} version = do
+createCachedSourceDependency :: Path SourceDependencyCache -> SourceDependency -> String -> IO FilePath
+createCachedSourceDependency sourceDependencyCache SourceDependency{..} version = do
   createDirectoryIfMissing True dependencyPath
   withCurrentDirectory dependencyPath $ do
-    writeCabalFile addSourcePackageName version []
+    writeCabalFile sourceDependencyPackageName version []
   return dependencyPath
   where
-    dependencyPath = path addSourceCache </> addSourcePackageName </> addSourceHash
+    dependencyPath = path sourceDependencyCache </> sourceDependencyPackageName </> sourceDependencyHash
 
 spec :: Spec
 spec = do
@@ -78,11 +78,11 @@ spec = do
         let name = "setenv"
             version = "0.1.1.2"
             hash = "fc2b9dbb754edcc14b0d9fa21201d67bc00794ec"
-            cachedDependency = AddSource name hash
-            addSourceCache = Path (sandbox </> "add-source-cache")
+            cachedDependency = SourceDependency name hash
+            sourceDependencyCache = Path (sandbox </> "add-source-cache")
             dependency = Package name (Version version $ Just hash)
 
-        dependencyPath <- createCachedAddSourceDependency addSourceCache cachedDependency version
+        dependencyPath <- createCachedSourceDependency sourceDependencyCache cachedDependency version
 
         let cabalInstallResult = readFile "cabal-output"
         let ?mockedCallProcess = stub [
@@ -90,7 +90,7 @@ spec = do
               , ("cabal", ["sandbox", "add-source", dependencyPath], writeFile "cabal-output" $ mkCabalInstallOutput [showPackage dependency])
               ]
             ?mockedReadProcess = stub ("cabal", ["install", "--dry-run", "--only-dependencies", "--enable-tests", "--constraint=setenv == 0.1.0"], "", cabalInstallResult)
-        withMockedEnv (cabalInstallPlan facts {factsAddSourceCache = addSourceCache} mempty [(cachedDependency, makeVersion [0,1,0])]) `shouldReturn` [dependency]
+        withMockedEnv (cabalInstallPlan facts {factsSourceDependencyCache = sourceDependencyCache} mempty [(cachedDependency, makeVersion [0,1,0])]) `shouldReturn` [dependency]
 
   describe "copyFreezeFile" $ do
     it "copies freeze file" $ do
@@ -109,7 +109,7 @@ spec = do
     context "when there are additional dependencies" $ do
       it "generates a cabal file" $ do
         inTempDirectory $ do
-          generateCabalFile (fromList [("foo", AnyVersion)]) `shouldReturn` ("tinc-generated.cabal", unlines [
+          generateCabalFile (fromList [("foo", Hpack.AnyVersion)]) `shouldReturn` ("tinc-generated.cabal", unlines [
               "cabal-version: >= 1.10"
             , "name: tinc-generated"
             , "version: 0.0.0"
@@ -144,7 +144,7 @@ spec = do
             , "library:"
             , "  dependencies: foo"
             ]
-          generateCabalFile (fromList [("bar", AnyVersion)]) `shouldReturn` ("foo.cabal", unlines [
+          generateCabalFile (fromList [("bar", Hpack.AnyVersion)]) `shouldReturn` ("foo.cabal", unlines [
               "cabal-version: 1.12"
             , ""
             , "name: foo"
@@ -175,7 +175,7 @@ spec = do
         it "ignores them (for now)" $ do
           inTempDirectory $ do
             writeFile "foo.cabal" "foo"
-            generateCabalFile (fromList [("foo", AnyVersion)]) `shouldReturn` ("foo.cabal", "foo")
+            generateCabalFile (fromList [("foo", Hpack.AnyVersion)]) `shouldReturn` ("foo.cabal", "foo")
 
     context "when there are multiple cabal files" $ do
       it "fails" $ do

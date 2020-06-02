@@ -36,7 +36,7 @@ import           Tinc.GhcPkg
 import           Tinc.Package
 import           Tinc.Process
 import           Tinc.Types
-import           Tinc.AddSource
+import           Tinc.SourceDependency
 
 data PackageConfig
 
@@ -48,13 +48,13 @@ currentDirectory = "."
 touchPackageCache :: Path PackageDb -> IO ()
 touchPackageCache packageDb = touchFile (path packageDb </> "package.cache")
 
-initSandbox :: (MonadIO m, Fail m, MonadProcess m) => [Path AddSource] -> [Path PackageConfig] -> m (Path PackageDb)
-initSandbox addSourceDependencies packageConfigs = do
+initSandbox :: (MonadIO m, Fail m, MonadProcess m) => [Path SourceDependency] -> [Path PackageConfig] -> m (Path PackageDb)
+initSandbox sourceDependencies packageConfigs = do
   deleteSandbox
   callProcessM "cabal" ["sandbox", "init"]
   packageDb <- findPackageDb currentDirectory
   registerPackageConfigs packageDb packageConfigs
-  mapM_ (\ dep -> callProcessM "cabal" ["sandbox", "add-source", path dep]) addSourceDependencies
+  mapM_ (\ dep -> callProcessM "cabal" ["sandbox", "add-source", path dep]) sourceDependencies
   liftIO $ createDirectoryIfMissing False cabalSandboxBinDirectory
   return packageDb
 

@@ -20,7 +20,7 @@ facts :: Facts
 facts = Facts {
   factsCache = error "factsCache"
 , factsGitCache = error "factsGitCache"
-, factsAddSourceCache = error "factsAddSoruceCache"
+, factsSourceDependencyCache = error "factsAddSoruceCache"
 , factsNixCache = error "factsNixCache"
 , factsUseNix = False
 , factsNixResolver = Nothing

@@ -32,7 +32,7 @@ import           System.IO
 import           Tinc.Facts
 import           Tinc.Package
 import           Tinc.Types
-import           Tinc.AddSource
+import           Tinc.SourceDependency
 import           Util
 
 type NixExpression = String
@@ -67,7 +67,7 @@ nixShell command args = ("nix-shell", [shellFile, "--run", unwords $ command : m
 
 createDerivations :: Facts -> [Package] -> IO ()
 createDerivations facts@Facts{..} dependencies = do
-  mapM_ (populateCache factsAddSourceCache factsNixCache) dependencies
+  mapM_ (populateCache factsSourceDependencyCache factsNixCache) dependencies
   pkgDerivation <- cabalToNix "."
 
   let knownHaskellDependencies = map packageName dependencies
@@ -76,15 +76,15 @@ createDerivations facts@Facts{..} dependencies = do
   writeFile defaultFile defaultDerivation
   writeFile shellFile shellDerivation
 
-populateCache :: Path AddSourceCache -> Path NixCache -> Package -> IO ()
-populateCache addSourceCache cache pkg = do
+populateCache :: Path SourceDependencyCache -> Path NixCache -> Package -> IO ()
+populateCache sourceDependencyCache cache pkg = do
   _ <- cachedIO (derivationFile cache pkg) $ disableDocumentation . disableTests <$> go
   return ()
   where
     go = case pkg of
       Package _ (Version _ Nothing) -> cabalToNix ("cabal://" ++ showPackage pkg)
       Package name (Version _ (Just ref)) -> do
-        let p = path . addSourcePath addSourceCache $ AddSource name ref
+        let p = path . sourceDependencyPath sourceDependencyCache $ SourceDependency name ref
         canonicalizePath p >>= cabalToNix
 
 disable :: String -> NixExpression -> NixExpression

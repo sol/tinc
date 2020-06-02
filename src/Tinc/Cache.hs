@@ -40,7 +40,7 @@ import           Tinc.Package
 import           Tinc.PackageGraph
 import           Tinc.Process
 import           Tinc.Sandbox
-import           Tinc.AddSource
+import           Tinc.SourceDependency
 import           Tinc.Types
 import           Util
 
@@ -97,7 +97,7 @@ readPackageGraph globalPackages globalPackageDb packageDb = do
 addSourceHashesFile :: FilePath
 addSourceHashesFile = "add-source.yaml"
 
-readAddSourceHashes :: Path PackageDb -> IO [AddSource]
+readAddSourceHashes :: Path PackageDb -> IO [SourceDependency]
 readAddSourceHashes packageDb = do
   let file = path packageDb </> addSourceHashesFile
   exists <- doesFileExist file
@@ -105,7 +105,7 @@ readAddSourceHashes packageDb = do
     then decodeFileEither file >>= either (dieLoc . show) return
     else return []
 
-writeAddSourceHashes :: Path PackageDb -> [AddSource] -> IO ()
+writeAddSourceHashes :: Path PackageDb -> [SourceDependency] -> IO ()
 writeAddSourceHashes packageDb addSourceHashes
   | null addSourceHashes = return ()
   | otherwise = do
@@ -124,8 +124,8 @@ addAddSourceHashes packageDb graph = do
   hashes <- mkMap <$> readAddSourceHashes packageDb
   return $ mapIndex (addAddSourceHash hashes) graph
   where
-    mkMap :: [AddSource] -> Map.Map String String
-    mkMap hashes = Map.fromList (map (\ (AddSource name hash) -> (name, hash)) hashes)
+    mkMap :: [SourceDependency] -> Map.Map String String
+    mkMap hashes = Map.fromList (map (\ (SourceDependency name hash) -> (name, hash)) hashes)
 
 readCache :: GhcInfo -> Path CacheDir -> IO Cache
 readCache ghcInfo cacheDir = do
@@ -150,27 +150,27 @@ listSandboxes (Path cacheDir) = map Path <$> listEntries
 
 data PopulateCacheAction = PopulateCacheAction {
   populateCacheActionInstallPlan :: [Package]
-, populateCacheActionAddSource :: [Path AddSource]
-, populateCacheActionWriteAddSourceHashes :: [AddSource]
+, populateCacheActionAddSource :: [Path SourceDependency]
+, populateCacheActionWriteAddSourceHashes :: [SourceDependency]
 } deriving (Eq, Show)
 
-populateCacheAction :: Path AddSourceCache -> [Package] -> [CachedPackage] -> Either [CachedPackage] PopulateCacheAction
-populateCacheAction addSourceCache missing reusable
+populateCacheAction :: Path SourceDependencyCache -> [Package] -> [CachedPackage] -> Either [CachedPackage] PopulateCacheAction
+populateCacheAction sourceDependencyCache missing reusable
   | null missing = Left reusable
   | otherwise = Right PopulateCacheAction {
     populateCacheActionInstallPlan = installPlan
   , populateCacheActionAddSource = addSource
-  , populateCacheActionWriteAddSourceHashes = [AddSource name hash | Package name (Version _ (Just hash)) <- (missing ++ map cachedPackageName reusable)]
+  , populateCacheActionWriteAddSourceHashes = [SourceDependency name hash | Package name (Version _ (Just hash)) <- (missing ++ map cachedPackageName reusable)]
   }
   where
     installPlan :: [Package]
     installPlan = missing ++ [p | p@(Package _ (Version _ Nothing)) <- map cachedPackageName reusable]
 
-    addSource :: [Path AddSource]
-    addSource = map (addSourcePath addSourceCache) [AddSource name hash | Package name (Version _ (Just hash)) <- missing]
+    addSource :: [Path SourceDependency]
+    addSource = map (sourceDependencyPath sourceDependencyCache) [SourceDependency name hash | Package name (Version _ (Just hash)) <- missing]
 
-populateCache :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Path CacheDir -> Path AddSourceCache -> [Package] -> [CachedPackage] -> m [CachedPackage]
-populateCache cacheDir addSourceCache missing reusable = either return populate (populateCacheAction addSourceCache missing reusable)
+populateCache :: (MonadIO m, MonadMask m, Fail m, MonadProcess m) => Path CacheDir -> Path SourceDependencyCache -> [Package] -> [CachedPackage] -> m [CachedPackage]
+populateCache cacheDir sourceDependencyCache missing reusable = either return populate (populateCacheAction sourceDependencyCache missing reusable)
   where
     populate PopulateCacheAction{..} = do
       sandbox <- liftIO $ newCacheEntry cacheDir

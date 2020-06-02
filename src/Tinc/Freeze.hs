@@ -25,7 +25,7 @@ import           System.Directory
 
 import           Tinc.Fail
 import           Tinc.Package
-import           Tinc.AddSource
+import           Tinc.SourceDependency
 
 type Constraint = String
 
@@ -71,15 +71,15 @@ toDependency (Package n (Version v _)) = Dependency {name =  n, version = v}
 toConstraint :: Dependency -> Constraint
 toConstraint (Dependency n v) = "--constraint=" ++ n ++ " == " ++ v
 
-readFreezeFile :: [AddSource] -> IO [Constraint]
-readFreezeFile (map addSourcePackageName -> addSourceDependencies) = do
+readFreezeFile :: [SourceDependency] -> IO [Constraint]
+readFreezeFile (map sourceDependencyPackageName -> sourceDependencies) = do
   exists <- doesFileExist freezeFile
   if exists
     then decodeYaml freezeFile >>=
       (either die (return . map toConstraint . removeAddSourceDependencies . dependencies)) . (>>= parseEither parseJSON . snd)
     else return []
   where
-    removeAddSourceDependencies = filter ((`notElem` addSourceDependencies) . name)
+    removeAddSourceDependencies = filter ((`notElem` sourceDependencies) . name)
 
-addSourceConstraint :: AddSourceWithVersion -> Constraint
-addSourceConstraint (AddSource n _, v) = toConstraint (Dependency n $ showVersion v)
+addSourceConstraint :: SourceDependencyWithVersion -> Constraint
+addSourceConstraint (SourceDependency n _, v) = toConstraint (Dependency n $ showVersion v)

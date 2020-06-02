@@ -2,10 +2,10 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-module Tinc.AddSourceSpec (spec) where
+module Tinc.SourceDependencySpec (spec) where
 
 import           Helper
-import           Hpack.Config as Hpack hiding (Local)
+import qualified Hpack.Config as Hpack
 import           Data.Tree
 import           Data.Version
 import           System.Directory
@@ -17,36 +17,36 @@ import           GHC.Fingerprint
 
 import           Test.Mockery.Action
 import           Tinc.Types
-import           Tinc.AddSource
+import           Tinc.SourceDependency
 
 spec :: Spec
 spec = do
   describe "mapLocalDependencyToGitDependency" $ do
     context "with a git dependency" $ do
       it "is the identity" $ do
-        let dep = AddSourceDependency "bar" (Git "sol/bar" "some-rev" Nothing) :: AddSourceDependency Ref
+        let dep = HpackSourceDependency "bar" (Git "sol/bar" "some-rev" Nothing) :: HpackSourceDependency Ref
         mapLocalDependencyToGitDependency undefined dep `shouldBe` dep
 
     context "with a local dependency" $ do
-      let dep = AddSourceDependency "bar" (Local "./bar") :: AddSourceDependency Ref
+      let dep = HpackSourceDependency "bar" (Local "./bar") :: HpackSourceDependency Ref
       context "when source is Git" $ do
         it "maps the local dependency to a git dependency" $ do
           let
             source = Git "sol/foo" "some-rev" Nothing
-            expected = AddSourceDependency "bar" (Git "sol/foo" "some-rev" (Just "bar"))
+            expected = HpackSourceDependency "bar" (Git "sol/foo" "some-rev" (Just "bar"))
           mapLocalDependencyToGitDependency source dep `shouldBe` expected
 
         it "takes the subdir of the git dependency into account" $ do
           let
             source = Git "sol/foo" "some-rev" (Just "foo")
-            expected = AddSourceDependency "bar" (Git "sol/foo" "some-rev" (Just "foo/bar"))
+            expected = HpackSourceDependency "bar" (Git "sol/foo" "some-rev" (Just "foo/bar"))
           mapLocalDependencyToGitDependency source dep `shouldBe` expected
 
       context "when source is Local" $ do
         it "makes the path of the dependency relative to the source" $ do
           let
             source = Local "../packages/foo"
-            expected = AddSourceDependency "bar" (Local "../packages/foo/bar")
+            expected = HpackSourceDependency "bar" (Local "../packages/foo/bar")
           mapLocalDependencyToGitDependency source dep `shouldBe` expected
 
   describe "parseAddSourceDependencies" $ do
@@ -60,7 +60,7 @@ spec = do
           , "  - bar"
           , "library: {}"
           ]
-        parseAddSourceDependencies [] `shouldReturn` [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
+        parseAddSourceDependencies [] `shouldReturn` [HpackSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
 
     it "extracts local dependencies" $ do
       inTempDirectory $ do
@@ -71,12 +71,12 @@ spec = do
           , "  - bar"
           , "library: {}"
           ]
-        parseAddSourceDependencies [] `shouldReturn` [AddSourceDependency "foo" (Local "../foo")]
+        parseAddSourceDependencies [] `shouldReturn` [HpackSourceDependency "foo" (Local "../foo")]
 
     it "extracts git dependencies from list of additional dependencies " $ do
       inTempDirectory $ do
-        parseAddSourceDependencies [("foo", SourceDependency $ GitRef "https://github.com/sol/hpack" "master" Nothing), ("bar", AnyVersion)] `shouldReturn`
-          [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
+        parseAddSourceDependencies [("foo", Hpack.SourceDependency $ Hpack.GitRef "https://github.com/sol/hpack" "master" Nothing), ("bar", Hpack.AnyVersion)] `shouldReturn`
+          [HpackSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
 
     context "when both source dependencies and regular dependencies are present" $ do
       it "gives source dependencies precedence" $ do
@@ -98,7 +98,7 @@ spec = do
             , "    dependencies:"
             , "      - foo"
             ]
-          parseAddSourceDependencies [] `shouldReturn` [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
+          parseAddSourceDependencies [] `shouldReturn` [HpackSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
 
     context "when the same git dependency is specified in both package.yaml and tinc.yaml" $ do
       it "gives tinc.yaml precedence" $ do
@@ -111,8 +111,8 @@ spec = do
             , "  - bar"
             , "library: {}"
             ]
-          parseAddSourceDependencies [("foo", SourceDependency $ GitRef "https://github.com/sol/hpack" "dev" Nothing), ("bar", AnyVersion)] `shouldReturn`
-            [AddSourceDependency "foo" (Git "https://github.com/sol/hpack" "dev" Nothing)]
+          parseAddSourceDependencies [("foo", Hpack.SourceDependency $ Hpack.GitRef "https://github.com/sol/hpack" "dev" Nothing), ("bar", Hpack.AnyVersion)] `shouldReturn`
+            [HpackSourceDependency "foo" (Git "https://github.com/sol/hpack" "dev" Nothing)]
 
     context "when package.yaml can not be parsed" $ do
       it "throws an exception" $ do
@@ -128,7 +128,7 @@ spec = do
         inTempDirectory $ do
           parseAddSourceDependencies [] `shouldReturn` []
 
-  describe "populateAddSourceCache_impl" $ around_ inTempDirectory $ do
+  describe "populateSourceDependencyCache" $ around_ inTempDirectory $ do
     let
       name = "hpack"
       url = "https://github.com/sol/hpack"
@@ -139,14 +139,14 @@ spec = do
         let
           gitDependency = Git url (CachedRev rev) subdir
 
-          cache :: Path AddSourceCache
+          cache :: Path SourceDependencyCache
           cache = "add-source"
 
           gitCache :: Path GitCache
           gitCache = "git-cache"
 
-          cachedGitDependency = AddSource name cacheKey
-          cachedGitDependencyPath = addSourcePath cache cachedGitDependency
+          cachedGitDependency = SourceDependency name cacheKey
+          cachedGitDependencyPath = sourceDependencyPath cache cachedGitDependency
 
         context "when a revision is not yet in the cache" $ do
           it "adds the revision to the cache" $ do
@@ -154,14 +154,14 @@ spec = do
             touch file
             writeFile file "name: hpack\nversion: 0.1.0"
 
-            populateAddSourceCache_impl gitCache cache (AddSourceDependency name gitDependency)
+            populateSourceDependencyCache gitCache cache (HpackSourceDependency name gitDependency)
               `shouldReturn` cachedGitDependency
             doesDirectoryExist (path cachedGitDependencyPath) `shouldReturn` True
 
         context "when a revision is already in the cache" $ do
           it "does nothing" $ do
             touch (path cachedGitDependencyPath </> ".placeholder")
-            populateAddSourceCache_impl gitCache cache (AddSourceDependency name gitDependency)
+            populateSourceDependencyCache gitCache cache (HpackSourceDependency name gitDependency)
               `shouldReturn` cachedGitDependency
 
     context "without subdir" $ do
@@ -266,14 +266,14 @@ spec = do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
           writeFile cabalFile "name: foo\nversion: 0.1.0"
-          checkCabalName dir (AddSourceDependency "foo" $ Git "<url>" () Nothing)
+          checkCabalName dir (HpackSourceDependency "foo" $ Git "<url>" () Nothing)
 
     context "when git dependency name and cabal package name differ" $ do
       it "fails" $ do
         withSystemTempDirectory "tinc" $ \ dir -> do
           let cabalFile = dir </> "foo.cabal"
           writeFile cabalFile "name: foo\nversion: 0.1.0"
-          checkCabalName dir (AddSourceDependency "bar" $ Git "<url>" () Nothing)
+          checkCabalName dir (HpackSourceDependency "bar" $ Git "<url>" () Nothing)
             `shouldThrow` errorCall "the git repository <url> contains package \"foo\", expected: \"bar\""
 
   describe "parseCabalFile" $ do
@@ -310,11 +310,11 @@ spec = do
 
   describe "removeDuplicates" $ do
     let
-      foo hash = (AddSource "foo" hash, ())
+      foo hash = (SourceDependency "foo" hash, ())
       foo1 = foo "foo-hash1"
       foo2 = foo "foo-hash2"
-      bar = (AddSource "bar" "bar-hash", ())
-      baz = (AddSource "baz" "baz-hash", ())
+      bar = (SourceDependency "bar" "bar-hash", ())
+      baz = (SourceDependency "baz" "baz-hash", ())
 
     it "removes duplicates" $ do
       removeDuplicates [Node foo1 [], Node foo2 []] `shouldBe` [foo1]
