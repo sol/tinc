@@ -1,10 +1,8 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.32.0.
+-- This file has been generated from package.yaml by hpack version 0.34.2.
 --
 -- see: https://github.com/sol/hpack
---
--- hash: d5c81f8518229197883868fd51d3569bfe8ab94b97e6c6371d7068b437f0b4a6
 
 name:           tinc
 version:        0.1.0
