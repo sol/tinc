@@ -1,6 +1,6 @@
 dependencies:
 - name: aeson
-  version: 1.4.7.1
+  version: 1.5.1.0
 - name: ansi-terminal
   version: 0.10.3
 - name: asn1-encoding
@@ -9,6 +9,8 @@ dependencies:
   version: 0.9.5
 - name: asn1-types
   version: 0.3.4
+- name: assoc
+  version: 1.0.1
 - name: async
   version: 2.2.2
 - name: attoparsec
@@ -29,6 +31,8 @@ dependencies:
   version: 0.4.1.0
 - name: byteable
   version: 0.1.1
+- name: Cabal
+  version: 3.2.0.0
 - name: cabal-doctest
   version: 1.0.8
 - name: call-stack
@@ -80,7 +84,7 @@ dependencies:
 - name: hourglass
   version: 0.2.12
 - name: hpack
-  version: 0.30.0
+  version: 0.34.2
 - name: hspec
   version: 2.7.1
 - name: hspec-core
@@ -92,7 +96,7 @@ dependencies:
 - name: hspec-smallcheck
   version: 0.5.2
 - name: http-client
-  version: 0.6.4.1
+  version: 0.7.0
 - name: http-client-tls
   version: 0.3.5.3
 - name: http-types
@@ -142,7 +146,7 @@ dependencies:
 - name: resourcet
   version: 1.2.4
 - name: safe
-  version: 0.3.18
+  version: 0.3.19
 - name: scientific
   version: 0.3.6.2
 - name: semigroupoids
@@ -158,7 +162,7 @@ dependencies:
 - name: split
   version: 0.2.3.4
 - name: splitmix
-  version: 0.0.4
+  version: 0.0.5
 - name: StateVar
   version: '1.2'
 - name: stm
@@ -193,6 +197,8 @@ dependencies:
   version: 0.1.9
 - name: th-utilities
   version: 0.2.4.0
+- name: these
+  version: '1.1'
 - name: time-compat
   version: 1.9.3
 - name: tls
@@ -224,6 +230,6 @@ dependencies:
 - name: x509-validation
   version: 1.6.11
 - name: yaml
-  version: 0.11.3.0
+  version: 0.11.4.0
 - name: zlib
   version: 0.6.2.1

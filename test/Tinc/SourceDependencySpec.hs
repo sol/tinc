@@ -2,7 +2,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-module Tinc.SourceDependencySpec (spec) where
+module Tinc.SourceDependencySpec (spec, anyVersion) where
 
 import           Helper
 import qualified Hpack.Config as Hpack
@@ -18,6 +18,12 @@ import           GHC.Fingerprint
 import           Test.Mockery.Action
 import           Tinc.Types
 import           Tinc.SourceDependency
+
+anyVersion :: Hpack.DependencyInfo
+anyVersion = Hpack.DependencyInfo [] $ Hpack.DependencyVersion Nothing Hpack.AnyVersion
+
+sourceDependency :: Hpack.GitUrl -> Hpack.GitRef -> Hpack.DependencyInfo
+sourceDependency url ref = Hpack.DependencyInfo [] $ Hpack.DependencyVersion (Just $ Hpack.GitRef url ref Nothing) Hpack.AnyVersion
 
 spec :: Spec
 spec = do
@@ -75,7 +81,7 @@ spec = do
 
     it "extracts git dependencies from list of additional dependencies " $ do
       inTempDirectory $ do
-        parseAddSourceDependencies [("foo", Hpack.SourceDependency $ Hpack.GitRef "https://github.com/sol/hpack" "master" Nothing), ("bar", Hpack.AnyVersion)] `shouldReturn`
+        parseAddSourceDependencies [("foo", sourceDependency "https://github.com/sol/hpack" "master"), ("bar", anyVersion)] `shouldReturn`
           [HpackSourceDependency "foo" (Git "https://github.com/sol/hpack" "master" Nothing)]
 
     context "when both source dependencies and regular dependencies are present" $ do
@@ -111,7 +117,7 @@ spec = do
             , "  - bar"
             , "library: {}"
             ]
-          parseAddSourceDependencies [("foo", Hpack.SourceDependency $ Hpack.GitRef "https://github.com/sol/hpack" "dev" Nothing), ("bar", Hpack.AnyVersion)] `shouldReturn`
+          parseAddSourceDependencies [("foo", sourceDependency "https://github.com/sol/hpack" "dev"), ("bar", anyVersion)] `shouldReturn`
             [HpackSourceDependency "foo" (Git "https://github.com/sol/hpack" "dev" Nothing)]
 
     context "when package.yaml can not be parsed" $ do

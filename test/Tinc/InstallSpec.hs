@@ -14,8 +14,9 @@ import           Data.Version (makeVersion)
 import           System.Directory hiding (withCurrentDirectory)
 import           System.FilePath
 
-import qualified Hpack.Config as Hpack
 import           GHC.Exts
+
+import           Tinc.SourceDependencySpec (anyVersion)
 
 import           Tinc.Facts
 import           Tinc.Install
@@ -109,7 +110,7 @@ spec = do
     context "when there are additional dependencies" $ do
       it "generates a cabal file" $ do
         inTempDirectory $ do
-          generateCabalFile (fromList [("foo", Hpack.AnyVersion)]) `shouldReturn` ("tinc-generated.cabal", unlines [
+          generateCabalFile (fromList [("foo", anyVersion)]) `shouldReturn` ("tinc-generated.cabal", unlines [
               "cabal-version: >= 1.10"
             , "name: tinc-generated"
             , "version: 0.0.0"
@@ -144,7 +145,7 @@ spec = do
             , "library:"
             , "  dependencies: foo"
             ]
-          generateCabalFile (fromList [("bar", Hpack.AnyVersion)]) `shouldReturn` ("foo.cabal", unlines [
+          generateCabalFile (fromList [("bar", anyVersion)]) `shouldReturn` ("foo.cabal", unlines [
               "cabal-version: 1.12"
             , ""
             , "name: foo"
@@ -175,7 +176,7 @@ spec = do
         it "ignores them (for now)" $ do
           inTempDirectory $ do
             writeFile "foo.cabal" "foo"
-            generateCabalFile (fromList [("foo", Hpack.AnyVersion)]) `shouldReturn` ("foo.cabal", "foo")
+            generateCabalFile (fromList [("foo", anyVersion)]) `shouldReturn` ("foo.cabal", "foo")
 
     context "when there are multiple cabal files" $ do
       it "fails" $ do

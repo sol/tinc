@@ -4,7 +4,8 @@ module Tinc.ConfigSpec where
 
 import           Test.Hspec
 import           Test.Mockery.Directory
-import           Hpack.Config
+
+import           Tinc.SourceDependencySpec (anyVersion)
 
 import           Tinc.Config
 
@@ -17,7 +18,7 @@ spec = do
             "dependencies:"
           , "  - foo"
           ]
-        getAdditionalDependencies `shouldReturn` [("foo", AnyVersion)]
+        getAdditionalDependencies `shouldReturn` [("foo", anyVersion)]
 
     context "when tinc.yaml does not exist" $ do
       it "returns an empty list" $ do

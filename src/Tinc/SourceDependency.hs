@@ -179,15 +179,15 @@ addSourceDependenciesFrom sourceDependencyCache (HpackSourceDependency _ source,
     options = Hpack.defaultDecodeOptions {Hpack.decodeOptionsTarget = config}
     config = path (sourceDependencyPath sourceDependencyCache addSource) </> Hpack.packageConfig
 
-filterAddSource :: [(String, Hpack.DependencyVersion)] -> [HpackSourceDependency Ref]
-filterAddSource deps = [HpackSourceDependency name (toSource addSource) | (name, Hpack.SourceDependency addSource) <- deps]
+filterAddSource :: [(String, Hpack.DependencyInfo)] -> [HpackSourceDependency Ref]
+filterAddSource deps = [HpackSourceDependency name (toSource addSource) | (name, Hpack.DependencyInfo _ (Hpack.DependencyVersion (Just addSource) _)) <- deps]
   where
     toSource :: Hpack.SourceDependency -> Source Ref
     toSource x = case x of
       Hpack.GitRef repo ref subdir -> Git repo (Ref ref) subdir
       Hpack.Local dir -> Local dir
 
-parseAddSourceDependencies :: [(String, Hpack.DependencyVersion)] ->  IO [HpackSourceDependency Ref]
+parseAddSourceDependencies :: [(String, Hpack.DependencyInfo)] ->  IO [HpackSourceDependency Ref]
 parseAddSourceDependencies additionalDeps = do
   exists <- doesConfigExist
   packageDeps <- if exists
