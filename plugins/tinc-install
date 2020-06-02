@@ -6,7 +6,7 @@ SANDBOX=$(mktemp -d "${TMPDIR:-/tmp}"/tinc-XXXX)
 trap "rm -rf $SANDBOX" EXIT
 
 if [ $# -eq 0 ]; then
-  tarball=$(cabal sdist | grep -o "\S*\.tar\.gz")
+  tarball=$(cabal v1-sdist | grep -o "\S*\.tar\.gz")
   cp $tarball  $SANDBOX
   cd $SANDBOX
   tar xvf *.tar.gz
@@ -33,5 +33,5 @@ if [ "$TINC_USE_NIX" = "yes" ]; then
   NAME=`sed -rn '/pname/ s/.*"(.*)";/\1/p' package.nix`
   nix-env -i "$NAME" -f default.nix
 else
-  cabal install --prefix ~/.tinc ${1:-} # we pass $1 here, as a workaround for https://github.com/haskell/cabal/issues/4593
+  cabal v1-install --prefix ~/.tinc ${1:-} # we pass $1 here, as a workaround for https://github.com/haskell/cabal/issues/4593
 fi

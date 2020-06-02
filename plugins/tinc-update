@@ -2,6 +2,6 @@
 set -o nounset
 set -o errexit
 
-cabal update
+cabal v1-update
 rm -f tinc.freeze
 exec tinc
