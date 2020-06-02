@@ -47,7 +47,7 @@ callExec Facts{..} name args = do
   let
     cmd
       | factsUseNix = nixShell name args
-      | otherwise = ("cabal", "exec" : "--" : name : args)
+      | otherwise = ("cabal", "v1-exec" : "--" : name : args)
   uncurry rawSystemExit cmd
 
 callPlugin :: String -> [String] -> IO ()
