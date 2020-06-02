@@ -1,1 +1,1 @@
-:set -isrc -itest -DTEST
+:set -isrc -itest -idist/build/tinc/autogen -DTEST

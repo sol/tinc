@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           tinc
-version:        0.1.0
+version:        0.2.0
 category:       Development
 homepage:       https://github.com/sol/tinc#readme
 bug-reports:    https://github.com/sol/tinc/issues
@@ -41,7 +41,6 @@ executable tinc
     , exceptions
     , filelock
     , filepath
-    , gitrev
     , graph-wrapper >=0.2.5
     , hpack >=0.34.2
     , language-dot
@@ -98,7 +97,6 @@ test-suite spec
     , exceptions
     , filelock
     , filepath
-    , gitrev
     , graph-wrapper >=0.2.5
     , hpack >=0.34.2
     , hspec

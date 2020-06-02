@@ -1,5 +1,5 @@
 name: tinc
-version: 0.1.0
+version: 0.2.0
 category: Development
 license: MIT
 copyright:
@@ -33,7 +33,6 @@ dependencies:
   - bytestring
   - yaml
   - Cabal >= 2.0.0.2
-  - gitrev
   - unix-compat
   - call-stack
   - time

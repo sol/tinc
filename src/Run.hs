@@ -4,11 +4,13 @@ module Run where
 
 import           Control.Exception
 import           Control.Monad
-import           Development.GitRev
 import           System.Environment
 import           System.FileLock
 import           System.FilePath
 import           System.Process
+import           Data.Version (showVersion)
+
+import           Paths_tinc (version)
 
 import           Tinc.Install
 import           Tinc.Facts
@@ -37,7 +39,7 @@ tinc args = do
           installDependencies False facts
     ["--dry-run"] -> withCacheLock factsCache $
       installDependencies True facts
-    ["--version"] -> putStrLn $(gitHash)
+    ["--version"] -> putStrLn $ showVersion version
     "exec" : name : rest -> callExec facts name rest
     name : rest | Just plugin <- lookup name factsPlugins -> callPlugin plugin rest
     _ -> throwIO (ErrorCall $ "unrecognized arguments: " ++ show args)
