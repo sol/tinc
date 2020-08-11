@@ -259,7 +259,7 @@ isGitRev ref = length ref == 40 && all (`elem` "0123456789abcdef") ref
 cabalSdist :: FilePath -> FilePath -> IO ()
 cabalSdist sourceDirectory dst = do
   withCurrentDirectory sourceDirectory $ do
-    callProcessM "cabal" ["sdist", "--output-directory", dst]
+    callProcessM "cabal" ["v1-sdist", "--output-directory", dst]
 
 moveToSourceDependencyCache :: Path SourceDependencyCache -> FilePath -> HpackSourceDependency a -> SourceDependency -> IO ()
 moveToSourceDependencyCache cache src hpackDep dep = do
