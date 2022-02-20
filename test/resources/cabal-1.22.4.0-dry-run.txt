@@ -1,7 +1,0 @@
-Resolving dependencies...
-In order, the following would be installed (use -v for more details):
-base-compat-0.8.2
-base-orphans-0.3.2
-tagged-0.7.3 (latest: 0.8.0.1)
-generics-sop-0.1.1.2
-getopt-generics-0.6.3
